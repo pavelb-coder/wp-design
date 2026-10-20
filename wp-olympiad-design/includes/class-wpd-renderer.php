@@ -202,7 +202,8 @@ class WPD_Renderer
 
         $o = WPD_Settings::get();
 
-        $image = get_the_post_thumbnail_url($post_id, 'large');
+        // Если размера large нет (маленький оригинал или вложение без метаданных), берём оригинал.
+        $image = get_the_post_thumbnail_url($post_id, 'large') ?: get_the_post_thumbnail_url($post_id, 'full');
         $lead  = has_excerpt($post_id) ? get_the_excerpt($post_id) : '';
 
         $inner = self::hero_html($o, [
@@ -274,6 +275,9 @@ class WPD_Renderer
             return;
         }
         if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+        if (wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) {
             return;
         }
         if (!current_user_can('edit_post', $post_id)) {
