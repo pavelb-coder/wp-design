@@ -1,0 +1,8 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "landingPage": "/",
+  "preferredVersions": { "php": "7.4", "wp": "latest" },
+  "steps": [
+    { "step": "runPHP", "code": "<?php require '/wordpress/wp-load.php'; $r = activate_plugin('wp-olympiad-design/wp-olympiad-design.php'); echo is_wp_error($r) ? 'ERR '.$r->get_error_message() : 'ACTIVATED'; $id = wp_insert_post(['post_title'=>'Тестовая страница','post_content'=>'<p>Основной текст страницы.</p>','post_excerpt'=>'Вступление записи','post_status'=>'publish','post_type'=>'page']); update_post_meta($id,'_wpd_enabled',1); $id2 = wp_insert_post(['post_title'=>'Шорткод','post_content'=>'[wpd_page]','post_status'=>'publish','post_type'=>'page']); echo \" IDS $id $id2\";" }
+  ]
+}
