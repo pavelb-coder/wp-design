@@ -10,6 +10,12 @@ class WPD_Renderer
 {
     const META_KEY = '_wpd_enabled';
 
+    /** Шорткоды плагина: по ним определяем, нужен ли CSS на странице. */
+    const SHORTCODES = ['wpd_page', 'wpd_hero', 'wpd_stats', 'wpd_docs', 'wpd_faq', 'wpd_countdown'];
+
+    /** Минимум вопросов, при котором появляется поиск по FAQ. */
+    const FAQ_SEARCH_MIN = 4;
+
     public static function init(): void
     {
         add_shortcode('wpd_page', [__CLASS__, 'sc_page']);
@@ -17,6 +23,7 @@ class WPD_Renderer
         add_shortcode('wpd_stats', [__CLASS__, 'sc_stats']);
         add_shortcode('wpd_docs', [__CLASS__, 'sc_docs']);
         add_shortcode('wpd_faq', [__CLASS__, 'sc_faq']);
+        add_shortcode('wpd_countdown', [__CLASS__, 'sc_countdown']);
 
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue']);
         add_filter('the_content', [__CLASS__, 'filter_content'], 20);
@@ -33,7 +40,14 @@ class WPD_Renderer
     public static function sc_page(): string
     {
         $o = WPD_Settings::get();
-        return self::wrap(self::hero_html($o) . self::stats_html($o) . self::docs_html($o) . self::faq_html($o));
+        return self::wrap(self::hero_html($o) . self::countdown_html($o) . self::stats_html($o)
+            . self::docs_html($o) . self::faq_html($o));
+    }
+
+    public static function sc_countdown(): string
+    {
+        $html = self::countdown_html(WPD_Settings::get());
+        return $html === '' ? '' : self::wrap($html);
     }
 
     public static function sc_hero(): string
@@ -68,6 +82,9 @@ class WPD_Renderer
      */
     private static function wrap(string $inner): string
     {
+        // Страховка: если CSS не подключён заранее (шорткод в виджете, шаблоне), подключаем здесь.
+        self::enqueue_assets();
+
         $o = WPD_Settings::get();
         $vars = sprintf(
             '--wpd-primary:%s;--wpd-accent:%s;--wpd-dark:%s;--wpd-text:%s;--wpd-bg:%s;--wpd-radius:%dpx;--wpd-font:%s;',
@@ -94,7 +111,8 @@ class WPD_Renderer
         $lead  = array_key_exists('lead', $args) ? $args['lead'] : $o['hero_text'];
         $image = isset($args['image']) ? $args['image'] : $o['hero_image_url'];
 
-        $html  = '<section class="wpd-hero"><div class="wpd-hero__inner"><div class="wpd-hero__text">';
+        $style = in_array($o['hero_style'], ['dark', 'gradient', 'light'], true) ? $o['hero_style'] : 'dark';
+        $html  = '<section class="wpd-hero wpd-hero--' . $style . '"><div class="wpd-hero__inner"><div class="wpd-hero__text">';
 
         if ($o['badge'] !== '') {
             $html .= '<span class="wpd-badge">' . esc_html($o['badge']) . '</span>';
@@ -123,6 +141,42 @@ class WPD_Renderer
         return $html;
     }
 
+    /**
+     * Обратный отсчёт до даты события. Без JavaScript показывается сама дата.
+     */
+    private static function countdown_html(array $o): string
+    {
+        if (empty($o['countdown_enabled']) || $o['countdown_date'] === '') {
+            return '';
+        }
+
+        $tz = wp_timezone();
+        $dt = DateTime::createFromFormat('Y-m-d H:i|', $o['countdown_date'], $tz);
+        if (!$dt) {
+            return '';
+        }
+
+        $shown = wp_date(get_option('date_format') . ' H:i', $dt->getTimestamp(), $tz);
+
+        $html = '<div class="wpd-countdown" data-target="' . esc_attr($dt->format(DATE_ATOM)) . '"'
+            . ' data-done="' . esc_attr($o['countdown_done']) . '">';
+        if ($o['countdown_label'] !== '') {
+            $html .= '<p class="wpd-countdown__label">' . esc_html($o['countdown_label']) . '</p>';
+        }
+        return $html . '<p class="wpd-countdown__value">' . esc_html($shown) . '</p></div>';
+    }
+
+    /**
+     * Атрибуты для анимации: только значения вида «300», «300+» или «50%».
+     */
+    private static function count_attrs(string $value): string
+    {
+        if (!preg_match('/^(\d{1,7})([+%]?)$/', $value, $m)) {
+            return '';
+        }
+        return ' data-count="' . (int) $m[1] . '" data-suffix="' . esc_attr($m[2]) . '"';
+    }
+
     private static function stats_html(array $o): string
     {
         $items = WPD_Settings::parse_pairs($o['stats']);
@@ -132,8 +186,9 @@ class WPD_Renderer
 
         $html = '<section class="wpd-stats" aria-label="Ключевые цифры"><ul class="wpd-stats__grid">';
         foreach ($items as $item) {
+            $attrs = $o['stats_animate'] ? self::count_attrs($item['left']) : '';
             $html .= '<li class="wpd-stat">'
-                . '<span class="wpd-stat__num">' . esc_html($item['left']) . '</span>'
+                . '<span class="wpd-stat__num"' . $attrs . '>' . esc_html($item['left']) . '</span>'
                 . '<span class="wpd-stat__label">' . esc_html($item['right']) . '</span>'
                 . '</li>';
         }
@@ -172,8 +227,19 @@ class WPD_Renderer
             return '';
         }
 
-        $html = '<section class="wpd-faq"><h2 class="wpd-h2">' . esc_html($o['faq_title']) . '</h2>'
-            . '<div class="wpd-faq__list">';
+        $searchable = !empty($o['faq_search']) && count($items) >= self::FAQ_SEARCH_MIN;
+
+        $html = '<section class="wpd-faq"' . ($searchable ? ' data-wpd-search' : '') . '>'
+            . '<h2 class="wpd-h2">' . esc_html($o['faq_title']) . '</h2>';
+
+        if ($searchable) {
+            // hidden по умолчанию: без JavaScript поиск не показывается
+            $html .= '<input type="search" class="wpd-faq__search" placeholder="Поиск по вопросам"'
+                . ' aria-label="Поиск по вопросам" hidden>'
+                . '<p class="wpd-faq__empty" hidden>Ничего не найдено. Попробуйте другие слова.</p>';
+        }
+
+        $html .= '<div class="wpd-faq__list">';
 
         foreach ($items as $item) {
             $html .= '<details class="wpd-faq__item">'
@@ -211,6 +277,7 @@ class WPD_Renderer
             'lead'  => wp_strip_all_tags((string) $lead),
             'image' => $image ? $image : $o['hero_image_url'],
         ])
+        . self::countdown_html($o)
         . '<div class="wpd-content">' . $content . '</div>'
         . self::stats_html($o)
         . self::docs_html($o)
@@ -221,7 +288,11 @@ class WPD_Renderer
 
     public static function body_class(array $classes): array
     {
-        if (is_singular() && WPD_Settings::get()['hide_title'] && self::is_design_enabled(get_queried_object_id())) {
+        // Сначала дешёвая проверка мета-поля, настройки читаем только для оформленных страниц.
+        if (!is_singular() || !self::is_design_enabled(get_queried_object_id())) {
+            return $classes;
+        }
+        if (WPD_Settings::get()['hide_title']) {
             $classes[] = 'wpd-has-design';
         }
         return $classes;
@@ -293,6 +364,45 @@ class WPD_Renderer
 
     public static function enqueue(): void
     {
-        wp_enqueue_style('wpd-design', WPD_URL . 'assets/css/wpd.css', [], WPD_VERSION);
+        if (self::page_needs_assets()) {
+            self::enqueue_assets();
+        }
+    }
+
+    /**
+     * Нужен ли CSS на текущей странице: оформленная запись или запись с шорткодом плагина.
+     * Фильтр wpd_always_enqueue_assets позволяет подключать CSS на всех страницах.
+     */
+    private static function page_needs_assets(): bool
+    {
+        if (apply_filters('wpd_always_enqueue_assets', false)) {
+            return true;
+        }
+        if (!is_singular()) {
+            return false;
+        }
+        $post = get_queried_object();
+        if (!$post instanceof WP_Post) {
+            return false;
+        }
+        if (self::is_design_enabled((int) $post->ID)) {
+            return true;
+        }
+        foreach (self::SHORTCODES as $tag) {
+            if (has_shortcode($post->post_content, $tag)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function enqueue_assets(): void
+    {
+        if (!wp_style_is('wpd-design', 'enqueued')) {
+            wp_enqueue_style('wpd-design', WPD_URL . 'assets/css/wpd.css', [], WPD_VERSION);
+        }
+        if (!wp_script_is('wpd-design', 'enqueued')) {
+            wp_enqueue_script('wpd-design', WPD_URL . 'assets/js/wpd.js', [], WPD_VERSION, true);
+        }
     }
 }
