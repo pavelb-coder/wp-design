@@ -5,7 +5,7 @@ PASS=0; FAIL=0
 t() { if [ "$2" = "1" ]; then echo "PASS $1"; PASS=$((PASS+1)); else echo "FAIL $1"; FAIL=$((FAIL+1)); fi; }
 has() { grep -q -- "$2" "$1" && echo 1 || echo 0; }
 hasnot() { grep -q -- "$2" "$1" && echo 0 || echo 1; }
-fields() { grep -oE "name=[\"']wpd_settings\[[a-z_]+\]" "$1" | grep -v '\[_tab\]' | sed "s/'/\"/" | sort -u | wc -l | tr -d ' '; }
+fields() { grep -oE "name=[\"']wpd_settings\[[a-z0-9_]+\]" "$1" | grep -v '\[_tab\]' | sed "s/'/\"/" | sort -u | wc -l | tr -d ' '; }
 set_opt() { curl -s --max-time 60 "$B/wpd-set.php?json=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))' "$1")" > /dev/null; }
 
 rm -f cjG.txt
@@ -25,7 +25,7 @@ t "page: 13 tabs"                       "$([ "$(grep -oE 'class="nav-tab( nav-ta
 t "page: design tab active by default" "$(python3 -c "import re,sys;s=open('g_design.html',encoding='utf-8').read();print(1 if re.search(r'tab=design\"\s*class=\"nav-tab nav-tab-active\"',s) else 0)")"
 t "page: hidden _tab=design"           "$(has g_design.html 'name="wpd_settings\[_tab\]" value="design"')"
 
-declare -A EXPECT=([design]=9 [hero]=7 [features]=12 [stats]=1 [docs]=2 [faq]=2 [slider]=8 [buttons]=1 [cards]=2 [notice]=8 [news]=5 [contacts]=10 [help]=0)
+declare -A EXPECT=([design]=19 [hero]=18 [features]=12 [stats]=1 [docs]=2 [faq]=2 [slider]=8 [buttons]=1 [cards]=2 [notice]=8 [news]=5 [contacts]=10 [help]=0)
 for tab in design hero features stats docs faq slider buttons cards notice news contacts help; do
   get "/wp-admin/admin.php?page=wpd-settings&tab=$tab" "g_$tab.html"
   t "tab $tab: ${EXPECT[$tab]} fields"  "$([ "$(fields g_$tab.html)" = "${EXPECT[$tab]}" ] && echo 1 || echo 0)"

@@ -63,6 +63,7 @@ class WPD_Settings
     {
         return [
             'colors'   => 'Цвета и шрифт',
+            'look'     => 'Типографика и вид',
             'hero'     => 'Главный блок',
             'features' => 'Возможности',
             'stats'    => 'Статистика',
@@ -84,7 +85,7 @@ class WPD_Settings
     public static function tabs(): array
     {
         return [
-            'design'   => ['title' => 'Оформление', 'sections' => ['colors', 'behavior']],
+            'design'   => ['title' => 'Оформление', 'sections' => ['colors', 'look', 'behavior']],
             'hero'     => ['title' => 'Главный блок', 'sections' => ['hero']],
             'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features']],
             'stats'    => ['title' => 'Статистика', 'sections' => ['stats']],
@@ -143,6 +144,25 @@ class WPD_Settings
                            'default' => '-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                            'desc' => 'Например: Montserrat, Arial, sans-serif. Если шрифт нужен из Google Fonts, подключите его в теме.'],
 
+            // Типографика и вид (1.8.0)
+            'font_heading'  => ['label' => 'Шрифт заголовков (CSS font-family)', 'type' => 'font', 'section' => 'look', 'default' => '', 'allow_empty' => true,
+                                'desc' => 'Пусто — как основной шрифт. Например: Georgia, serif или Montserrat, sans-serif.'],
+            'font_size'     => ['label' => 'Размер основного текста, px', 'type' => 'number', 'section' => 'look', 'default' => 16, 'min' => 14, 'max' => 20],
+            'heading_color' => ['label' => 'Цвет заголовков', 'type' => 'color_opt', 'section' => 'look', 'default' => '',
+                                'desc' => 'Заголовки разделов, объявления и новостей. Пусто — цвет текста.'],
+            'content_width' => ['label' => 'Ширина содержимого, px', 'type' => 'number', 'section' => 'look', 'default' => 1200, 'min' => 720, 'max' => 1600,
+                                'desc' => 'Максимальная ширина оформленной страницы и шорткодов. Блоки «во всю ширину» не ограничиваются.'],
+            'block_gap'     => ['label' => 'Отступ между блоками, px', 'type' => 'number', 'section' => 'look', 'default' => 40, 'min' => 16, 'max' => 96],
+            'button_shape'  => ['label' => 'Форма кнопок', 'type' => 'select', 'section' => 'look', 'default' => 'rounded',
+                                'options' => ['rounded' => 'Скруглённые (по скруглению углов)', 'square' => 'Прямоугольные', 'pill' => 'Таблетка']],
+            'button_style'  => ['label' => 'Вид кнопок', 'type' => 'select', 'section' => 'look', 'default' => 'fill',
+                                'options' => ['fill' => 'Заливка акцентным цветом', 'outline' => 'Контур']],
+            'card_shadow'   => ['label' => 'Тень карточек', 'type' => 'select', 'section' => 'look', 'default' => 'light',
+                                'options' => ['none' => 'Нет (тонкая рамка)', 'light' => 'Лёгкая', 'strong' => 'Заметная']],
+            'heading_underline' => ['label' => 'Черта под заголовками разделов', 'type' => 'checkbox', 'section' => 'look', 'default' => 1],
+            'card_hover'    => ['label' => 'Подъём карточек при наведении', 'type' => 'checkbox', 'section' => 'look', 'default' => 1,
+                                'desc' => 'Статистика, документы, кнопки-ссылки, карточки и кнопки.'],
+
             // Главный блок
             'badge'            => ['label' => 'Метка над заголовком', 'type' => 'text', 'section' => 'hero', 'default' => 'Олимпиада 2026'],
             'hero_title'       => ['label' => 'Заголовок (для шорткода [wpd_hero])', 'type' => 'text', 'section' => 'hero',
@@ -151,12 +171,31 @@ class WPD_Settings
                                    'default' => 'Краткое описание мероприятия: кто может участвовать, как проходит и где узнать результаты.'],
             'hero_button_text' => ['label' => 'Текст кнопки', 'type' => 'text', 'section' => 'hero', 'default' => 'Положение'],
             'hero_button_url'  => ['label' => 'Ссылка кнопки', 'type' => 'url', 'section' => 'hero', 'default' => ''],
+            'hero_button_new_tab'  => ['label' => 'Кнопка в новой вкладке', 'type' => 'checkbox', 'section' => 'hero', 'default' => 0],
+            'hero_button2_text'    => ['label' => 'Текст второй кнопки', 'type' => 'text', 'section' => 'hero', 'default' => '',
+                                       'desc' => 'Контурная кнопка рядом с основной, например «Задания прошлых лет». Без текста или ссылки не выводится.'],
+            'hero_button2_url'     => ['label' => 'Ссылка второй кнопки', 'type' => 'url', 'section' => 'hero', 'default' => ''],
+            'hero_button2_new_tab' => ['label' => 'Вторая кнопка в новой вкладке', 'type' => 'checkbox', 'section' => 'hero', 'default' => 0],
             'hero_image_url'   => ['label' => 'Изображение главного блока (URL)', 'type' => 'url', 'section' => 'hero', 'default' => '',
                                    'desc' => 'Если у страницы есть «Запись изображение», используется оно.'],
+            'hero_image_alt'      => ['label' => 'Описание изображения (alt)', 'type' => 'text', 'section' => 'hero', 'default' => '',
+                                      'desc' => 'Для незрячих посетителей и поисковиков. Пусто — изображение считается декоративным.'],
+            'hero_image_position' => ['label' => 'Положение изображения', 'type' => 'select', 'section' => 'hero', 'default' => 'right',
+                                      'options' => ['right' => 'Справа от текста', 'left' => 'Слева от текста', 'background' => 'Фоном на весь блок']],
+            'hero_overlay'        => ['label' => 'Затемнение фона, %', 'type' => 'number', 'section' => 'hero', 'default' => 55, 'min' => 0, 'max' => 90,
+                                      'desc' => 'Только для изображения фоном: насколько затемнить его тёмным цветом, чтобы текст читался.'],
 
             'hero_style' => ['label' => 'Стиль главного блока', 'type' => 'select', 'section' => 'hero', 'default' => 'dark',
                              'options' => ['dark' => 'Тёмный', 'gradient' => 'Градиент основного цвета', 'light' => 'Светлый'],
                              'desc' => 'Светлый вариант подходит для страниц, где много текста и мало иллюстраций.'],
+            'hero_bg'         => ['label' => 'Свой цвет фона', 'type' => 'color_opt', 'section' => 'hero', 'default' => '',
+                                  'desc' => 'Заменяет фон стиля. Цвет текста подбирается автоматически (светлый или тёмный). Пусто — фон стиля.'],
+            'hero_height'     => ['label' => 'Высота', 'type' => 'select', 'section' => 'hero', 'default' => 'normal',
+                                  'options' => ['compact' => 'Компактный', 'normal' => 'Обычный', 'tall' => 'Высокий']],
+            'hero_align'      => ['label' => 'Выравнивание текста', 'type' => 'select', 'section' => 'hero', 'default' => 'left',
+                                  'options' => ['left' => 'Слева', 'center' => 'По центру']],
+            'hero_title_size' => ['label' => 'Размер заголовка', 'type' => 'select', 'section' => 'hero', 'default' => 'normal',
+                                  'options' => ['small' => 'Меньше', 'normal' => 'Обычный', 'large' => 'Крупнее']],
 
             // Возможности
             'countdown_enabled' => ['label' => 'Обратный отсчёт', 'type' => 'checkbox', 'section' => 'features', 'default' => 0,
@@ -551,7 +590,7 @@ class WPD_Settings
 
                 case 'font':
                     $value = trim((string) preg_replace('/[^A-Za-z0-9 ,\'"\-]/', '', $raw));
-                    $out[$key] = $value !== '' ? $value : $field['default'];
+                    $out[$key] = $value !== '' || !empty($field['allow_empty']) ? $value : $field['default'];
                     break;
 
                 case 'textarea':
@@ -582,6 +621,79 @@ class WPD_Settings
         }
 
         return $out;
+    }
+
+    /**
+     * CSS-переменные корневого контейнера .wpd-page из настроек (цвета, шрифты, размеры).
+     * Пустые необязательные значения не выводятся — тогда действуют значения из CSS.
+     */
+    public static function style_vars(?array $o = null): array
+    {
+        $o = $o ?? self::get();
+        $vars = [
+            '--wpd-primary' => (string) $o['primary'],
+            '--wpd-accent'  => (string) $o['accent'],
+            '--wpd-dark'    => (string) $o['dark'],
+            '--wpd-text'    => (string) $o['text'],
+            '--wpd-bg'      => (string) $o['bg'],
+            '--wpd-radius'  => (int) $o['radius'] . 'px',
+            '--wpd-font'    => (string) $o['font'],
+        ];
+        if ((string) $o['font_heading'] !== '') {
+            $vars['--wpd-font-heading'] = (string) $o['font_heading'];
+        }
+        if ((int) $o['font_size'] !== 16) {
+            $vars['--wpd-size'] = (int) $o['font_size'] . 'px';
+        }
+        if ((string) $o['heading_color'] !== '') {
+            $vars['--wpd-heading'] = (string) $o['heading_color'];
+        }
+        if ((int) $o['content_width'] !== 1200) {
+            $vars['--wpd-width'] = (int) $o['content_width'] . 'px';
+        }
+        if ((int) $o['block_gap'] !== 40) {
+            $vars['--wpd-gap'] = (int) $o['block_gap'] . 'px';
+        }
+        return $vars;
+    }
+
+    /** Строка style="" из style_vars(). */
+    public static function style_attr(?array $o = null): string
+    {
+        $css = '';
+        foreach (self::style_vars($o) as $name => $value) {
+            $css .= $name . ':' . $value . ';';
+        }
+        return $css;
+    }
+
+    /**
+     * Классы-модификаторы корневого контейнера (вид кнопок, тени, черта под заголовками, подъём карточек).
+     * Значения по умолчанию классов не добавляют.
+     */
+    public static function page_classes(?array $o = null): array
+    {
+        $o = $o ?? self::get();
+        $map = self::field_map();
+        $classes = [];
+        $shape = isset($map['button_shape']['options'][$o['button_shape']]) ? $o['button_shape'] : 'rounded';
+        if ($shape !== 'rounded') {
+            $classes[] = 'wpd-page--btn-' . $shape;
+        }
+        if ($o['button_style'] === 'outline') {
+            $classes[] = 'wpd-page--btn-outline';
+        }
+        $shadow = isset($map['card_shadow']['options'][$o['card_shadow']]) ? $o['card_shadow'] : 'light';
+        if ($shadow !== 'light') {
+            $classes[] = 'wpd-page--shadow-' . $shadow;
+        }
+        if (empty($o['heading_underline'])) {
+            $classes[] = 'wpd-page--no-underline';
+        }
+        if (empty($o['card_hover'])) {
+            $classes[] = 'wpd-page--no-hover';
+        }
+        return $classes;
     }
 
     /**
@@ -898,6 +1010,16 @@ class WPD_Settings
                     слайдер, кнопки-ссылки, карточки, объявление, новости, контакты.
                     Текст правится прямо на странице. Готовый шаблон — «Паттерны → Олимпиада → Страница олимпиады».</li>
             </ol>
+
+            <h2>Оформление и главный блок</h2>
+            <ul style="list-style:disc;margin-left:20px">
+                <li><strong>Оформление → Типографика и вид:</strong> шрифт и цвет заголовков, размер текста, ширина содержимого,
+                    отступ между блоками, форма и вид кнопок, тень карточек, черта под заголовками, подъём карточек при наведении.
+                    Действует на все блоки, шорткоды и блоки редактора.</li>
+                <li><strong>Главный блок:</strong> две кнопки (вторая — контурная) с открытием в новой вкладке, изображение справа,
+                    слева или фоном с затемнением, описание изображения (alt), свой цвет фона, высота, выравнивание текста, размер заголовка.
+                    В блоке «Олимпиада: главный блок» всё это задаётся отдельно для страницы в боковой панели.</li>
+            </ul>
 
             <h2>Шорткоды</h2>
             <p>Выводят блоки с общим содержимым — для виджетов, шаблонов и классического редактора.</p>

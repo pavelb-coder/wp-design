@@ -13,12 +13,12 @@
     --wpd-radius: 16px;
     --wpd-font: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-    max-width: 1200px;
+    max-width: var(--wpd-width, 1200px);
     margin: 0 auto;
     padding: 0 20px 56px;
     box-sizing: border-box;
     font-family: var(--wpd-font);
-    font-size: 16px;
+    font-size: var(--wpd-size, 16px);
     line-height: 1.6;
     color: var(--wpd-text);
 }
@@ -129,7 +129,7 @@
 .wpd-page .wpd-stats,
 .wpd-page .wpd-docs,
 .wpd-page .wpd-faq {
-    margin-top: 40px;
+    margin-top: var(--wpd-gap, 40px);
 }
 
 /* Статистика */
@@ -553,7 +553,7 @@
 .wpd-page .wpd-notice,
 .wpd-page .wpd-news,
 .wpd-page .wpd-contacts {
-    margin-top: 40px;
+    margin-top: var(--wpd-gap, 40px);
 }
 
 .wpd-page > .wpd-slider:first-child,
@@ -1113,5 +1113,263 @@
     .wpd-page .wpd-notice {
         break-inside: avoid;
         box-shadow: none;
+    }
+}
+
+/* ---------------------------------------------------------------
+ * 1.8.0: типографика и вид (вкладка «Оформление»), параметры главного блока
+ * ------------------------------------------------------------- */
+
+/* Шрифт и цвет заголовков */
+.wpd-page .wpd-h2,
+.wpd-page .wpd-hero__title,
+.wpd-page .wpd-slide__title,
+.wpd-page .wpd-notice__title,
+.wpd-page .wpd-card__title,
+.wpd-page .wpd-news__title {
+    font-family: var(--wpd-font-heading, var(--wpd-font));
+}
+
+.wpd-page .wpd-h2,
+.wpd-page .wpd-notice__title,
+.wpd-page .wpd-news__title a,
+.wpd-page .wpd-hero--light .wpd-hero__title {
+    color: var(--wpd-heading, var(--wpd-text));
+}
+
+/* Форма и вид кнопок */
+.wpd-page--btn-square .wpd-btn {
+    border-radius: 4px;
+}
+
+.wpd-page--btn-pill .wpd-btn {
+    border-radius: 999px;
+}
+
+.wpd-page--btn-outline .wpd-btn {
+    background: transparent;
+    color: var(--wpd-accent);
+    box-shadow: inset 0 0 0 2px var(--wpd-accent);
+}
+
+.wpd-page--btn-outline .wpd-btn:hover,
+.wpd-page--btn-outline .wpd-btn:focus {
+    background: var(--wpd-accent);
+    color: #fff;
+}
+
+/* Тени карточек: нет (тонкая рамка) или заметная */
+.wpd-page--shadow-none .wpd-content,
+.wpd-page--shadow-none .wpd-stat,
+.wpd-page--shadow-none .wpd-countdown,
+.wpd-page--shadow-none .wpd-hero--light,
+.wpd-page--shadow-none .wpd-qbtn,
+.wpd-page--shadow-none .wpd-card,
+.wpd-page--shadow-none .wpd-notice,
+.wpd-page--shadow-none .wpd-news__item,
+.wpd-page--shadow-none .wpd-contacts__box,
+.wpd-page--shadow-none .wpd-stat:hover,
+.wpd-page--shadow-none .wpd-card:hover,
+.wpd-page--shadow-none a.wpd-qbtn:hover {
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.wpd-page--shadow-strong .wpd-content,
+.wpd-page--shadow-strong .wpd-stat,
+.wpd-page--shadow-strong .wpd-countdown,
+.wpd-page--shadow-strong .wpd-hero--light,
+.wpd-page--shadow-strong .wpd-qbtn,
+.wpd-page--shadow-strong .wpd-card,
+.wpd-page--shadow-strong .wpd-notice,
+.wpd-page--shadow-strong .wpd-news__item,
+.wpd-page--shadow-strong .wpd-contacts__box {
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08), 0 18px 40px rgba(15, 23, 42, 0.16);
+}
+
+/* Без черты под заголовками разделов */
+.wpd-page--no-underline .wpd-h2 {
+    padding-bottom: 0;
+}
+
+.wpd-page--no-underline .wpd-h2::after {
+    display: none;
+}
+
+/* Без подъёма карточек и кнопок при наведении */
+.wpd-page--no-hover .wpd-stat:hover,
+.wpd-page--no-hover .wpd-doc:hover,
+.wpd-page--no-hover .wpd-card:hover,
+.wpd-page--no-hover a.wpd-qbtn:hover,
+.wpd-page--no-hover a.wpd-qbtn:focus-visible,
+.wpd-page--no-hover .wpd-btn:hover,
+.wpd-page--no-hover .wpd-btn:focus {
+    transform: none;
+}
+
+/* Главный блок: кнопки */
+.wpd-page .wpd-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.wpd-page .wpd-btn.wpd-btn--ghost {
+    background: transparent;
+    color: #fff;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+.wpd-page .wpd-btn.wpd-btn--ghost:hover,
+.wpd-page .wpd-btn.wpd-btn--ghost:focus {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.wpd-page .wpd-hero--light .wpd-btn.wpd-btn--ghost {
+    color: var(--wpd-text);
+    box-shadow: inset 0 0 0 2px rgba(15, 23, 42, 0.3);
+}
+
+.wpd-page .wpd-hero--light .wpd-btn.wpd-btn--ghost:hover,
+.wpd-page .wpd-hero--light .wpd-btn.wpd-btn--ghost:focus {
+    background: rgba(15, 23, 42, 0.06);
+    color: var(--wpd-text);
+}
+
+/* Главный блок: изображение слева */
+.wpd-page .wpd-hero--img-left .wpd-hero__inner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+}
+
+.wpd-page .wpd-hero--img-left .wpd-hero__media {
+    order: -1;
+}
+
+/* Главный блок: свой цвет фона */
+.wpd-page .wpd-hero.wpd-hero--custom-bg {
+    background: var(--wpd-hero-bg);
+    border-color: transparent;
+}
+
+/* Главный блок: изображение фоном с затемнением (цвет затемнения — тёмный или свой цвет фона) */
+.wpd-page .wpd-hero.wpd-hero--img-background {
+    background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), var(--wpd-hero-img) center / cover no-repeat, var(--wpd-dark);
+    background:
+        linear-gradient(color-mix(in srgb, var(--wpd-hero-bg, var(--wpd-dark)) var(--wpd-hero-overlay, 55%), transparent),
+                        color-mix(in srgb, var(--wpd-hero-bg, var(--wpd-dark)) var(--wpd-hero-overlay, 55%), transparent)),
+        var(--wpd-hero-img) center / cover no-repeat,
+        var(--wpd-hero-bg, var(--wpd-dark));
+    border-color: transparent;
+}
+
+.wpd-page .wpd-hero--img-background .wpd-hero__inner {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.wpd-page .wpd-hero--img-background .wpd-hero__text {
+    max-width: 760px;
+}
+
+/* Цвет текста: на фоновом изображении и тёмном своём фоне — светлый, на светлом своём фоне — тёмный */
+.wpd-page .wpd-hero.wpd-hero--img-background,
+.wpd-page .wpd-hero.wpd-hero--fg-light {
+    color: #fff;
+}
+
+.wpd-page .wpd-hero.wpd-hero--img-background .wpd-hero__title,
+.wpd-page .wpd-hero.wpd-hero--fg-light .wpd-hero__title {
+    color: #fff;
+}
+
+.wpd-page .wpd-hero.wpd-hero--img-background .wpd-hero__lead,
+.wpd-page .wpd-hero.wpd-hero--fg-light .wpd-hero__lead {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.wpd-page .wpd-hero.wpd-hero--img-background .wpd-btn--ghost,
+.wpd-page .wpd-hero.wpd-hero--fg-light .wpd-btn--ghost {
+    color: #fff;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+.wpd-page .wpd-hero.wpd-hero--fg-dark {
+    color: var(--wpd-text);
+}
+
+.wpd-page .wpd-hero.wpd-hero--fg-dark .wpd-hero__title {
+    color: var(--wpd-heading, var(--wpd-text));
+}
+
+.wpd-page .wpd-hero.wpd-hero--fg-dark .wpd-hero__lead {
+    color: #374151;
+}
+
+.wpd-page .wpd-hero.wpd-hero--fg-dark .wpd-btn--ghost {
+    color: var(--wpd-text);
+    box-shadow: inset 0 0 0 2px rgba(15, 23, 42, 0.3);
+}
+
+/* Главный блок: высота */
+.wpd-page .wpd-hero--height-compact {
+    padding: 32px 40px;
+}
+
+.wpd-page .wpd-hero--height-tall {
+    display: flex;
+    align-items: center;
+    min-height: 520px;
+    padding: 88px 56px;
+}
+
+.wpd-page .wpd-hero--height-tall .wpd-hero__inner {
+    width: 100%;
+}
+
+/* Главный блок: текст по центру */
+.wpd-page .wpd-hero--align-center .wpd-hero__text {
+    text-align: center;
+}
+
+.wpd-page .wpd-hero--align-center .wpd-hero__actions {
+    justify-content: center;
+}
+
+.wpd-page .wpd-hero--align-center:not(.wpd-hero--img-right):not(.wpd-hero--img-left) .wpd-hero__inner {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.wpd-page .wpd-hero--align-center:not(.wpd-hero--img-right):not(.wpd-hero--img-left) .wpd-hero__text {
+    max-width: 820px;
+    margin: 0 auto;
+}
+
+/* Главный блок: размер заголовка */
+.wpd-page .wpd-hero--title-small .wpd-hero__title {
+    font-size: clamp(24px, 3vw, 34px);
+}
+
+.wpd-page .wpd-hero--title-large .wpd-hero__title {
+    font-size: clamp(32px, 5.5vw, 60px);
+}
+
+@media (max-width: 820px) {
+    .wpd-page .wpd-hero--img-left .wpd-hero__inner {
+        grid-template-columns: 1fr;
+    }
+
+    .wpd-page .wpd-hero--height-compact {
+        padding: 24px 20px;
+    }
+
+    .wpd-page .wpd-hero--height-tall {
+        min-height: 400px;
+        padding: 56px 24px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wpd-page .wpd-btn:hover,
+    .wpd-page .wpd-btn:focus {
+        transform: none;
     }
 }

@@ -206,6 +206,49 @@ with sync_playwright() as p:
         time.sleep(0.5)
     check("hero: style changed in sidebar", attrs(page, hero_id).get("variant") == "light", attrs(page, hero_id).get("variant"))
     check("canvas: light class applied", cv.locator(".wpd-page--hero .wpd-hero--light").count() == 1)
+
+    # 1.8.0: вторая кнопка на холсте; высота, кнопки и изображение в боковой панели
+    insp = page.locator(".block-editor-block-inspector")
+    b2 = cv.locator(".wpd-page--hero .wpd-btn--ghost input")
+    check("hero: second button placeholder on canvas (1.8.0)", b2.count() == 1, b2.count())
+    if b2.count():
+        b2.first.fill("Задания прошлых лет")
+        time.sleep(0.4)
+    check("hero: second button text edited on canvas", attrs(page, hero_id).get("button2Text") == "Задания прошлых лет", attrs(page, hero_id).get("button2Text"))
+    hsel = insp.get_by_label("Высота", exact=True)
+    if hsel.count():
+        hsel.first.select_option("tall")
+        time.sleep(0.4)
+    check("hero: height set in sidebar", attrs(page, hero_id).get("height") == "tall", attrs(page, hero_id).get("height"))
+    check("canvas: tall class applied", cv.locator(".wpd-page--hero .wpd-hero--height-tall").count() == 1)
+    btn_panel = insp.get_by_role("button", name="Кнопки", exact=True)
+    if btn_panel.count():
+        btn_panel.first.click()
+        time.sleep(0.5)
+    u2 = insp.get_by_label("Ссылка второй кнопки", exact=True)
+    if u2.count():
+        u2.first.fill("https://example.com/archive")
+        time.sleep(0.3)
+    t2 = insp.get_by_label("Вторая кнопка в новой вкладке", exact=True)
+    if t2.count():
+        t2.first.check()
+        time.sleep(0.3)
+    a2 = attrs(page, hero_id)
+    check("hero: second button link and new tab in sidebar", a2.get("button2Url") == "https://example.com/archive" and a2.get("button2NewTab") is True, (a2.get("button2Url"), a2.get("button2NewTab")))
+    img_panel = insp.get_by_role("button", name="Изображение", exact=True)
+    if img_panel.count():
+        img_panel.first.click()
+        time.sleep(0.5)
+    pos = insp.get_by_label("Положение изображения", exact=True)
+    if pos.count():
+        pos.first.select_option("background")
+        time.sleep(0.3)
+    page.evaluate("id => wp.data.dispatch('core/block-editor').updateBlockAttributes(id, { imageUrl: 'https://example.com/hero.jpg' })", hero_id)
+    time.sleep(0.6)
+    check("hero: image position set in sidebar", attrs(page, hero_id).get("imagePosition") == "background", attrs(page, hero_id).get("imagePosition"))
+    check("hero: overlay control shown for background image", insp.get_by_label("Затемнение фона, %").count() >= 1)
+    hbg = cv.evaluate("() => { const h = document.querySelector('.wpd-page--hero .wpd-hero'); return h.className + '|' + getComputedStyle(h).backgroundImage; }")
+    check("canvas: background image with overlay", "wpd-hero--img-background" in hbg and "url(" in hbg and "gradient" in hbg and cv.locator(".wpd-page--hero .wpd-hero__media img").count() == 0, hbg[:200])
     page.screenshot(path=os.path.join(SHOTS, "editor-hero.png"))
 
     # Выравнивание «широкое» через панель инструментов блока (атрибут align)
@@ -326,6 +369,8 @@ with sync_playwright() as p:
     check("front: hero title from editor", 'wpd-hero__title">Заголовок из браузера<' in front)
     check("front: badge from editor", ">Финал 2027<" in front)
     check("front: light hero", "wpd-hero--light" in front)
+    check("front: second button (1.8.0)", 'class="wpd-btn wpd-btn--ghost" href="https://example.com/archive" target="_blank" rel="noopener noreferrer">Задания прошлых лет</a>' in front)
+    check("front: background image, tall", '--wpd-hero-img:url(&quot;https://example.com/hero.jpg&quot;)' in front and "wpd-hero--height-tall" in front and "wpd-hero--img-background" in front)
     check("front: hero align wide", "wpd-page--hero alignwide" in front)
     check("front: new stat card", ">999+<" in front and "карточка из браузера" in front)
     check("front: new document", "https://example.com/final.pdf" in front and "Регламент финала" in front)

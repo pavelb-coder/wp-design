@@ -79,8 +79,8 @@ for tab in design hero features stats docs faq slider buttons cards notice news 
   curl -s -c cj.txt -b cj.txt --max-time 60 "$B/wp-admin/admin.php?page=wpd-settings&tab=$tab" >> settings_all.html
 done
 t "admin settings page opens"        "$(has settings.html 'nav-tab-active')"
-plain_fields() { grep -oE "name=[\"']wpd_settings\[[a-z_]+\][\"']" "$1" | grep -v '\[_tab\]' | tr "'" '"' | sort -u | wc -l | tr -d ' '; }
-t "64 plain settings fields rendered (+3 repeaters)" "$([ "$(plain_fields settings_all.html)" = "64" ] && echo 1 || echo 0)"
+plain_fields() { grep -oE "name=[\"']wpd_settings\[[a-z0-9_]+\][\"']" "$1" | grep -v '\[_tab\]' | tr "'" '"' | sort -u | wc -l | tr -d ' '; }
+t "85 plain settings fields rendered (+3 repeaters)" "$([ "$(plain_fields settings_all.html)" = "85" ] && echo 1 || echo 0)"
 for sec in 'Цвета и шрифт' 'Главный блок' 'Возможности' 'Статистика' 'Документы' 'Частые вопросы' 'Поведение'; do t "section: $sec" "$(has settings_all.html "$sec")"; done
 t "shortcode help on page"           "$(has settings_all.html '\[wpd_page\]')"
 

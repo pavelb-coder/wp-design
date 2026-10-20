@@ -194,6 +194,20 @@ with sync_playwright() as p:
     page.evaluate("""() => wp.apiFetch({ path: '/wp/v2/users/me?context=edit', method: 'POST', data: { meta: { persisted_preferences: {
         core: { enableChoosePatternModal: false, welcomeGuide: false }, 'core/edit-post': { welcomeGuide: false }, _modified: new Date().toISOString()
     } } } })""")
+    # Окно стартовых паттернов на чистой базе иногда появляется и после отключения в настройках — закрываем автоматически
+    def close_modal():
+        overlay = page.locator(".components-modal__screen-overlay").first
+        try:
+            btn = overlay.locator(".components-modal__header button")
+            if btn.count():
+                btn.first.click(timeout=2000, no_wait_after=True, force=True)
+                time.sleep(0.5)
+            if overlay.is_visible():
+                page.keyboard.press("Escape")
+                time.sleep(0.5)
+        except Exception:
+            pass
+    page.add_locator_handler(page.locator(".components-modal__screen-overlay"), close_modal)
     page.goto(BASE + "/wp-admin/post-new.php?post_type=page", timeout=180000)
     page.wait_for_function("() => window.wp && wp.data && wp.data.select('core/editor') && wp.data.select('core/editor').getCurrentPostId()", timeout=120000)
     try:

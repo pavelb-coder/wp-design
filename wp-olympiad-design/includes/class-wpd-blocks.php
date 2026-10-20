@@ -32,7 +32,7 @@ class WPD_Blocks
         return [
             'hero' => [
                 'title'       => 'Олимпиада: главный блок',
-                'description' => 'Метка, крупный заголовок, текст, кнопка и изображение.',
+                'description' => 'Метка, крупный заголовок, текст, две кнопки и изображение справа, слева или фоном.',
                 'icon'        => 'cover-image',
                 'keywords'    => ['hero', 'заголовок', 'олимпиада', 'обложка'],
                 'attributes'  => [
@@ -44,6 +44,18 @@ class WPD_Blocks
                     'imageUrl'   => ['type' => 'string', 'default' => (string) $o['hero_image_url']],
                     'imageId'    => ['type' => 'integer', 'default' => 0],
                     'variant'    => ['type' => 'string', 'default' => (string) $o['hero_style']],
+                    // 1.8.0
+                    'buttonNewTab'  => ['type' => 'boolean', 'default' => (bool) $o['hero_button_new_tab']],
+                    'button2Text'   => ['type' => 'string', 'default' => (string) $o['hero_button2_text']],
+                    'button2Url'    => ['type' => 'string', 'default' => (string) $o['hero_button2_url']],
+                    'button2NewTab' => ['type' => 'boolean', 'default' => (bool) $o['hero_button2_new_tab']],
+                    'imageAlt'      => ['type' => 'string', 'default' => (string) $o['hero_image_alt']],
+                    'imagePosition' => ['type' => 'string', 'default' => (string) $o['hero_image_position']],
+                    'overlay'       => ['type' => 'integer', 'default' => (int) $o['hero_overlay']],
+                    'bgColor'       => ['type' => 'string', 'default' => (string) $o['hero_bg']],
+                    'height'        => ['type' => 'string', 'default' => (string) $o['hero_height']],
+                    'textAlign'     => ['type' => 'string', 'default' => (string) $o['hero_align']],
+                    'titleSize'     => ['type' => 'string', 'default' => (string) $o['hero_title_size']],
                 ],
                 'render'      => [__CLASS__, 'render_hero'],
             ],
@@ -235,16 +247,17 @@ class WPD_Blocks
         wp_add_inline_script('wpd-blocks', 'window.wpdBlocks = ' . wp_json_encode([
             'blocks'      => $client,
             'category'    => self::NS,
-            'vars'        => [
-                '--wpd-primary' => $o['primary'],
-                '--wpd-accent'  => $o['accent'],
-                '--wpd-dark'    => $o['dark'],
-                '--wpd-text'    => $o['text'],
-                '--wpd-bg'      => $o['bg'],
-                '--wpd-radius'  => (int) $o['radius'] . 'px',
-                '--wpd-font'    => $o['font'],
-            ],
+            'vars'        => WPD_Settings::style_vars($o),
+            // Модификаторы вида из вкладки «Оформление» (1.8.0) — те же классы, что на сайте
+            'pageClass'   => implode(' ', WPD_Settings::page_classes($o)),
             'heroStyles'  => ['dark' => 'Тёмный', 'gradient' => 'Градиент основного цвета', 'light' => 'Светлый'],
+            'heroOptions' => [
+                'imagePosition' => WPD_Settings::field_map()['hero_image_position']['options'],
+                'height'        => WPD_Settings::field_map()['hero_height']['options'],
+                'textAlign'     => WPD_Settings::field_map()['hero_align']['options'],
+                'titleSize'     => WPD_Settings::field_map()['hero_title_size']['options'],
+            ],
+            'palette'     => [$o['primary'], $o['accent'], $o['dark'], $o['text'], $o['bg']],
             'settingsUrl' => WPD_Settings::url(),
             // Часовой пояс таймера (1.6.1): подсказка у полей дат и подпись даты на холсте
             'countdownTz' => WPD_Settings::countdown_tz_label($o),
@@ -375,6 +388,17 @@ class WPD_Blocks
             'button_text' => self::str($a, 'buttonText', $o['hero_button_text']),
             'button_url'  => self::str($a, 'buttonUrl', $o['hero_button_url']),
             'style'       => self::str($a, 'variant', $o['hero_style']),
+            'button_new_tab'  => self::flag($a, 'buttonNewTab', $o['hero_button_new_tab']),
+            'button2_text'    => self::str($a, 'button2Text', $o['hero_button2_text']),
+            'button2_url'     => self::str($a, 'button2Url', $o['hero_button2_url']),
+            'button2_new_tab' => self::flag($a, 'button2NewTab', $o['hero_button2_new_tab']),
+            'image_alt'       => self::str($a, 'imageAlt', $o['hero_image_alt']),
+            'image_position'  => self::str($a, 'imagePosition', $o['hero_image_position']),
+            'overlay'         => self::num($a, 'overlay', $o['hero_overlay']),
+            'bg'              => self::str($a, 'bgColor', $o['hero_bg']),
+            'height'          => self::str($a, 'height', $o['hero_height']),
+            'align'           => self::str($a, 'textAlign', $o['hero_align']),
+            'title_size'      => self::str($a, 'titleSize', $o['hero_title_size']),
         ]), $a, 'hero');
     }
 

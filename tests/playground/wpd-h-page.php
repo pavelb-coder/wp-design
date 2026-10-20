@@ -1,5 +1,5 @@
 <?php
-// Тестовый хелпер фазы H (только для песочницы): создаёт страницы с компонентами (и с таймером, ?countdown=1) и удаляет их.
+// Тестовый хелпер фазы H (только для песочницы): создаёт страницы с компонентами (с таймером ?countdown=1, с главным блоком ?hero=1) и удаляет их.
 require '/wordpress/wp-load.php';
 header('Content-Type: text/plain; charset=utf-8');
 if (isset($_GET['cleanup'])) {
@@ -11,6 +11,8 @@ if (isset($_GET['cleanup'])) {
 }
 if (isset($_GET['plain'])) {
     $content = '<p>Обычная страница</p>';
+} elseif (isset($_GET['hero'])) {
+    $content = "[wpd_hero]\n\n[wpd_cards]";
 } elseif (isset($_GET['countdown'])) {
     $content = '[wpd_countdown]';
 } elseif (isset($_GET['blocks'])) {

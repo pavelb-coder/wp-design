@@ -134,18 +134,10 @@ class WPD_Renderer
         self::enqueue_assets();
 
         $o = WPD_Settings::get();
-        $vars = sprintf(
-            '--wpd-primary:%s;--wpd-accent:%s;--wpd-dark:%s;--wpd-text:%s;--wpd-bg:%s;--wpd-radius:%dpx;--wpd-font:%s;',
-            $o['primary'],
-            $o['accent'],
-            $o['dark'],
-            $o['text'],
-            $o['bg'],
-            (int) $o['radius'],
-            $o['font']
-        );
+        $vars = WPD_Settings::style_attr($o);
 
-        $class = trim('wpd-page ' . $extra_class);
+        // Модификаторы вида (1.8.0): форма и вид кнопок, тени, черта под заголовками, подъём карточек
+        $class = trim(implode(' ', array_merge(['wpd-page'], WPD_Settings::page_classes($o))) . ' ' . $extra_class);
         return '<div class="' . esc_attr($class) . '" style="' . esc_attr($vars) . '">' . $inner . '</div>';
     }
 
@@ -170,20 +162,32 @@ class WPD_Renderer
 
     /**
      * Главный блок. Значения по умолчанию берутся из общих настроек,
-     * в $args можно передать свои (страница, блок редактора).
+     * в $args можно передать свои (страница, блок редактора). null — значение из настроек.
      *
-     * @param array $args title, lead, image, badge, button_text, button_url, style
+     * @param array $args title, lead, image, image_alt, image_position, overlay, badge, button_text, button_url, button_new_tab,
+     *                    button2_text, button2_url, button2_new_tab, style, bg, height, align, title_size
      */
     public static function hero_html(array $o, array $args = []): string
     {
         $a = array_merge([
-            'title'       => $o['hero_title'],
-            'lead'        => $o['hero_text'],
-            'image'       => $o['hero_image_url'],
-            'badge'       => $o['badge'],
-            'button_text' => $o['hero_button_text'],
-            'button_url'  => $o['hero_button_url'],
-            'style'       => $o['hero_style'],
+            'title'           => $o['hero_title'],
+            'lead'            => $o['hero_text'],
+            'image'           => $o['hero_image_url'],
+            'image_alt'       => $o['hero_image_alt'],
+            'image_position'  => $o['hero_image_position'],
+            'overlay'         => $o['hero_overlay'],
+            'badge'           => $o['badge'],
+            'button_text'     => $o['hero_button_text'],
+            'button_url'      => $o['hero_button_url'],
+            'button_new_tab'  => $o['hero_button_new_tab'],
+            'button2_text'    => $o['hero_button2_text'],
+            'button2_url'     => $o['hero_button2_url'],
+            'button2_new_tab' => $o['hero_button2_new_tab'],
+            'style'           => $o['hero_style'],
+            'bg'              => $o['hero_bg'],
+            'height'          => $o['hero_height'],
+            'align'           => $o['hero_align'],
+            'title_size'      => $o['hero_title_size'],
         ], array_filter($args, function ($v) {
             return $v !== null;
         }));
@@ -191,8 +195,42 @@ class WPD_Renderer
             return is_scalar($v) ? (string) $v : '';
         }, $a);
 
-        $style = in_array($a['style'], self::HERO_STYLES, true) ? $a['style'] : 'dark';
-        $html  = '<section class="wpd-hero wpd-hero--' . $style . '"><div class="wpd-hero__inner"><div class="wpd-hero__text">';
+        $pick = function (string $value, array $allowed, string $default): string {
+            return in_array($value, $allowed, true) ? $value : $default;
+        };
+        $style    = $pick($a['style'], self::HERO_STYLES, 'dark');
+        $position = $pick($a['image_position'], ['right', 'left', 'background'], 'right');
+        $height   = $pick($a['height'], ['compact', 'normal', 'tall'], 'normal');
+        $align    = $pick($a['align'], ['left', 'center'], 'left');
+        $tsize    = $pick($a['title_size'], ['small', 'normal', 'large'], 'normal');
+        $overlay  = max(0, min(90, (int) $a['overlay']));
+        $bg       = (string) sanitize_hex_color($a['bg']);
+        $image    = esc_url($a['image']);
+
+        $classes = ['wpd-hero', 'wpd-hero--' . $style];
+        $vars    = '';
+        if ($image !== '') {
+            $classes[] = 'wpd-hero--img-' . $position;
+        }
+        foreach (['height' => [$height, 'normal'], 'align' => [$align, 'left'], 'title' => [$tsize, 'normal']] as $prefix => $pair) {
+            if ($pair[0] !== $pair[1]) {
+                $classes[] = 'wpd-hero--' . $prefix . '-' . $pair[0];
+            }
+        }
+        if ($bg !== '') {
+            // Свой фон: цвет текста — по яркости фона
+            $classes[] = 'wpd-hero--custom-bg';
+            $classes[] = self::is_light_color($bg) ? 'wpd-hero--fg-dark' : 'wpd-hero--fg-light';
+            $vars .= '--wpd-hero-bg:' . $bg . ';';
+        }
+        if ($image !== '' && $position === 'background') {
+            // Кавычки, скобки и пробелы кодируются, чтобы адрес не мог выйти за пределы url("…")
+            $safe  = strtr(esc_url_raw($a['image']), ['"' => '%22', "'" => '%27', '(' => '%28', ')' => '%29', '\\' => '%5C', ' ' => '%20']);
+            $vars .= '--wpd-hero-img:url("' . $safe . '");--wpd-hero-overlay:' . $overlay . '%;';
+        }
+
+        $html = '<section class="' . esc_attr(implode(' ', $classes)) . '"' . ($vars !== '' ? ' style="' . esc_attr($vars) . '"' : '') . '>'
+            . '<div class="wpd-hero__inner"><div class="wpd-hero__text">';
 
         if ($a['badge'] !== '') {
             $html .= '<span class="wpd-badge">' . esc_html($a['badge']) . '</span>';
@@ -204,21 +242,49 @@ class WPD_Renderer
             $html .= '<p class="wpd-hero__lead">' . nl2br(esc_html($a['lead'])) . '</p>';
         }
 
-        $button_url = esc_url($a['button_url']);
-        if ($a['button_text'] !== '' && $button_url !== '') {
-            $html .= '<a class="wpd-btn" href="' . $button_url . '">' . esc_html($a['button_text']) . ' &rarr;</a>';
+        $buttons = '';
+        foreach ([['button_text', 'button_url', 'button_new_tab', 'wpd-btn'], ['button2_text', 'button2_url', 'button2_new_tab', 'wpd-btn wpd-btn--ghost']] as $b) {
+            $url = esc_url($a[$b[1]]);
+            if ($a[$b[0]] !== '' && $url !== '') {
+                $buttons .= '<a class="' . $b[3] . '" href="' . $url . '"'
+                    . ($a[$b[2]] !== '' && $a[$b[2]] !== '0' ? ' target="_blank" rel="noopener noreferrer"' : '')
+                    . '>' . esc_html($a[$b[0]]) . ($b[3] === 'wpd-btn' ? ' &rarr;' : '') . '</a>';
+            }
+        }
+        if ($buttons !== '') {
+            $html .= '<div class="wpd-hero__actions">' . $buttons . '</div>';
         }
 
         $html .= '</div>';
 
-        $image_url = esc_url($a['image']);
-        if ($image_url !== '') {
-            $html .= '<div class="wpd-hero__media"><img src="' . $image_url . '" alt="" loading="lazy"></div>';
+        if ($image !== '' && $position !== 'background') {
+            $html .= '<div class="wpd-hero__media"><img src="' . $image . '" alt="' . esc_attr($a['image_alt']) . '" loading="lazy"></div>';
         }
 
         $html .= '</div></section>';
 
         return $html;
+    }
+
+    /**
+     * Светлый ли цвет (#rrggbb, #rgb): на нём нужен тёмный текст. Считается по относительной яркости WCAG.
+     */
+    public static function is_light_color(string $hex): bool
+    {
+        $hex = ltrim($hex, '#');
+        if (strlen($hex) === 3) {
+            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+        }
+        if (!preg_match('/^[0-9a-f]{6}$/i', $hex)) {
+            return false;
+        }
+        $lin = function (int $c): float {
+            $c /= 255;
+            return $c <= 0.03928 ? $c / 12.92 : pow(($c + 0.055) / 1.055, 2.4);
+        };
+        $l = 0.2126 * $lin(hexdec(substr($hex, 0, 2))) + 0.7152 * $lin(hexdec(substr($hex, 2, 2))) + 0.0722 * $lin(hexdec(substr($hex, 4, 2)));
+        // Порог 0,18: при нём контраст с белым и с чёрным текстом примерно равен
+        return $l > 0.18;
     }
 
     /**

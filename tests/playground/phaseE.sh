@@ -54,8 +54,8 @@ t "edit: media library enqueued"          "$(has e_edit.html 'media-views')"
 for tab in design hero features stats docs faq slider buttons cards notice news contacts help; do
   curl -s -c cjE.txt -b cjE.txt --max-time 60 "$B/wp-admin/admin.php?page=wpd-settings&tab=$tab" >> e_settings.html
 done
-plain_fields() { grep -oE "name=[\"']wpd_settings\[[a-z_]+\][\"']" "$1" | grep -v '\[_tab\]' | tr "'" '"' | sort -u | wc -l | tr -d ' '; }
-t "settings: 64 plain fields (+3 repeaters)" "$([ "$(plain_fields e_settings.html)" = "64" ] && echo 1 || echo 0)"
+plain_fields() { grep -oE "name=[\"']wpd_settings\[[a-z0-9_]+\][\"']" "$1" | grep -v '\[_tab\]' | tr "'" '"' | sort -u | wc -l | tr -d ' '; }
+t "settings: 85 plain fields (+3 repeaters)" "$([ "$(plain_fields e_settings.html)" = "85" ] && echo 1 || echo 0)"
 t "settings: help mentions panel"         "$(has e_settings.html 'Блоки олимпиады')"
 t "settings: help mentions editor blocks" "$(has e_settings.html 'Страница олимпиады')"
 t "edit: panel links to settings tab"     "$(has e_edit.html 'admin.php?page=wpd-settings&#038;tab=stats')"

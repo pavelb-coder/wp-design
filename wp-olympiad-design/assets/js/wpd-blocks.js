@@ -74,7 +74,7 @@
 
     /* Корневой контейнер с CSS-переменными из общих настроек */
     function Wrapper(slug, className) {
-        var cls = 'wpd-page wpd-page--block wpd-page--editor wpd-page--' + slug;
+        var cls = 'wpd-page wpd-page--block wpd-page--editor wpd-page--' + slug + (data.pageClass ? ' ' + data.pageClass : '');
         var props = be.useBlockProps
             ? be.useBlockProps({ className: cls, style: data.vars })
             : { className: cls + (className ? ' ' + className : ''), style: data.vars };
@@ -175,18 +175,58 @@
 
     /* ---------- Главный блок ---------- */
 
+    // Светлый ли цвет #rrggbb — та же формула, что WPD_Renderer::is_light_color()
+    function isLight(hex) {
+        var m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex || '');
+        if (!m) { return false; }
+        var h = m[1].length === 3 ? m[1].replace(/(.)/g, '$1$1') : m[1];
+        var lin = function (c) { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+        var l = 0.2126 * lin(parseInt(h.substr(0, 2), 16)) + 0.7152 * lin(parseInt(h.substr(2, 2), 16)) + 0.0722 * lin(parseInt(h.substr(4, 2), 16));
+        return l > 0.18;
+    }
+
+    function pick(value, opts, def) {
+        return opts && Object.prototype.hasOwnProperty.call(opts, value) ? value : def;
+    }
+
     function HeroEdit(props) {
         var a = props.attributes;
         var set = props.setAttributes;
         var sel = props.isSelected;
+        var ho = data.heroOptions || {};
         var variant = data.heroStyles[a.variant] ? a.variant : 'dark';
+        var position = pick(a.imagePosition, ho.imagePosition, 'right');
+        var height = pick(a.height, ho.height, 'normal');
+        var align = pick(a.textAlign, ho.textAlign, 'left');
+        var tsize = pick(a.titleSize, ho.titleSize, 'normal');
+        var bg = /^#[0-9a-f]{6}$/i.test(a.bgColor || '') ? a.bgColor : '';
+        var overlay = typeof a.overlay === 'number' ? Math.max(0, Math.min(90, a.overlay)) : 55;
+        var isBgImage = !!a.imageUrl && position === 'background';
+
+        var cls = ['wpd-hero', 'wpd-hero--' + variant];
+        if (a.imageUrl) { cls.push('wpd-hero--img-' + position); }
+        if (height !== 'normal') { cls.push('wpd-hero--height-' + height); }
+        if (align !== 'left') { cls.push('wpd-hero--align-' + align); }
+        if (tsize !== 'normal') { cls.push('wpd-hero--title-' + tsize); }
+        var style = {};
+        if (bg) {
+            cls.push('wpd-hero--custom-bg', isLight(bg) ? 'wpd-hero--fg-dark' : 'wpd-hero--fg-light');
+            style['--wpd-hero-bg'] = bg;
+        }
+        if (isBgImage) {
+            style['--wpd-hero-img'] = 'url("' + String(a.imageUrl).replace(/["'()\\\s]/g, encodeURIComponent) + '")';
+            style['--wpd-hero-overlay'] = overlay + '%';
+        }
+
+        var opts = function (o) { return Object.keys(o || {}).map(function (k) { return { value: k, label: o[k] }; }); };
         var styleOptions = Object.keys(data.heroStyles).map(function (key) {
             return { value: key, label: data.heroStyles[key] };
         });
+        var Toggle = c.ToggleControl || c.CheckboxControl;
 
         function pickImage(m) {
             var url = (m.sizes && m.sizes.large && m.sizes.large.url) || m.url;
-            set({ imageUrl: url, imageId: m.id || 0 });
+            set({ imageUrl: url, imageId: m.id || 0, imageAlt: a.imageAlt || m.alt || '' });
         }
 
         var mediaButton = el(Media, {
@@ -196,6 +236,24 @@
             onSelect: pickImage
         });
 
+        function button(textKey, urlKey, klass, placeholder, arrow) {
+            return (sel || a[textKey]) ? el('span', { className: klass + (a[textKey] ? '' : ' is-empty') },
+                el(Inline, { value: a[textKey], placeholder: placeholder, label: placeholder, onChange: function (v) { var o = {}; o[textKey] = v; set(o); } }),
+                arrow ? ' →' : null
+            ) : null;
+        }
+
+        var colorControl = c.ColorPalette ? el(c.BaseControl, { label: 'Свой цвет фона', help: 'Заменяет фон стиля, цвет текста подбирается сам. Пусто — фон стиля.', id: 'wpd-hero-bg' },
+            el(c.ColorPalette, {
+                colors: (data.palette || []).map(function (col, i) { return { name: 'Цвет ' + (i + 1), color: col }; }),
+                value: bg || undefined, clearable: true, disableCustomColors: false,
+                onChange: function (v) { set({ bgColor: v || '' }); }
+            })
+        ) : el(c.TextControl, {
+            label: 'Свой цвет фона (#rrggbb)', value: a.bgColor || '', placeholder: '#rrggbb',
+            onChange: function (v) { set({ bgColor: v }); }
+        });
+
         return el(Fragment, null,
             el(be.InspectorControls, null,
                 el(c.PanelBody, { title: 'Главный блок' },
@@ -203,11 +261,41 @@
                         label: 'Стиль', value: variant, options: styleOptions,
                         onChange: function (v) { set({ variant: v }); }
                     }),
+                    colorControl,
+                    el(c.SelectControl, {
+                        label: 'Высота', value: height, options: opts(ho.height),
+                        onChange: function (v) { set({ height: v }); }
+                    }),
+                    el(c.SelectControl, {
+                        label: 'Выравнивание текста', value: align, options: opts(ho.textAlign),
+                        onChange: function (v) { set({ textAlign: v }); }
+                    }),
+                    el(c.SelectControl, {
+                        label: 'Размер заголовка', value: tsize, options: opts(ho.titleSize),
+                        onChange: function (v) { set({ titleSize: v }); }
+                    })
+                ),
+                el(c.PanelBody, { title: 'Кнопки', initialOpen: false },
                     el(c.TextControl, {
                         label: 'Ссылка кнопки', type: 'url', value: a.buttonUrl || '',
                         help: 'Без ссылки кнопка на сайте не выводится.',
                         onChange: function (v) { set({ buttonUrl: v }); }
                     }),
+                    el(Toggle, {
+                        label: 'Кнопка в новой вкладке', checked: !!a.buttonNewTab,
+                        onChange: function (v) { set({ buttonNewTab: !!v }); }
+                    }),
+                    el(c.TextControl, {
+                        label: 'Ссылка второй кнопки', type: 'url', value: a.button2Url || '',
+                        help: 'Контурная кнопка рядом с основной. Текст — на холсте.',
+                        onChange: function (v) { set({ button2Url: v }); }
+                    }),
+                    el(Toggle, {
+                        label: 'Вторая кнопка в новой вкладке', checked: !!a.button2NewTab,
+                        onChange: function (v) { set({ button2NewTab: !!v }); }
+                    })
+                ),
+                el(c.PanelBody, { title: 'Изображение', initialOpen: false },
                     el('div', { className: 'wpd-ed-media-control' },
                         a.imageUrl ? el('img', { src: a.imageUrl, alt: '' }) : null,
                         mediaButton,
@@ -219,12 +307,25 @@
                     el(c.TextControl, {
                         label: 'Или адрес изображения (URL)', type: 'url', value: a.imageUrl || '',
                         onChange: function (v) { set({ imageUrl: v, imageId: 0 }); }
+                    }),
+                    el(c.SelectControl, {
+                        label: 'Положение изображения', value: position, options: opts(ho.imagePosition),
+                        onChange: function (v) { set({ imagePosition: v }); }
+                    }),
+                    position === 'background' ? el(c.RangeControl, {
+                        label: 'Затемнение фона, %', value: overlay, min: 0, max: 90, step: 5,
+                        onChange: function (v) { set({ overlay: typeof v === 'number' ? v : 55 }); }
+                    }) : null,
+                    el(c.TextControl, {
+                        label: 'Описание изображения (alt)', value: a.imageAlt || '',
+                        help: 'Для незрячих посетителей и поисковиков. Пусто — декоративное изображение.',
+                        onChange: function (v) { set({ imageAlt: v }); }
                     })
                 ),
                 ResetPanel('wpd/hero', set)
             ),
             Wrapper('hero', props.className,
-                el('section', { className: 'wpd-hero wpd-hero--' + variant },
+                el('section', { className: cls.join(' '), style: style },
                     el('div', { className: 'wpd-hero__inner' },
                         el('div', { className: 'wpd-hero__text' },
                             (sel || a.badge) ? el('span', { className: 'wpd-badge' + (a.badge ? '' : ' is-empty') },
@@ -236,17 +337,17 @@
                             (sel || a.lead) ? el('p', { className: 'wpd-hero__lead' },
                                 el(Plain, { value: a.lead, placeholder: 'Текст под заголовком', onChange: function (v) { set({ lead: v }); } })
                             ) : null,
-                            (sel || a.buttonText) ? el('span', { className: 'wpd-btn' + (a.buttonText ? '' : ' is-empty') },
-                                el(Inline, { value: a.buttonText, placeholder: 'Текст кнопки', onChange: function (v) { set({ buttonText: v }); } }),
-                                ' →'
+                            (sel || a.buttonText || a.button2Text) ? el('div', { className: 'wpd-hero__actions' },
+                                button('buttonText', 'buttonUrl', 'wpd-btn', 'Текст кнопки', true),
+                                button('button2Text', 'button2Url', 'wpd-btn wpd-btn--ghost', 'Вторая кнопка', false)
                             ) : null,
-                            (sel && a.buttonText && !a.buttonUrl)
-                                ? el('p', { className: 'wpd-ed-hint' }, 'Укажите ссылку кнопки в настройках блока справа.')
+                            (sel && ((a.buttonText && !a.buttonUrl) || (a.button2Text && !a.button2Url)))
+                                ? el('p', { className: 'wpd-ed-hint' }, 'Укажите ссылки кнопок в настройках блока справа (раздел «Кнопки»).')
                                 : null
                         ),
-                        a.imageUrl
-                            ? el('div', { className: 'wpd-hero__media' }, el('img', { src: a.imageUrl, alt: '' }))
-                            : (sel ? el('div', { className: 'wpd-hero__media wpd-ed-media-empty' }, mediaButton) : null)
+                        (a.imageUrl && !isBgImage)
+                            ? el('div', { className: 'wpd-hero__media' }, el('img', { src: a.imageUrl, alt: a.imageAlt || '' }))
+                            : ((sel && !a.imageUrl) ? el('div', { className: 'wpd-hero__media wpd-ed-media-empty' }, mediaButton) : null)
                     )
                 )
             )
