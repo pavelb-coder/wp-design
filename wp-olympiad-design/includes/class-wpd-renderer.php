@@ -10,6 +10,9 @@ class WPD_Renderer
 {
     const META_KEY = '_wpd_enabled';
 
+    /** Шорткоды плагина: по ним определяем, нужен ли CSS на странице. */
+    const SHORTCODES = ['wpd_page', 'wpd_hero', 'wpd_stats', 'wpd_docs', 'wpd_faq'];
+
     public static function init(): void
     {
         add_shortcode('wpd_page', [__CLASS__, 'sc_page']);
@@ -68,6 +71,9 @@ class WPD_Renderer
      */
     private static function wrap(string $inner): string
     {
+        // Страховка: если CSS не подключён заранее (шорткод в виджете, шаблоне), подключаем здесь.
+        self::enqueue_assets();
+
         $o = WPD_Settings::get();
         $vars = sprintf(
             '--wpd-primary:%s;--wpd-accent:%s;--wpd-dark:%s;--wpd-text:%s;--wpd-bg:%s;--wpd-radius:%dpx;--wpd-font:%s;',
@@ -221,7 +227,11 @@ class WPD_Renderer
 
     public static function body_class(array $classes): array
     {
-        if (is_singular() && WPD_Settings::get()['hide_title'] && self::is_design_enabled(get_queried_object_id())) {
+        // Сначала дешёвая проверка мета-поля, настройки читаем только для оформленных страниц.
+        if (!is_singular() || !self::is_design_enabled(get_queried_object_id())) {
+            return $classes;
+        }
+        if (WPD_Settings::get()['hide_title']) {
             $classes[] = 'wpd-has-design';
         }
         return $classes;
@@ -293,6 +303,42 @@ class WPD_Renderer
 
     public static function enqueue(): void
     {
-        wp_enqueue_style('wpd-design', WPD_URL . 'assets/css/wpd.css', [], WPD_VERSION);
+        if (self::page_needs_assets()) {
+            self::enqueue_assets();
+        }
+    }
+
+    /**
+     * Нужен ли CSS на текущей странице: оформленная запись или запись с шорткодом плагина.
+     * Фильтр wpd_always_enqueue_assets позволяет подключать CSS на всех страницах.
+     */
+    private static function page_needs_assets(): bool
+    {
+        if (apply_filters('wpd_always_enqueue_assets', false)) {
+            return true;
+        }
+        if (!is_singular()) {
+            return false;
+        }
+        $post = get_queried_object();
+        if (!$post instanceof WP_Post) {
+            return false;
+        }
+        if (self::is_design_enabled((int) $post->ID)) {
+            return true;
+        }
+        foreach (self::SHORTCODES as $tag) {
+            if (has_shortcode($post->post_content, $tag)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function enqueue_assets(): void
+    {
+        if (!wp_style_is('wpd-design', 'enqueued')) {
+            wp_enqueue_style('wpd-design', WPD_URL . 'assets/css/wpd.css', [], WPD_VERSION);
+        }
     }
 }

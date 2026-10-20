@@ -40,6 +40,26 @@ foreach (['wpd_page', 'wpd_hero', 'wpd_stats', 'wpd_docs', 'wpd_faq'] as $sc) {
 }
 check('css file exists', file_exists($plugin_dir . '/assets/css/wpd.css'));
 
+// 1b. Кеш настроек: сброс при изменении опции в том же запросе
+WPD_Settings::flush_cache();
+update_option('wpd_settings', ['primary' => '#111111']);
+check('cache: reads new value after update', WPD_Settings::get()['primary'] === '#111111');
+update_option('wpd_settings', ['primary' => '#222222']);
+check('cache: reflects second update in same request', WPD_Settings::get()['primary'] === '#222222');
+delete_option('wpd_settings');
+check('cache: reset after delete', WPD_Settings::get()['primary'] === '#1d4ed8');
+// Опция должна существовать: фильтр option_* не применяется к отсутствующей опции.
+update_option('wpd_settings', ['primary' => '#333333']);
+WPD_Settings::flush_cache();
+$reads = 0;
+add_filter('option_wpd_settings', function ($v) use (&$reads) { $reads++; return $v; });
+WPD_Settings::get(); WPD_Settings::get(); WPD_Settings::get();
+check('cache: option read once for 3 get() calls', $reads === 1, "reads=$reads");
+remove_all_filters('option_wpd_settings');
+
+// body_class вне одиночной записи не меняется
+check('body_class untouched outside singular', WPD_Renderer::body_class(['x']) === ['x']);
+
 // 2. Дефолты и количество полей
 delete_option('wpd_settings');
 $defaults = WPD_Settings::defaults();

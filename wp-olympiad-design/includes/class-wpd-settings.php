@@ -12,10 +12,23 @@ class WPD_Settings
     const GROUP  = 'wpd_settings_group';
     const PAGE   = 'wpd-settings';
 
+    /** Кеш настроек на время запроса. Сбрасывается при изменении опции. */
+    private static $cache = null;
+
     public static function init(): void
     {
         add_action('admin_menu', [__CLASS__, 'add_menu']);
         add_action('admin_init', [__CLASS__, 'register']);
+
+        // Сброс кеша при любом изменении опции в этом же запросе.
+        add_action('add_option_' . self::OPTION, [__CLASS__, 'flush_cache']);
+        add_action('update_option_' . self::OPTION, [__CLASS__, 'flush_cache']);
+        add_action('delete_option_' . self::OPTION, [__CLASS__, 'flush_cache']);
+    }
+
+    public static function flush_cache(): void
+    {
+        self::$cache = null;
     }
 
     /**
@@ -103,12 +116,18 @@ class WPD_Settings
      */
     public static function get(): array
     {
+        if (self::$cache !== null) {
+            return self::$cache;
+        }
+
         $saved = get_option(self::OPTION, []);
         $saved = is_array($saved) ? $saved : [];
         $out = [];
         foreach (self::field_map() as $key => $field) {
             $out[$key] = array_key_exists($key, $saved) ? $saved[$key] : $field['default'];
         }
+
+        self::$cache = $out;
         return $out;
     }
 

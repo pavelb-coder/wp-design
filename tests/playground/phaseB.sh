@@ -29,6 +29,9 @@ t "designed: docs from settings shown" "$(has f_designed.html 'wpd-docs')"
 
 t "plain: no design wrapper"        "$(hasnot f_plain.html 'wpd-page')"
 t "plain: no body class"            "$(hasnot f_plain.html 'wpd-has-design')"
+t "plain: no wpd css link"          "$(hasnot f_plain.html 'wpd.css')"
+t "designed: wpd css link"          "$(has f_designed.html 'wpd.css')"
+t "shortcode page: wpd css link"    "$(has f_shortcode.html 'wpd.css')"
 t "plain: content intact"           "$(has f_plain.html 'Обычный')"
 
 t "featured: thumbnail used in hero" "$(has f_featured.html 'wpd-hero__media')"
