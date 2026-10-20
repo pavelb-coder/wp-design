@@ -74,9 +74,42 @@ rm -f cj.txt
 curl -s -c cj.txt -b cj.txt -o /dev/null --max-time 60 -d "log=admin&pwd=password&wp-submit=Log+In&redirect_to=/wp-admin/&testcookie=1" $B/wp-login.php
 curl -s -c cj.txt -b cj.txt --max-time 60 "$B/wp-admin/options-general.php?page=wpd-settings" -o settings.html
 t "admin settings page opens"        "$(has settings.html 'Дизайн олимпиады')"
-t "19 settings fields rendered"      "$([ "$(grep -o 'name="wpd_settings\[' settings.html | wc -l)" = "19" ] && echo 1 || echo 0)"
-for sec in 'Цвета и шрифт' 'Главный блок' 'Статистика' 'Документы' 'Частые вопросы' 'Поведение'; do t "section: $sec" "$(has settings.html "$sec")"; done
+t "26 settings fields rendered"      "$([ "$(grep -o 'name="wpd_settings\[' settings.html | wc -l)" = "26" ] && echo 1 || echo 0)"
+for sec in 'Цвета и шрифт' 'Главный блок' 'Возможности' 'Статистика' 'Документы' 'Частые вопросы' 'Поведение'; do t "section: $sec" "$(has settings.html "$sec")"; done
 t "shortcode help on page"           "$(has settings.html '\[wpd_page\]')"
+
+# --- 1.2.0: JS, таймер, поиск FAQ, варианты блока, анимация статистики ---
+t "designed: JS enqueued"            "$(has f_designed.html 'wpd.js')"
+t "plain: no JS"                     "$(hasnot f_plain.html 'wpd.js')"
+JS_URL=$(grep -oE "https?://[^\"' ]+wpd[.]js[^\"' ]*" f_designed.html | head -1)
+curl -s --max-time 60 -o wpd.js -w "%{http_code}" "$JS_URL" > js_status.txt
+t "wpd.js served 200"                "$(grep -q '^200' js_status.txt && echo 1 || echo 0)"
+
+FEAT_JSON=$(python3 -c 'import urllib.parse,json
+d={"countdown_enabled":1,"countdown_date":"2030-11-20 10:30","countdown_label":"До старта","countdown_done":"Уже прошло",
+   "hero_style":"gradient","faq_search":1,"stats_animate":1,
+   "stats":"300+|участников\n12–18|возраст","faq":"Q1\nA1\n\nQ2\nA2\n\nQ3\nA3\n\nQ4\nA4",
+   "docs":"","hide_title":1}
+print(urllib.parse.quote(json.dumps(d,ensure_ascii=False)))')
+curl -s --max-time 60 "$B/wpd-set.php?json=$FEAT_JSON" > set3.txt
+curl -sL --max-time 120 "$B/?p=$D" -o f_features.html
+t "features: countdown rendered"     "$(has f_features.html 'class="wpd-countdown"')"
+t "features: countdown target attr"  "$(has f_features.html 'data-target="2030-11-20T10:30')"
+t "features: faq search present"     "$(has f_features.html 'class="wpd-faq__search"')"
+t "features: gradient hero class"    "$(has f_features.html 'wpd-hero--gradient')"
+t "features: stat data-count"        "$(has f_features.html 'data-count="300" data-suffix="+"')"
+t "features: JS on page"             "$(has f_features.html 'wpd.js')"
+
+FEAT_OFF=$(python3 -c 'import urllib.parse,json
+d={"countdown_enabled":0,"countdown_date":"2030-11-20 10:30","hero_style":"dark","faq_search":0,"stats_animate":0,
+   "stats":"300+|участников","faq":"Q1\nA1\n\nQ2\nA2\n\nQ3\nA3\n\nQ4\nA4","docs":"","hide_title":1}
+print(urllib.parse.quote(json.dumps(d,ensure_ascii=False)))')
+curl -s --max-time 60 "$B/wpd-set.php?json=$FEAT_OFF" > set4.txt
+curl -sL --max-time 120 "$B/?p=$D" -o f_features_off.html
+t "off: no countdown"                "$(hasnot f_features_off.html 'wpd-countdown')"
+t "off: no faq search"               "$(hasnot f_features_off.html 'wpd-faq__search')"
+t "off: no data-count"               "$(hasnot f_features_off.html 'data-count')"
+t "off: dark hero class"             "$(has f_features_off.html 'wpd-hero--dark')"
 
 echo ""
 echo "PHASE B: PASS=$PASS FAIL=$FAIL"

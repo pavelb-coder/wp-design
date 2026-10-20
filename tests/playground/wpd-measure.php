@@ -6,6 +6,10 @@ error_reporting(E_ALL);
 require '/wordpress/wp-load.php';
 header('Content-Type: text/plain; charset=utf-8');
 
+echo "PHP_VERSION=" . PHP_VERSION . "\n";
+// Опция должна существовать: option_{name} не срабатывает для отсутствующей опции.
+update_option('wpd_settings', ['primary' => '#0f766e']);
+
 $reads = 0;
 add_filter('option_wpd_settings', function ($v) use (&$reads) { $reads++; return $v; });
 

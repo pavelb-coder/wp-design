@@ -39,6 +39,7 @@ class WPD_Settings
         return [
             'colors'   => 'Цвета и шрифт',
             'hero'     => 'Главный блок',
+            'features' => 'Возможности',
             'stats'    => 'Статистика',
             'docs'     => 'Документы',
             'faq'      => 'Частые вопросы',
@@ -76,6 +77,22 @@ class WPD_Settings
             'hero_button_url'  => ['label' => 'Ссылка кнопки', 'type' => 'url', 'section' => 'hero', 'default' => ''],
             'hero_image_url'   => ['label' => 'Изображение главного блока (URL)', 'type' => 'url', 'section' => 'hero', 'default' => '',
                                    'desc' => 'Если у страницы есть «Запись изображение», используется оно.'],
+
+            'hero_style' => ['label' => 'Стиль главного блока', 'type' => 'select', 'section' => 'hero', 'default' => 'dark',
+                             'options' => ['dark' => 'Тёмный', 'gradient' => 'Градиент основного цвета', 'light' => 'Светлый'],
+                             'desc' => 'Светлый вариант подходит для страниц, где много текста и мало иллюстраций.'],
+
+            // Возможности
+            'countdown_enabled' => ['label' => 'Обратный отсчёт', 'type' => 'checkbox', 'section' => 'features', 'default' => 0,
+                                    'desc' => 'Показывает таймер до даты события под главным блоком и через шорткод [wpd_countdown].'],
+            'countdown_date'    => ['label' => 'Дата и время события', 'type' => 'datetime', 'section' => 'features', 'default' => '',
+                                    'desc' => 'Часовой пояс — из настроек сайта (Настройки → Общие).'],
+            'countdown_label'   => ['label' => 'Подпись к таймеру', 'type' => 'text', 'section' => 'features', 'default' => 'До начала олимпиады'],
+            'countdown_done'    => ['label' => 'Текст после окончания отсчёта', 'type' => 'text', 'section' => 'features', 'default' => 'Олимпиада уже прошла'],
+            'faq_search'        => ['label' => 'Поиск по вопросам FAQ', 'type' => 'checkbox', 'section' => 'features', 'default' => 1,
+                                    'desc' => 'Поле поиска появляется, когда вопросов четыре и больше.'],
+            'stats_animate'     => ['label' => 'Анимация чисел статистики', 'type' => 'checkbox', 'section' => 'features', 'default' => 1,
+                                    'desc' => 'Числа вида 300 или 300+ плавно растут при появлении в экране. Отключается для пользователей с настройкой «уменьшить движение».'],
 
             // Статистика
             'stats' => ['label' => 'Карточки статистики', 'type' => 'textarea', 'section' => 'stats',
@@ -169,6 +186,14 @@ class WPD_Settings
                     $out[$key] = esc_url_raw(trim($raw));
                     break;
 
+                case 'select':
+                    $out[$key] = array_key_exists($raw, $field['options']) ? $raw : $field['default'];
+                    break;
+
+                case 'datetime':
+                    $out[$key] = self::normalize_datetime($raw);
+                    break;
+
                 case 'font':
                     $value = trim((string) preg_replace('/[^A-Za-z0-9 ,\'"\-]/', '', $raw));
                     $out[$key] = $value !== '' ? $value : $field['default'];
@@ -186,6 +211,22 @@ class WPD_Settings
         }
 
         return $out;
+    }
+
+    /**
+     * Приводит дату из поля datetime-local к виду «ГГГГ-ММ-ДД ЧЧ:ММ». Некорректное значение даёт пустую строку.
+     */
+    public static function normalize_datetime(string $raw): string
+    {
+        $raw = trim($raw);
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})$/', $raw, $m)) {
+            return '';
+        }
+        [, $y, $mo, $d, $h, $i] = $m;
+        if (!checkdate((int) $mo, (int) $d, (int) $y) || (int) $h > 23 || (int) $i > 59) {
+            return '';
+        }
+        return sprintf('%s-%s-%s %s:%s', $y, $mo, $d, $h, $i);
     }
 
     public static function allowed_html(): array
@@ -335,6 +376,22 @@ class WPD_Settings
             case 'url':
                 printf('<input type="url" id="%1$s" name="%2$s" value="%3$s" class="regular-text code">',
                     esc_attr($id), esc_attr($name), esc_attr($value));
+                break;
+
+            case 'select':
+                printf('<select id="%1$s" name="%2$s">', esc_attr($id), esc_attr($name));
+                foreach ($field['options'] as $opt_value => $opt_label) {
+                    printf('<option value="%1$s" %2$s>%3$s</option>',
+                        esc_attr($opt_value), selected($value, $opt_value, false), esc_html($opt_label));
+                }
+                echo '</select>';
+                break;
+
+            case 'datetime':
+                // datetime-local ожидает формат «ГГГГ-ММ-ДДTЧЧ:ММ»
+                $dt_value = $value !== '' ? str_replace(' ', 'T', $value) : '';
+                printf('<input type="datetime-local" id="%1$s" name="%2$s" value="%3$s" class="regular-text">',
+                    esc_attr($id), esc_attr($name), esc_attr($dt_value));
                 break;
 
             default:

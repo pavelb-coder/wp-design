@@ -63,7 +63,7 @@ check('body_class untouched outside singular', WPD_Renderer::body_class(['x']) =
 // 2. Дефолты и количество полей
 delete_option('wpd_settings');
 $defaults = WPD_Settings::defaults();
-check('defaults count = 19', count($defaults) === 19, (string) count($defaults));
+check('defaults count = 26', count($defaults) === 26, (string) count($defaults));
 check('get() returns defaults when empty', WPD_Settings::get()['primary'] === '#1d4ed8');
 
 $out = do_shortcode('[wpd_page]');
@@ -106,8 +106,8 @@ check('hide_title checkbox on -> 1', $bad['hide_title'] === 1);
 $off = WPD_Settings::sanitize(['primary' => '#000000']);
 check('missing checkbox -> 0', $off['hide_title'] === 0);
 check('missing text field -> default', $off['hero_title'] === WPD_Settings::field_map()['hero_title']['default']);
-check('sanitize([]) returns all keys', count(WPD_Settings::sanitize([])) === 19);
-check('sanitize(non-array) safe', count(WPD_Settings::sanitize('garbage')) === 19);
+check('sanitize([]) returns all keys', count(WPD_Settings::sanitize([])) === 26);
+check('sanitize(non-array) safe', count(WPD_Settings::sanitize('garbage')) === 26);
 
 // 4. Парсеры
 $pairs = WPD_Settings::parse_pairs("a|b\r\nc|d\r\n\r\n  e  \n");
@@ -153,6 +153,75 @@ $hero2 = do_shortcode('[wpd_hero]');
 check('empty badge hidden', strpos($hero2, 'wpd-badge') === false);
 check('button hidden without url', strpos($hero2, 'wpd-btn') === false);
 check('no img without image', strpos($hero2, '<img') === false);
+
+// 5b. Версия 1.2.0: дата таймера, варианты блока, таймер, поиск FAQ, анимация статистики
+check('shortcode wpd_countdown registered', shortcode_exists('wpd_countdown'));
+check('normalize_datetime: T-format', WPD_Settings::normalize_datetime('2030-11-20T10:30') === '2030-11-20 10:30');
+check('normalize_datetime: space-format', WPD_Settings::normalize_datetime('2030-11-20 10:30') === '2030-11-20 10:30');
+check('normalize_datetime: invalid month -> empty', WPD_Settings::normalize_datetime('2030-13-20T10:30') === '');
+check('normalize_datetime: Feb 30 -> empty', WPD_Settings::normalize_datetime('2030-02-30T10:00') === '');
+check('normalize_datetime: bad hour -> empty', WPD_Settings::normalize_datetime('2030-11-20T25:00') === '');
+check('normalize_datetime: garbage -> empty', WPD_Settings::normalize_datetime('<script>') === '');
+check('normalize_datetime: empty -> empty', WPD_Settings::normalize_datetime('') === '');
+
+$feat = WPD_Settings::sanitize([
+    'hero_style' => 'neon', 'countdown_date' => '2030-11-20T10:30', 'countdown_label' => '<b>До</b> старта',
+    'countdown_enabled' => 'on', 'faq_search' => '', 'stats_animate' => '1',
+]);
+check('hero_style invalid -> dark', $feat['hero_style'] === 'dark', $feat['hero_style']);
+check('countdown_date normalized', $feat['countdown_date'] === '2030-11-20 10:30', $feat['countdown_date']);
+check('countdown_enabled on -> 1', $feat['countdown_enabled'] === 1);
+check('faq_search unchecked -> 0', $feat['faq_search'] === 0);
+check('stats_animate on -> 1', $feat['stats_animate'] === 1);
+check('countdown_label tags stripped', strpos($feat['countdown_label'], '<b>') === false);
+
+// Таймер: выключен / включён / без даты
+update_option('wpd_settings', ['countdown_enabled' => 0, 'countdown_date' => '2030-11-20 10:30']);
+check('countdown off -> empty', do_shortcode('[wpd_countdown]') === '');
+update_option('wpd_settings', ['countdown_enabled' => 1, 'countdown_date' => '']);
+check('countdown without date -> empty', do_shortcode('[wpd_countdown]') === '');
+update_option('wpd_settings', [
+    'countdown_enabled' => 1, 'countdown_date' => '2030-11-20 10:30',
+    'countdown_label' => '<img src=x onerror=1>До старта', 'countdown_done' => 'Уже прошло',
+]);
+$cd = do_shortcode('[wpd_countdown]');
+check('countdown renders target', strpos($cd, 'data-target="2030-11-20T10:30:00') !== false, $cd);
+check('countdown done text attr', strpos($cd, 'data-done="Уже прошло"') !== false);
+check('countdown label escaped', strpos($cd, '<img') === false);
+check('countdown value has date (no-JS fallback)', strpos($cd, 'wpd-countdown__value') !== false);
+check('countdown wrapped in .wpd-page', strpos($cd, 'class="wpd-page"') !== false);
+
+// Вариант главного блока (проверяем, что хук сброса кеша работает в том же запросе)
+update_option('wpd_settings', ['hero_style' => 'light']);
+check('hero light class', strpos(do_shortcode('[wpd_hero]'), 'wpd-hero--light') !== false);
+update_option('wpd_settings', ['hero_style' => 'gradient']);
+check('hero gradient class', strpos(do_shortcode('[wpd_hero]'), 'wpd-hero--gradient') !== false);
+update_option('wpd_settings', ['hero_style' => 'bogus']);
+check('hero invalid style falls back to dark', strpos(do_shortcode('[wpd_hero]'), 'wpd-hero--dark') !== false);
+
+// Поиск по FAQ: от 4 вопросов и при включённой опции
+$faq4 = "Q1\nA1\n\nQ2\nA2\n\nQ3\nA3\n\nQ4\nA4";
+update_option('wpd_settings', ['faq' => $faq4, 'faq_search' => 1]);
+$f4 = do_shortcode('[wpd_faq]');
+check('faq search shown for 4 items', strpos($f4, 'data-wpd-search') !== false && strpos($f4, 'class="wpd-faq__search"') !== false);
+check('faq search input hidden by default', strpos($f4, 'wpd-faq__search" placeholder="Поиск по вопросам" aria-label="Поиск по вопросам" hidden') !== false);
+update_option('wpd_settings', ['faq' => "Q1\nA1\n\nQ2\nA2\n\nQ3\nA3", 'faq_search' => 1]);
+check('faq search hidden for 3 items', strpos(do_shortcode('[wpd_faq]'), 'wpd-faq__search') === false);
+update_option('wpd_settings', ['faq' => $faq4, 'faq_search' => 0]);
+check('faq search off -> none', strpos(do_shortcode('[wpd_faq]'), 'wpd-faq__search') === false);
+
+// Анимация статистики: только числа вида 300, 300+, 50%
+update_option('wpd_settings', ['stats' => "300+|участников\n12–18|возраст\n50%|доля\nabc|текст", 'stats_animate' => 1]);
+$st = do_shortcode('[wpd_stats]');
+check('stats animate: 300+ -> data-count 300 suffix +', strpos($st, 'data-count="300" data-suffix="+"') !== false, $st);
+check('stats animate: 50% -> data-count 50 suffix %', strpos($st, 'data-count="50" data-suffix="%"') !== false);
+check('stats animate: range 12–18 not animated', substr_count($st, 'data-count=') === 2, (string) substr_count($st, 'data-count='));
+check('stats animate: text value kept', strpos($st, '>300+<') !== false);
+update_option('wpd_settings', ['stats_animate' => 0]);
+check('stats animate off -> no data-count', strpos(do_shortcode('[wpd_stats]'), 'data-count') === false);
+
+// Возвращаем настройки, с которыми работают фазы B и C
+update_option('wpd_settings', []);
 
 // 6. Мета-бокс: сохранение через save_post
 wp_set_current_user(1);
