@@ -244,6 +244,9 @@ class WPD_Blocks
             ],
             'heroStyles'  => ['dark' => 'Тёмный', 'gradient' => 'Градиент основного цвета', 'light' => 'Светлый'],
             'settingsUrl' => WPD_Settings::url(),
+            // Часовой пояс таймера (1.6.1): подсказка у полей дат и подпись даты на холсте
+            'countdownTz' => WPD_Settings::countdown_tz_label($o),
+            'countdownTzName' => WPD_Settings::field_map()['countdown_tz']['options'][$o['countdown_tz']] ?? '',
             'icons'       => WPD_Settings::icons(),
             // Список рубрик нужен только редактору; на сайте лишний запрос не делаем
             'categories'  => is_admin() ? self::categories() : [],

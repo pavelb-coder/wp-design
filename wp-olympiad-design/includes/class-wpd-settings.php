@@ -15,6 +15,25 @@ class WPD_Settings
     /** Иконка пункта меню «Олимпиада». */
     const MENU_ICON = 'dashicons-awards';
 
+    /**
+     * Часовые пояса таймера (1.6.1): ключ — идентификатор пояса, значение — [подпись в списке, короткое обозначение].
+     * «site» — пояс из настроек сайта (Настройки → Общие).
+     */
+    const TIMEZONES = [
+        'Europe/Kaliningrad' => ['Калининград (МСК−1, UTC+2)', 'МСК−1'],
+        'Europe/Moscow'      => ['Москва (МСК, UTC+3)', 'МСК'],
+        'Europe/Samara'      => ['Самара (МСК+1, UTC+4)', 'МСК+1'],
+        'Asia/Yekaterinburg' => ['Екатеринбург (МСК+2, UTC+5)', 'МСК+2'],
+        'Asia/Omsk'          => ['Омск (МСК+3, UTC+6)', 'МСК+3'],
+        'Asia/Krasnoyarsk'   => ['Красноярск (МСК+4, UTC+7)', 'МСК+4'],
+        'Asia/Irkutsk'       => ['Иркутск (МСК+5, UTC+8)', 'МСК+5'],
+        'Asia/Yakutsk'       => ['Якутск (МСК+6, UTC+9)', 'МСК+6'],
+        'Asia/Vladivostok'   => ['Владивосток (МСК+7, UTC+10)', 'МСК+7'],
+        'Asia/Magadan'       => ['Магадан (МСК+8, UTC+11)', 'МСК+8'],
+        'Asia/Kamchatka'     => ['Петропавловск-Камчатский (МСК+9, UTC+12)', 'МСК+9'],
+        'site'               => ['Как в настройках сайта (Настройки → Общие)', ''],
+    ];
+
     /** Кеш настроек на время запроса. Сбрасывается при изменении опции. */
     private static $cache = null;
 
@@ -142,8 +161,11 @@ class WPD_Settings
             // Возможности
             'countdown_enabled' => ['label' => 'Обратный отсчёт', 'type' => 'checkbox', 'section' => 'features', 'default' => 0,
                                     'desc' => 'Показывает таймер до начала (и до окончания) под главным блоком и через шорткод [wpd_countdown].'],
+            'countdown_tz'      => ['label' => 'Часовой пояс таймера', 'type' => 'select', 'section' => 'features', 'default' => 'Europe/Moscow',
+                                    'options' => array_map(function ($tz) { return $tz[0]; }, self::TIMEZONES),
+                                    'desc' => 'Даты начала и окончания (здесь и в блоках редактора) указываются по этому поясу. Посетители из любого города видят правильный остаток времени.'],
             'countdown_date'    => ['label' => 'Дата и время начала', 'type' => 'datetime', 'section' => 'features', 'default' => '',
-                                    'desc' => 'Часовой пояс — из настроек сайта (Настройки → Общие).'],
+                                    'desc' => 'По часовому поясу таймера (поле выше).'],
             'countdown_label'   => ['label' => 'Подпись до начала', 'type' => 'text', 'section' => 'features', 'default' => 'До начала олимпиады'],
             'countdown_end'     => ['label' => 'Дата и время окончания', 'type' => 'datetime', 'section' => 'features', 'default' => '',
                                     'desc' => 'Необязательно. С наступлением начала тот же блок считает время до окончания. Пусто — один таймер, как раньше.'],
@@ -559,6 +581,45 @@ class WPD_Settings
     }
 
     /**
+     * Часовой пояс таймера. Неизвестное значение или «site» — пояс сайта.
+     */
+    public static function countdown_timezone(?array $o = null): DateTimeZone
+    {
+        $o   = $o ?? self::get();
+        $key = (string) ($o['countdown_tz'] ?? 'Europe/Moscow');
+        if ($key !== 'site' && isset(self::TIMEZONES[$key])) {
+            try {
+                return new DateTimeZone($key);
+            } catch (Exception $e) {
+                // нет данных о поясе — берём пояс сайта
+            }
+        }
+        return wp_timezone();
+    }
+
+    /**
+     * Короткое обозначение пояса таймера: «МСК», «МСК+4»… Для пояса сайта вне списка — «UTC+5:30» и т. п.
+     */
+    public static function countdown_tz_label(?array $o = null): string
+    {
+        $o   = $o ?? self::get();
+        $key = (string) ($o['countdown_tz'] ?? 'Europe/Moscow');
+        if ($key === 'site' || !isset(self::TIMEZONES[$key])) {
+            $tz = wp_timezone();
+            if (isset(self::TIMEZONES[$tz->getName()])) {
+                return self::TIMEZONES[$tz->getName()][1];
+            }
+            $off  = $tz->getOffset(new DateTime('now', $tz));
+            $sign = $off < 0 ? '−' : '+';
+            $off  = abs($off);
+            $h    = intdiv($off, 3600);
+            $m    = intdiv($off % 3600, 60);
+            return 'UTC' . $sign . $h . ($m ? sprintf(':%02d', $m) : '');
+        }
+        return self::TIMEZONES[$key][1];
+    }
+
+    /**
      * Приводит дату из поля datetime-local к виду «ГГГГ-ММ-ДД ЧЧ:ММ». Некорректное значение даёт пустую строку.
      */
     public static function normalize_datetime(string $raw): string
@@ -840,7 +901,7 @@ class WPD_Settings
                 <tbody>
                     <tr><td><code>[wpd_page]</code></td><td>все блоки сразу: главный блок, таймер, статистика, документы, FAQ</td></tr>
                     <tr><td><code>[wpd_hero]</code></td><td>главный блок</td></tr>
-                    <tr><td><code>[wpd_countdown]</code></td><td>обратный отсчёт до начала и до окончания, кнопка на время этапа (если включён и задана дата)</td></tr>
+                    <tr><td><code>[wpd_countdown]</code></td><td>обратный отсчёт до начала и до окончания, кнопка на время этапа (если включён и задана дата); даты — по часовому поясу таймера, по умолчанию московскому</td></tr>
                     <tr><td><code>[wpd_stats]</code></td><td>статистика</td></tr>
                     <tr><td><code>[wpd_docs]</code></td><td>документы</td></tr>
                     <tr><td><code>[wpd_faq]</code></td><td>частые вопросы</td></tr>

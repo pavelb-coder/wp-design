@@ -276,6 +276,8 @@ with sync_playwright() as p:
         time.sleep(0.4)
     check("countdown: date set from sidebar", attrs(page, cd_id).get("date") == "2031-05-15 09:00", attrs(page, cd_id).get("date"))
     check("countdown: date shown on canvas", "15.05.2031" in cv.locator(".wpd-page--countdown .wpd-countdown__value").first.inner_text())
+    check("countdown: canvas date in Moscow time (1.6.1)", cv.locator(".wpd-page--countdown .wpd-countdown__value").first.inner_text().strip().endswith("09:00 МСК"), cv.locator(".wpd-page--countdown .wpd-countdown__value").first.inner_text())
+    check("countdown: timezone hint in sidebar (1.6.1)", page.get_by_text("Часовой пояс: Москва (МСК, UTC+3)", exact=False).count() >= 1)
     # 1.6.0: дата окончания и кнопка на время этапа
     if dt.count() > 1:
         dt.nth(1).fill("2031-05-16T18:00")
@@ -330,7 +332,7 @@ with sync_playwright() as p:
     check("front: faq rich answer", "<strong>жирным</strong>" in front and "Вопрос из браузера?" in front)
     check("front: countdown end and button (1.6.0)", 'data-end="2031-05-16T18:00' in front and 'href="https://example.com/tasks"' in front and "К заданиям" in front)
     check("front: button hidden before start", re.search(r'class="wpd-btn wpd-countdown__link"[^>]*hidden', front) is not None)
-    check("front: countdown date", 'data-target="2031-05-15T09:00' in front)
+    check("front: countdown date (Moscow, +03:00)", 'data-target="2031-05-15T09:00:00+03:00"' in front)
     check("front: css linked", "wpd.css" in front)
 
     # Повторное открытие: значения на месте

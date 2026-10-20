@@ -244,7 +244,7 @@ class WPD_Renderer
             return '';
         }
 
-        $tz = wp_timezone();
+        $tz = WPD_Settings::countdown_timezone($o);
         $dt = DateTime::createFromFormat('Y-m-d H:i|', $date, $tz);
         if (!$dt) {
             return '';
@@ -268,14 +268,16 @@ class WPD_Renderer
         $link_open = $now >= $start && (!$end_dt || $now < $end_dt->getTimestamp());
 
         $format = get_option('date_format') . ' H:i';
+        $tz_abbr = WPD_Settings::countdown_tz_label($o);
+        $suffix  = $tz_abbr !== '' ? ' ' . $tz_abbr : '';
         switch ($phase) {
             case 'before':
                 $shown_label = $label;
-                $shown_value = wp_date($format, $start, $tz);
+                $shown_value = wp_date($format, $start, $tz) . $suffix;
                 break;
             case 'active':
                 $shown_label = $end_lbl;
-                $shown_value = wp_date($format, $end_dt->getTimestamp(), $tz);
+                $shown_value = wp_date($format, $end_dt->getTimestamp(), $tz) . $suffix;
                 break;
             default:
                 $shown_label = '';

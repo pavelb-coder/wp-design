@@ -7,7 +7,8 @@ t() { if [ "$2" = "1" ]; then echo "PASS $1"; PASS=$((PASS+1)); else echo "FAIL 
 has() { grep -q -- "$2" "$1" && echo 1 || echo 0; }
 hasnot() { grep -q -- "$2" "$1" && echo 0 || echo 1; }
 set_opt() { curl -s --max-time 60 "$B/wpd-set.php?json=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))' "$1")" > /dev/null; }
-rel() { python3 -c "import datetime,sys;print((datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(hours=float(sys.argv[1]))).strftime('%Y-%m-%d %H:%M'))" "$1"; }
+# Время по Москве (часовой пояс таймера по умолчанию, UTC+3)
+rel() { python3 -c "import datetime,sys;print((datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(hours=3+float(sys.argv[1]))).strftime('%Y-%m-%d %H:%M'))" "$1"; }
 
 rm -f cjI.txt
 curl -s -c cjI.txt -b cjI.txt -o /dev/null --max-time 60 -d "log=admin&pwd=password&wp-submit=Log+In&redirect_to=/wp-admin/&testcookie=1" "$B/wp-login.php"
@@ -21,6 +22,7 @@ t "features tab: end label"              "$(has i_feat.html 'name="wpd_settings\
 t "features tab: link url (type url)"    "$(grep -qE 'type="url"[^>]*name="wpd_settings\[countdown_link_url\]"|name="wpd_settings\[countdown_link_url\]"[^>]*type="url"' i_feat.html && echo 1 || echo 0)"
 t "features tab: link text"              "$(has i_feat.html 'name="wpd_settings\[countdown_link_text\]"')"
 t "features tab: new tab checked by default" "$(grep -qE 'name="wpd_settings\[countdown_link_new_tab\]" value="1"\s+checked' i_feat.html && echo 1 || echo 0)"
+t "features tab: timezone select, Moscow selected" "$(grep -qE '<option value="Europe/Moscow"\s+selected' i_feat.html && has i_feat.html 'name="wpd_settings\[countdown_tz\]"' | grep -q 1 && echo 1 || echo 0)"
 t "features tab: labels renamed"         "$([ "$(has i_feat.html 'Дата и время начала')$(has i_feat.html 'Дата и время окончания')" = "11" ] && echo 1 || echo 0)"
 
 # Сохранение с окончанием раньше начала — предупреждение, значения сохраняются
@@ -44,7 +46,7 @@ t "save: warning shown once"             "$([ "$(grep -o 'Дата оконча�
 t "save: end value stored"               "$(has i_feat2.html 'value="2031-03-09T10:00"')"
 t "save: link stored"                    "$(has i_feat2.html 'value="https://example.com/tasks"')"
 
-# Нормальные даты: этап идёт сейчас (время UTC → часовой пояс сайта в песочнице UTC)
+# Нормальные даты: этап идёт сейчас (даты по Москве)
 START=$(rel -1); END=$(rel 2)
 LOC=$(post_feat "${START/ /T}" "${END/ /T}")
 get "/wp-admin/admin.php?page=wpd-settings&tab=features&settings-updated=true" i_feat3.html
@@ -55,6 +57,7 @@ curl -sL --max-time 120 "$B/?page_id=$ID" -o i_countdown.html
 t "front: countdown active"              "$(has i_countdown.html 'data-phase="active"')"
 t "front: end label shown"               "$(has i_countdown.html '<p class="wpd-countdown__label">До финиша</p>')"
 t "front: button visible during stage"   "$(grep -qE 'class="wpd-btn wpd-countdown__link" href="https://example.com/tasks" target="_blank" rel="noopener noreferrer">Открыть задания' i_countdown.html && echo 1 || echo 0)"
+t "front: end date in Moscow time (+03:00)" "$(grep -qE 'data-end="[0-9T:-]+\+03:00"' i_countdown.html && echo 1 || echo 0)"
 t "front: data for script"               "$([ "$(has i_countdown.html 'data-end="')$(has i_countdown.html 'data-end-label="До финиша"')$(has i_countdown.html 'data-label="До старта"')" = "111" ] && echo 1 || echo 0)"
 t "front: wpd.js linked"                 "$(has i_countdown.html 'assets/js/wpd.js')"
 

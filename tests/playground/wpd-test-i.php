@@ -1,5 +1,5 @@
 <?php
-// Фаза I (1.6.0): таймер до начала и до окончания, кнопка-ссылка на время этапа.
+// Фаза I (1.6.0, дополнена в 1.6.1): таймер до начала и до окончания, кнопка-ссылка на время этапа, часовой пояс таймера.
 // PHP-часть: поля и санитизация, предупреждение о датах, этапы на сервере, кнопка, блок, шорткод, панель. В конце удаляет опцию.
 register_shutdown_function(function () { $e = error_get_last(); if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_COMPILE_ERROR], true)) { echo "\nSHUTDOWN: {$e['message']} in {$e['file']}:{$e['line']}\n"; } });
 ini_set('display_errors', '1');
@@ -30,7 +30,8 @@ function set_opts(array $values): void {
 }
 /** Дата в формате настроек относительно текущего момента (в часовом поясе сайта). */
 function rel(string $modify): string {
-    return (new DateTime('now', wp_timezone()))->modify($modify)->format('Y-m-d H:i');
+    // В часовом поясе таймера (по умолчанию московском): так даты вводит администратор
+    return (new DateTime('now', WPD_Settings::countdown_timezone()))->modify($modify)->format('Y-m-d H:i');
 }
 function cd(array $args): string {
     return WPD_Renderer::countdown_html(WPD_Settings::get(), $args + ['enabled' => true]);
@@ -41,7 +42,7 @@ wp_set_current_user(1);
 delete_option('wpd_settings');
 WPD_Settings::flush_cache();
 
-check('version 1.6.0', WPD_VERSION === '1.6.0');
+check('version >= 1.6.1', version_compare(WPD_VERSION, '1.6.1', '>='));
 
 /* 1. Поля */
 $map = WPD_Settings::field_map();
@@ -85,7 +86,7 @@ $base = ['label' => 'До начала', 'end_label' => 'До окончания
 $h = cd($base + ['date' => rel('+2 days'), 'end' => rel('+3 days')]);
 check('before: phase', has($h, 'data-phase="before"'), $h);
 check('before: start label shown', has($h, '<p class="wpd-countdown__label">До начала</p>'));
-check('before: start date as value', has($h, wp_date(get_option('date_format'), strtotime('+2 days'))));
+check('before: start date as value', has($h, wp_date(get_option('date_format'), strtotime('+2 days'), WPD_Settings::countdown_timezone())));
 check('before: link present but hidden', has($h, 'class="wpd-btn wpd-countdown__link" href="https://example.com/tasks" target="_blank" rel="noopener noreferrer" hidden>'), $h);
 check('before: data attrs for script', has($h, 'data-end="') && has($h, 'data-end-label="До окончания"') && has($h, 'data-label="До начала"') && has($h, 'data-done="Завершено"'));
 check('before: class unchanged', has($h, '<div class="wpd-countdown" '));
@@ -93,7 +94,7 @@ check('before: class unchanged', has($h, '<div class="wpd-countdown" '));
 $h = cd($base + ['date' => rel('-1 hour'), 'end' => rel('+1 day')]);
 check('active: phase', has($h, 'data-phase="active"'), $h);
 check('active: end label shown', has($h, '<p class="wpd-countdown__label">До окончания</p>'));
-check('active: end date as value', has($h, wp_date(get_option('date_format'), strtotime('+1 day'))));
+check('active: end date as value', has($h, wp_date(get_option('date_format'), strtotime('+1 day'), WPD_Settings::countdown_timezone())));
 check('active: link visible', has($h, 'wpd-countdown__link') && !preg_match('/wpd-countdown__link[^>]*hidden/', $h));
 check('active: link text with arrow', has($h, '>К заданиям &rarr;</a>'));
 
@@ -157,6 +158,57 @@ WPD_Page_Editor::meta_box_html(get_post($pid));
 $mb = ob_get_clean();
 check('panel note: start and end from settings', has($mb, 'начало и окончание из общих настроек'));
 wp_delete_post($pid, true);
+
+/* 8. Часовой пояс таймера (1.6.1) */
+$map  = WPD_Settings::field_map();
+$keys = array_keys($map);
+check('tz: select on features tab, default Moscow', ($map['countdown_tz']['type'] ?? '') === 'select' && $map['countdown_tz']['section'] === 'features' && $map['countdown_tz']['default'] === 'Europe/Moscow');
+check('tz: placed right before start date', array_search('countdown_tz', $keys, true) + 1 === array_search('countdown_date', $keys, true));
+check('tz: 11 Russian zones + site', count($map['countdown_tz']['options']) === 12 && isset($map['countdown_tz']['options']['site'], $map['countdown_tz']['options']['Asia/Krasnoyarsk']));
+check('tz: all zones known to PHP', count(array_filter(array_keys(WPD_Settings::TIMEZONES), function ($k) { return $k === 'site' || in_array($k, timezone_identifiers_list(), true); })) === 12);
+check('tz: Moscow label', $map['countdown_tz']['options']['Europe/Moscow'] === 'Москва (МСК, UTC+3)');
+$s = WPD_Settings::sanitize(['_tab' => 'features', 'countdown_tz' => 'Asia/Krasnoyarsk']);
+check('tz: sanitize keeps known zone', $s['countdown_tz'] === 'Asia/Krasnoyarsk');
+$s = WPD_Settings::sanitize(['_tab' => 'features', 'countdown_tz' => 'Mars/Olympus']);
+check('tz: sanitize unknown -> Moscow', $s['countdown_tz'] === 'Europe/Moscow');
+$s = WPD_Settings::sanitize(['_tab' => 'stats', 'stats' => '1|a']);
+check('tz: other tab save keeps default', $s['countdown_tz'] === 'Europe/Moscow');
+set_opts([]);
+check('tz: default timezone is Moscow', WPD_Settings::countdown_timezone()->getName() === 'Europe/Moscow');
+check('tz: default label МСК', WPD_Settings::countdown_tz_label() === 'МСК');
+check('tz: Krasnoyarsk label МСК+4', WPD_Settings::countdown_tz_label(['countdown_tz' => 'Asia/Krasnoyarsk']) === 'МСК+4');
+check('tz: Kaliningrad label МСК−1', WPD_Settings::countdown_tz_label(['countdown_tz' => 'Europe/Kaliningrad']) === 'МСК−1');
+$old_tz = get_option('timezone_string'); $old_off = get_option('gmt_offset');
+update_option('timezone_string', ''); update_option('gmt_offset', 0);
+check('tz: site (UTC) -> site zone and UTC+0', WPD_Settings::countdown_timezone(['countdown_tz' => 'site'])->getOffset(new DateTime()) === 0 && WPD_Settings::countdown_tz_label(['countdown_tz' => 'site']) === 'UTC+0', WPD_Settings::countdown_tz_label(['countdown_tz' => 'site']));
+update_option('gmt_offset', 5.5);
+check('tz: site +5:30 -> UTC+5:30', WPD_Settings::countdown_tz_label(['countdown_tz' => 'site']) === 'UTC+5:30', WPD_Settings::countdown_tz_label(['countdown_tz' => 'site']));
+update_option('timezone_string', 'Asia/Krasnoyarsk');
+check('tz: site Krasnoyarsk -> МСК+4', WPD_Settings::countdown_tz_label(['countdown_tz' => 'site']) === 'МСК+4');
+update_option('timezone_string', $old_tz); update_option('gmt_offset', $old_off);
+check('tz: unknown stored value -> site zone', WPD_Settings::countdown_timezone(['countdown_tz' => 'Mars/Olympus'])->getName() === wp_timezone()->getName());
+
+$h = cd(['date' => '2031-05-10 10:00', 'end' => '2031-05-11 18:00']);
+check('tz: start interpreted as Moscow (+03:00)', has($h, 'data-target="2031-05-10T10:00:00+03:00"') && has($h, 'data-end="2031-05-11T18:00:00+03:00"'), $h);
+check('tz: shown date marked МСК', has($h, '10:00 МСК</p>'), $h);
+set_opts(['countdown_tz' => 'Asia/Krasnoyarsk']);
+$h = cd(['date' => '2031-05-10 10:00']);
+check('tz: Krasnoyarsk (+07:00, МСК+4)', has($h, 'data-target="2031-05-10T10:00:00+07:00"') && has($h, '10:00 МСК+4</p>'), $h);
+// Одно и то же «настенное» время: по Москве через 30 минут, по Красноярску (на 4 часа раньше) уже 3,5 часа как прошло
+$wall = (new DateTime('now', new DateTimeZone('Europe/Moscow')))->modify('+30 minutes')->format('Y-m-d H:i');
+check('tz: phase follows zone (Krasnoyarsk -> already started)', has(cd(['date' => $wall, 'end' => $wall === '' ? '' : (new DateTime($wall))->modify('+2 hours')->format('Y-m-d H:i')]), 'data-phase="done"'));
+set_opts([]);
+check('tz: phase follows zone (Moscow -> before)', has(cd(['date' => $wall]), 'data-phase="before"'));
+set_opts(['countdown_tz' => 'site']);
+check('tz: site zone label in output', has(cd(['date' => '2031-05-10 10:00']), '10:00 ' . WPD_Settings::countdown_tz_label() . '</p>'));
+set_opts(['countdown_enabled' => 1, 'countdown_date' => '2031-05-10 10:00']);
+check('tz: shortcode uses Moscow by default', has(do_shortcode('[wpd_countdown]'), 'data-target="2031-05-10T10:00:00+03:00"'));
+check('tz: block uses timezone too', has(WPD_Blocks::render_countdown(['date' => '2031-06-01 12:00']), 'data-target="2031-06-01T12:00:00+03:00"'));
+set_opts([]);
+$after = implode("\n", (array) wp_scripts()->get_data('wpd-blocks', 'before'));
+check('tz: editor gets zone label and name', has($after, '"countdownTz":' . wp_json_encode('МСК')) && has($after, '"countdownTzName":' . wp_json_encode('Москва (МСК, UTC+3)')), substr($after, 0, 200));
+$help = WPD_Settings::field_map()['countdown_date']['desc'];
+check('tz: start date hint points to timezone field', has($help, 'По часовому поясу таймера'));
 
 /* 7. Справка */
 ob_start();
