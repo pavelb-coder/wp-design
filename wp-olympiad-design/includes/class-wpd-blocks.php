@@ -152,7 +152,7 @@ class WPD_Blocks
                 '--wpd-font'    => $o['font'],
             ],
             'heroStyles'  => ['dark' => 'Тёмный', 'gradient' => 'Градиент основного цвета', 'light' => 'Светлый'],
-            'settingsUrl' => admin_url('options-general.php?page=' . WPD_Settings::PAGE),
+            'settingsUrl' => WPD_Settings::url(),
         ]) . ';', 'before');
 
         if (function_exists('register_block_pattern')) {

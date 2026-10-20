@@ -456,7 +456,7 @@ class WPD_Renderer
     {
         wp_nonce_field('wpd_save_meta', 'wpd_nonce');
         $checked = checked(self::is_design_enabled($post->ID), true, false);
-        $settings_url = admin_url('options-general.php?page=' . WPD_Settings::PAGE);
+        $settings_url = WPD_Settings::url();
 
         printf(
             '<label><input type="checkbox" name="wpd_enabled" value="1" %s> Включить оформление</label>'

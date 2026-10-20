@@ -32,7 +32,7 @@ $o = WPD_Settings::get();
 /* 1. Классы и регистрация */
 check('class WPD_Page_Editor', class_exists('WPD_Page_Editor'));
 check('class WPD_Blocks', class_exists('WPD_Blocks'));
-check('version 1.3.0', WPD_VERSION === '1.3.0');
+check('version >= 1.3.0', version_compare(WPD_VERSION, '1.3.0', '>='));
 
 /* 2. Значения по умолчанию */
 $d = WPD_Page_Editor::defaults();

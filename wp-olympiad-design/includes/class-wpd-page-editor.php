@@ -279,7 +279,7 @@ class WPD_Page_Editor
         $o        = WPD_Settings::get();
         $blocks   = self::blocks();
         $enabled  = WPD_Renderer::is_design_enabled($post->ID);
-        $settings = admin_url('options-general.php?page=' . WPD_Settings::PAGE);
+        $settings = WPD_Settings::url();
         $has_blocks = strpos((string) $post->post_content, '<!-- wp:' . WPD_Blocks::NS . '/') !== false;
 
         $notes = [
@@ -331,9 +331,10 @@ class WPD_Page_Editor
         echo '</ul>';
 
         self::hero_panel($post, $p['hero'], $o);
-        self::list_panel('stats', 'Статистика', $p, $o, $settings);
-        self::list_panel('docs', 'Документы', $p, $o, $settings);
-        self::list_panel('faq', 'Частые вопросы', $p, $o, $settings);
+        // Ссылка «Изменить в настройках» ведёт сразу на нужную вкладку
+        self::list_panel('stats', 'Статистика', $p, $o, WPD_Settings::url('stats'));
+        self::list_panel('docs', 'Документы', $p, $o, WPD_Settings::url('docs'));
+        self::list_panel('faq', 'Частые вопросы', $p, $o, WPD_Settings::url('faq'));
 
         // Шаблоны новых строк для JavaScript
         foreach (array_keys(self::LISTS) as $list) {

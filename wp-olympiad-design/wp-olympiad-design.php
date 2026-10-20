@@ -3,7 +3,7 @@
  * Plugin Name:       WP Olympiad Design
  * Plugin URI:        https://github.com/pavelb-coder/wp-design
  * Description:       Оформление страниц в стиле сайта олимпиады: главный блок, статистика, документы и FAQ-аккордеон. Блоки редактора, своё содержимое и порядок блоков для каждой страницы, общие настройки без правки кода.
- * Version:           1.3.0
+ * Version:           1.4.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            pavelb-coder
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('WPD_VERSION', '1.3.0');
+define('WPD_VERSION', '1.4.0');
 define('WPD_DIR', plugin_dir_path(__FILE__));
 define('WPD_URL', plugin_dir_url(__FILE__));
 

@@ -90,13 +90,29 @@ with sync_playwright() as p:
     page.on("pageerror", lambda e: js_errors.append(str(e)))
 
     # Стартовое окно «Choose a pattern» может появиться в любой момент — закрываем автоматически
-    # Приветственный гид и окно выбора паттерна: кнопка «Close», иначе Escape
+    # Приветственный гид и окно выбора паттерна: пробуем несколько способов закрыть
     def close_modal():
-        btn = page.locator(".components-modal__screen-overlay").get_by_role("button", name=re.compile("^(Close|Закрыть)")).first
+        overlay = page.locator(".components-modal__screen-overlay").first
+        candidates = [
+            overlay.get_by_role("button", name=re.compile("^(Close|Закрыть)")),
+            overlay.locator(".components-modal__header button"),
+            overlay.locator("button.components-guide__finish-button"),
+            overlay.locator("button[aria-label]"),
+        ]
+        for cand in candidates:
+            try:
+                if cand.count():
+                    cand.first.click(timeout=2000, no_wait_after=True, force=True)
+                    time.sleep(0.5)
+                    if not overlay.is_visible():
+                        return
+            except Exception:
+                pass
         try:
-            btn.click(timeout=3000, no_wait_after=True)
+            overlay.focus()
         except Exception:
-            page.keyboard.press("Escape")
+            pass
+        page.keyboard.press("Escape")
         time.sleep(0.5)
     page.add_locator_handler(page.locator(".components-modal__screen-overlay"), close_modal)
     page.on("console", lambda m: js_errors.append("console: " + m.text) if m.type == "error" and "wpd" in m.text.lower() else None)
@@ -109,6 +125,19 @@ with sync_playwright() as p:
     page.wait_for_load_state("networkidle", timeout=120000)
 
     # ---------- 1. Блоки в редакторе ----------
+    page.goto(BASE + "/wp-admin/post-new.php?post_type=page", timeout=180000)
+    wait_editor(page)
+    # Отключаем приветствие и стартовые паттерны в профиле пользователя (REST, мета persisted_preferences),
+    # затем перезагружаем редактор — окна больше не появятся
+    page.evaluate("""() => wp.apiFetch({
+        path: '/wp/v2/users/me?context=edit',
+        method: 'POST',
+        data: { meta: { persisted_preferences: {
+            core: { enableChoosePatternModal: false, welcomeGuide: false },
+            'core/edit-post': { welcomeGuide: false },
+            _modified: new Date().toISOString()
+        } } }
+    })""")
     page.goto(BASE + "/wp-admin/post-new.php?post_type=page", timeout=180000)
     wait_editor(page)
 

@@ -72,11 +72,16 @@ t "empty faq hidden on page"         "$(hasnot f_designed_custom.html 'wpd-faq')
 # Страница настроек в админке: 19 полей и кнопка сохранения
 rm -f cj.txt
 curl -s -c cj.txt -b cj.txt -o /dev/null --max-time 60 -d "log=admin&pwd=password&wp-submit=Log+In&redirect_to=/wp-admin/&testcookie=1" $B/wp-login.php
-curl -s -c cj.txt -b cj.txt --max-time 60 "$B/wp-admin/options-general.php?page=wpd-settings" -o settings.html
-t "admin settings page opens"        "$(has settings.html 'Дизайн олимпиады')"
-t "26 settings fields rendered"      "$([ "$(grep -o 'name="wpd_settings\[' settings.html | wc -l)" = "26" ] && echo 1 || echo 0)"
-for sec in 'Цвета и шрифт' 'Главный блок' 'Возможности' 'Статистика' 'Документы' 'Частые вопросы' 'Поведение'; do t "section: $sec" "$(has settings.html "$sec")"; done
-t "shortcode help on page"           "$(has settings.html '\[wpd_page\]')"
+# 1.4.0: настройки — пункт меню «Олимпиада» с вкладками; старый адрес перенаправляет туда (curl -L)
+curl -sL -c cj.txt -b cj.txt --max-time 60 "$B/wp-admin/options-general.php?page=wpd-settings" -o settings.html
+: > settings_all.html
+for tab in design hero features stats docs faq help; do
+  curl -s -c cj.txt -b cj.txt --max-time 60 "$B/wp-admin/admin.php?page=wpd-settings&tab=$tab" >> settings_all.html
+done
+t "admin settings page opens"        "$(has settings.html 'nav-tab-active')"
+t "26 settings fields rendered"      "$([ "$(grep -o 'name="wpd_settings\[[a-z_]*\]"' settings_all.html | grep -v _tab | wc -l)" = "26" ] && echo 1 || echo 0)"
+for sec in 'Цвета и шрифт' 'Главный блок' 'Возможности' 'Статистика' 'Документы' 'Частые вопросы' 'Поведение'; do t "section: $sec" "$(has settings_all.html "$sec")"; done
+t "shortcode help on page"           "$(has settings_all.html '\[wpd_page\]')"
 
 # --- 1.2.0: JS, таймер, поиск FAQ, варианты блока, анимация статистики ---
 t "designed: JS enqueued"            "$(has f_designed.html 'wpd.js')"
