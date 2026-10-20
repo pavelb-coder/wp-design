@@ -1,0 +1,224 @@
+/* WP Olympiad Design — панель «Блоки олимпиады» в редакторе записи */
+
+.wpd-pe [hidden] {
+    display: none !important;
+}
+
+.wpd-pe__notice {
+    margin: 8px 0 12px;
+    padding: 4px 12px;
+    border-left: 4px solid #dba617;
+    background: #fcf9e8;
+}
+
+.wpd-pe__notice--info {
+    border-left-color: #72aee6;
+    background: #f0f6fc;
+}
+
+.wpd-pe__notice p {
+    margin: 6px 0;
+}
+
+.wpd-pe__h {
+    margin: 12px 0 4px;
+    font-size: 14px;
+}
+
+/* Порядок блоков */
+.wpd-pe__order {
+    max-width: 640px;
+    margin: 8px 0 16px;
+}
+
+.wpd-pe__block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 6px;
+    padding: 8px 10px;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.wpd-pe__block.is-hidden {
+    background: #f6f7f7;
+}
+
+.wpd-pe__block.is-hidden strong,
+.wpd-pe__block.is-hidden .wpd-pe__note {
+    color: #8c8f94;
+}
+
+.wpd-pe__note {
+    flex: 1 1 auto;
+    color: #646970;
+    font-size: 12px;
+}
+
+.wpd-pe__handle {
+    flex: 0 0 auto;
+    color: #8c8f94;
+    cursor: move;
+}
+
+.wpd-pe__move,
+.wpd-pe__row-tools {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 2px;
+}
+
+.wpd-pe__move .button-link,
+.wpd-pe__row-tools .button-link {
+    display: inline-flex;
+    padding: 2px;
+    border-radius: 2px;
+    color: #50575e;
+    text-decoration: none;
+}
+
+.wpd-pe__move .button-link:hover,
+.wpd-pe__row-tools .button-link:hover {
+    color: #2271b1;
+}
+
+.wpd-pe__row-tools .button-link-delete:hover {
+    color: #d63638;
+}
+
+.wpd-pe__placeholder {
+    height: 38px;
+    margin: 0 0 6px;
+    border: 1px dashed #8c8f94;
+    border-radius: 4px;
+    visibility: visible !important;
+}
+
+/* Раскрывающиеся панели */
+.wpd-pe__panel {
+    margin: 0 0 10px;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.wpd-pe__panel > summary {
+    padding: 10px 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wpd-pe__panel[open] > summary {
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.wpd-pe__body {
+    padding: 4px 12px 12px;
+}
+
+.wpd-pe__table th {
+    width: 180px;
+    padding: 12px 10px 12px 0;
+}
+
+.wpd-pe__table td {
+    padding: 8px 10px;
+}
+
+.wpd-pe__mode {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 8px 0;
+}
+
+/* Медиа */
+.wpd-pe__media {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.wpd-pe__media img {
+    display: block;
+    max-width: 160px;
+    max-height: 100px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+/* Строки списков */
+.wpd-pe__list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0;
+}
+
+.wpd-pe__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 6px;
+    border: 1px solid #f0f0f1;
+    border-radius: 4px;
+    background: #f6f7f7;
+}
+
+.wpd-pe__row input,
+.wpd-pe__row textarea {
+    margin: 0;
+}
+
+.wpd-pe__num {
+    flex: 0 0 150px;
+    width: 150px;
+}
+
+.wpd-pe__wide {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+}
+
+.wpd-pe__stack {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.wpd-pe__row-tools {
+    padding-top: 4px;
+}
+
+.wpd-pe__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.wpd-pe__foot {
+    margin-top: 12px;
+}
+
+@media (max-width: 782px) {
+    .wpd-pe__row {
+        flex-wrap: wrap;
+    }
+
+    .wpd-pe__num {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .wpd-pe__table th {
+        width: auto;
+    }
+}

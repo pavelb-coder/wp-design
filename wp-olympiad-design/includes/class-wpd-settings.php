@@ -260,6 +260,26 @@ class WPD_Settings
     }
 
     /**
+     * Карточки статистики из текстового поля: [['num' => ..., 'label' => ...]].
+     */
+    public static function stats_items(string $text): array
+    {
+        return array_map(function ($p) {
+            return ['num' => $p['left'], 'label' => $p['right']];
+        }, self::parse_pairs($text));
+    }
+
+    /**
+     * Документы из текстового поля: [['title' => ..., 'url' => ...]].
+     */
+    public static function docs_items(string $text): array
+    {
+        return array_map(function ($p) {
+            return ['title' => $p['left'], 'url' => $p['right']];
+        }, self::parse_pairs($text));
+    }
+
+    /**
      * Разбор FAQ: блоки разделены пустой строкой, в блоке первая строка — вопрос.
      */
     public static function parse_faq(string $text): array
@@ -326,12 +346,18 @@ class WPD_Settings
         ?>
         <div class="wrap">
             <h1>Дизайн олимпиады</h1>
-            <p>Настройте оформление и содержимое блоков. Чтобы вывести блоки на любой странице, используйте шорткоды:</p>
+            <p>Здесь задаются цвета и <strong>общее содержимое блоков</strong>. Его используют все страницы, пока для них не задано своё.</p>
+            <p><strong>Где ещё редактируются страницы и блоки:</strong></p>
             <ul style="list-style:disc;margin-left:20px">
-                <li><code>[wpd_page]</code> — все блоки сразу: главный блок, статистика, документы, FAQ;</li>
-                <li><code>[wpd_hero]</code>, <code>[wpd_stats]</code>, <code>[wpd_docs]</code>, <code>[wpd_faq]</code> — отдельные блоки.</li>
+                <li><strong>Панель «Блоки олимпиады»</strong> в редакторе страницы (работает в блочном и классическом редакторе):
+                    включите «Оформление в стиле олимпиады», затем меняйте порядок блоков, скрывайте ненужные
+                    и задавайте для страницы свой главный блок, статистику, документы и FAQ.</li>
+                <li><strong>Блоки редактора</strong> в категории «Олимпиада»: главный блок, обратный отсчёт, статистика, документы, FAQ.
+                    Текст правится прямо на странице. Есть готовый шаблон «Страница олимпиады» (вкладка «Паттерны»).</li>
+                <li><strong>Шорткоды</strong> выводят блоки с общим содержимым:
+                    <code>[wpd_page]</code> — все блоки сразу; <code>[wpd_hero]</code>, <code>[wpd_countdown]</code>,
+                    <code>[wpd_stats]</code>, <code>[wpd_docs]</code>, <code>[wpd_faq]</code> — по отдельности.</li>
             </ul>
-            <p>Чтобы оформить целую страницу, откройте её редактор и включите галочку «Оформление в стиле олимпиады» в правой колонке.</p>
             <form method="post" action="options.php">
                 <?php
                 settings_fields(self::GROUP);

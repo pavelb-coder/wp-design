@@ -489,3 +489,25 @@
         font-size: 18px;
     }
 }
+
+/* ---------------------------------------------------------------
+ * 1.3.0: блоки редактора «Олимпиада: …» в потоке страницы
+ * ------------------------------------------------------------- */
+.wpd-page.wpd-page--block {
+    margin-top: 24px;
+    margin-bottom: 24px;
+    padding-bottom: 0;
+}
+
+.wpd-page.wpd-page--block > :first-child {
+    margin-top: 0;
+}
+
+/* Выравнивание блоков: широкое и во всю ширину */
+.wpd-page.wpd-page--block.alignwide {
+    max-width: var(--wp--style--global--wide-size, 1200px);
+}
+
+.wpd-page.wpd-page--block.alignfull {
+    max-width: none;
+}

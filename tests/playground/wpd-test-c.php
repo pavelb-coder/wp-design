@@ -27,6 +27,7 @@ echo 'core the_content last error: ' . ($e ? $e['message'] . ' @ ' . basename($e
 update_option('wpd_settings', ['primary' => '#123456']);
 $pid = wp_insert_post(['post_title' => 'Для удаления', 'post_status' => 'publish', 'post_type' => 'page']);
 update_post_meta($pid, '_wpd_enabled', 1);
+update_post_meta($pid, '_wpd_page', ['order' => ['faq']]);
 check('pre: option exists', get_option('wpd_settings') !== false);
 check('pre: meta exists', (int) get_post_meta($pid, '_wpd_enabled', true) === 1);
 
@@ -35,6 +36,7 @@ include WP_PLUGIN_DIR . '/wp-olympiad-design/uninstall.php';
 wp_cache_flush();
 check('uninstall: option deleted', get_option('wpd_settings', 'GONE') === 'GONE');
 check('uninstall: meta deleted', get_post_meta($pid, '_wpd_enabled', true) === '');
+check('uninstall: page panel meta deleted', get_post_meta($pid, '_wpd_page', true) === '');
 
 echo implode("\n", $results) . "\n";
 echo "\nTOTAL: " . count($results) . ", FAILED: $fails\n";

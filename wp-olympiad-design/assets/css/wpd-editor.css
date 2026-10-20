@@ -1,0 +1,198 @@
+/*
+ * WP Olympiad Design — стили блоков в редакторе.
+ * Основное оформление приходит из wpd.css; здесь только поля для правки текста и служебные элементы.
+ */
+
+/* Поле наследует оформление элемента, в котором стоит (заголовок, цифра, подпись) */
+.wpd-page .wpd-ed-plain,
+.wpd-page .wpd-ed-plain.block-editor-plain-text {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: inherit;
+    font: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-align: inherit;
+    resize: none;
+    overflow: hidden;
+    outline: none;
+}
+
+.wpd-page .wpd-ed-plain:focus {
+    outline: 1px dashed currentColor;
+    outline-offset: 3px;
+    box-shadow: none;
+}
+
+.wpd-page .wpd-ed-plain::placeholder {
+    color: currentColor;
+    opacity: 0.45;
+}
+
+.wpd-page .wpd-ed-inline {
+    display: inline-block;
+    width: auto;
+    max-width: 100%;
+}
+
+.wpd-page .is-empty {
+    opacity: 0.6;
+}
+
+/* В редакторе кнопка — не ссылка */
+.wpd-page--editor .wpd-btn {
+    cursor: text;
+}
+
+.wpd-page--editor .wpd-btn:hover {
+    transform: none;
+}
+
+/* Блоки в потоке страницы: без нижнего отступа контейнера */
+.wpd-page.wpd-page--editor {
+    padding-bottom: 0;
+}
+
+.wpd-page--editor > section:first-child,
+.wpd-page--editor > .wpd-countdown:first-child {
+    margin-top: 0;
+}
+
+/* Подсказки и пустые состояния */
+.wpd-page .wpd-ed-hint {
+    display: block;
+    margin: 8px 0 0;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    opacity: 0.75;
+}
+
+.wpd-page .wpd-countdown__value .wpd-ed-hint {
+    margin: 0;
+    font-size: 14px;
+}
+
+.wpd-page .wpd-ed-empty {
+    margin: 0;
+    padding: 18px 20px;
+    border: 1px dashed #cbd5e1;
+    border-radius: var(--wpd-radius);
+    color: #64748b;
+    font-size: 14px;
+}
+
+/* Кнопки «выше / ниже / удалить» и «добавить» */
+.wpd-page .wpd-ed-tools {
+    display: flex;
+    justify-content: flex-end;
+    gap: 2px;
+    margin-top: 8px;
+}
+
+.wpd-page .wpd-ed-tools .components-button {
+    min-width: 32px;
+    height: 32px;
+    padding: 4px;
+}
+
+.wpd-page .wpd-ed-add {
+    margin-top: 16px;
+}
+
+/* Главный блок: место под изображение */
+.wpd-page .wpd-ed-media-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    border: 2px dashed rgba(255, 255, 255, 0.35);
+    border-radius: calc(var(--wpd-radius) - 4px);
+}
+
+.wpd-page .wpd-hero--light .wpd-ed-media-empty {
+    border-color: #cbd5e1;
+}
+
+.wpd-page .wpd-ed-media-empty .components-button {
+    background: #fff;
+    color: #1e1e1e;
+}
+
+/* Документы */
+.wpd-page .wpd-ed-doc .wpd-doc {
+    cursor: default;
+}
+
+.wpd-page .wpd-ed-doc .wpd-doc:hover {
+    transform: none;
+}
+
+.wpd-page .wpd-doc.is-nolink {
+    border-style: dashed;
+}
+
+.wpd-page .wpd-ed-grow {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.wpd-page .wpd-ed-url {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.wpd-page .wpd-ed-urlinput {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+/* FAQ в редакторе всегда раскрыт */
+.wpd-page .wpd-ed-open {
+    border-color: var(--wpd-primary);
+}
+
+.wpd-page .wpd-ed-open .wpd-faq__q {
+    cursor: text;
+}
+
+.wpd-page .wpd-ed-open .wpd-faq__q::after {
+    transform: translateY(-30%) rotate(225deg);
+}
+
+.wpd-page .wpd-ed-open .wpd-ed-tools {
+    margin: 0;
+    padding: 0 16px 12px;
+}
+
+/* Боковая панель: превью изображения */
+.wpd-ed-media-control {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.wpd-ed-media-control img {
+    display: block;
+    max-width: 100%;
+    border-radius: 4px;
+}

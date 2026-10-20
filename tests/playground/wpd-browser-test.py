@@ -1,0 +1,391 @@
+"""
+Фаза F (1.3.0): проверка в настоящем браузере (Playwright + Chromium).
+- блоки «Олимпиада: …» в редакторе блоков: регистрация, вставка, правка текста на холсте, списки, сохранение, вывод на сайте;
+- панель «Блоки олимпиады»: порядок, режим «свои», добавление строк, сохранение из блочного редактора;
+- отсутствие ошибок JavaScript.
+
+Запуск: WPD_BASE=http://127.0.0.1:9400 python3 wpd-browser-test.py <папка_для_скриншотов>
+"""
+import json
+import os
+import re
+import sys
+import time
+import urllib.request
+
+from playwright.sync_api import sync_playwright
+
+BASE = os.environ.get("WPD_BASE", "http://127.0.0.1:9400")
+SHOTS = sys.argv[1] if len(sys.argv) > 1 else "."
+os.makedirs(SHOTS, exist_ok=True)
+
+results = []
+
+
+def check(name, cond, detail=""):
+    results.append(("PASS " if cond else "FAIL ") + name + ("" if cond or not detail else " :: " + str(detail)[:300]))
+
+
+def canvas(page):
+    """Холст редактора: iframe editor-canvas или сама страница."""
+    frame = page.frame(name="editor-canvas")
+    return frame if frame else page
+
+
+def wait_editor(page):
+    page.wait_for_function("() => window.wp && wp.data && wp.data.select('core/editor') && wp.data.select('core/editor').getCurrentPostId()", timeout=120000)
+    # Отключаем приветствие и стартовые паттерны для новых страниц
+    page.evaluate("""() => {
+        try { wp.data.dispatch('core/preferences').set('core/edit-post', 'welcomeGuide', false); } catch (e) {}
+        try { wp.data.dispatch('core/preferences').set('core', 'welcomeGuide', false); } catch (e) {}
+        try { wp.data.dispatch('core/preferences').set('core', 'enableChoosePatternModal', false); } catch (e) {}
+    }""")
+    try:
+        page.wait_for_selector("iframe[name=editor-canvas]", timeout=60000)
+    except Exception:
+        pass
+    time.sleep(3)
+    # Если окно всё же откроется, его закроет обработчик add_locator_handler (см. ниже)
+
+
+def select_block(page, client_id):
+    page.evaluate("id => wp.data.dispatch('core/block-editor').selectBlock(id)", client_id)
+    time.sleep(0.6)
+
+
+def attrs(page, client_id):
+    return page.evaluate("id => wp.data.select('core/block-editor').getBlockAttributes(id)", client_id)
+
+
+def save(page):
+    page.evaluate("() => wp.data.dispatch('core/editor').savePost()")
+    page.wait_for_function("() => !wp.data.select('core/editor').isSavingPost() && !wp.data.select('core/editor').isAutosavingPost()", timeout=120000)
+    # Мета-боксы сохраняются отдельным запросом после сохранения записи
+    try:
+        page.wait_for_function("() => !wp.data.select('core/edit-post').isSavingMetaBoxes()", timeout=60000)
+    except Exception:
+        pass
+    time.sleep(2)
+
+
+def fetch(url):
+    with urllib.request.urlopen(url, timeout=120) as r:
+        return r.read().decode("utf-8")
+
+
+def report():
+    print("\n".join(results))
+    fails = sum(1 for r in results if r.startswith("FAIL"))
+    print(f"\nPHASE F: PASS={len(results) - fails} FAIL={fails}")
+
+
+import atexit
+atexit.register(report)
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    ctx = browser.new_context(viewport={"width": 1440, "height": 1000}, locale="ru-RU")
+    page = ctx.new_page()
+    js_errors = []
+    page.on("pageerror", lambda e: js_errors.append(str(e)))
+
+    # Стартовое окно «Choose a pattern» может появиться в любой момент — закрываем автоматически
+    # Приветственный гид и окно выбора паттерна: кнопка «Close», иначе Escape
+    def close_modal():
+        btn = page.locator(".components-modal__screen-overlay").get_by_role("button", name=re.compile("^(Close|Закрыть)")).first
+        try:
+            btn.click(timeout=3000, no_wait_after=True)
+        except Exception:
+            page.keyboard.press("Escape")
+        time.sleep(0.5)
+    page.add_locator_handler(page.locator(".components-modal__screen-overlay"), close_modal)
+    page.on("console", lambda m: js_errors.append("console: " + m.text) if m.type == "error" and "wpd" in m.text.lower() else None)
+
+    # Вход
+    page.goto(BASE + "/wp-login.php", timeout=120000)
+    page.fill("#user_login", "admin")
+    page.fill("#user_pass", "password")
+    page.click("#wp-submit")
+    page.wait_for_load_state("networkidle", timeout=120000)
+
+    # ---------- 1. Блоки в редакторе ----------
+    page.goto(BASE + "/wp-admin/post-new.php?post_type=page", timeout=180000)
+    wait_editor(page)
+
+    types = page.evaluate("() => wp.blocks.getBlockTypes().filter(b => b.name.indexOf('wpd/') === 0).map(b => b.name).sort()")
+    check("editor: 5 blocks registered on client", types == ["wpd/countdown", "wpd/docs", "wpd/faq", "wpd/hero", "wpd/stats"], types)
+    cat = page.evaluate("() => (wp.blocks.getCategories() || []).some(c => c.slug === 'wpd')")
+    check("editor: category 'wpd' available", cat)
+    pattern = page.evaluate("""() => {
+        const s = wp.data.select('core');
+        const list = (s.getBlockPatterns && s.getBlockPatterns()) || [];
+        return list.some(p => p.name === 'wpd/olympiad-page');
+    }""")
+    # шаблоны могут подгружаться асинхронно — повторим
+    for _ in range(10):
+        if pattern:
+            break
+        time.sleep(1)
+        pattern = page.evaluate("() => ((wp.data.select('core').getBlockPatterns && wp.data.select('core').getBlockPatterns()) || []).some(p => p.name === 'wpd/olympiad-page')")
+    check("editor: pattern 'Страница олимпиады' available", pattern)
+
+    page.evaluate("() => wp.data.dispatch('core/editor').editPost({ title: 'Страница из браузера' })")
+    ids = page.evaluate("""() => {
+        const names = ['wpd/hero', 'wpd/countdown', 'wpd/stats', 'wpd/docs', 'wpd/faq'];
+        const blocks = names.map(n => wp.blocks.createBlock(n));
+        wp.data.dispatch('core/block-editor').insertBlocks(blocks);
+        return blocks.map(b => b.clientId);
+    }""")
+    hero_id, cd_id, stats_id, docs_id, faq_id = ids
+    time.sleep(2)
+    cv = canvas(page)
+
+    check("canvas: hero rendered", cv.locator(".wpd-page--hero .wpd-hero").count() == 1)
+    check("canvas: stats cards rendered", cv.locator(".wpd-page--stats .wpd-stat").count() >= 1, cv.locator(".wpd-page--stats .wpd-stat").count())
+    check("canvas: faq rendered", cv.locator(".wpd-page--faq .wpd-faq__item").count() >= 1)
+    check("canvas: css variables applied", "--wpd-primary" in (cv.locator(".wpd-page--hero").get_attribute("style") or ""))
+    bg = cv.evaluate("() => getComputedStyle(document.querySelector('.wpd-page--hero .wpd-hero')).backgroundImage + '|' + getComputedStyle(document.querySelector('.wpd-page--hero .wpd-hero')).borderRadius")
+    check("canvas: wpd.css loaded in editor (hero styled)", "gradient" in bg and bg.split("|")[1] not in ("0px", ""), bg)
+    default_title = attrs(page, hero_id).get("title")
+    check("hero: default title from settings", bool(default_title), default_title)
+
+    # Правка заголовка прямо на холсте
+    select_block(page, hero_id)
+    title_box = cv.locator(".wpd-page--hero .wpd-hero__title textarea")
+    title_box.click()
+    title_box.fill("Заголовок из браузера")
+    time.sleep(0.5)
+    check("hero: title edited on canvas", attrs(page, hero_id).get("title") == "Заголовок из браузера", attrs(page, hero_id).get("title"))
+    # Перевод строки в однострочном поле убирается
+    title_box.press("End")
+    title_box.press("Enter")
+    time.sleep(0.3)
+    check("hero: single-line title has no newline", "\n" not in attrs(page, hero_id).get("title", ""))
+    title_box.fill("Заголовок из браузера")
+
+    badge = cv.locator(".wpd-page--hero .wpd-badge input")
+    badge.fill("Финал 2027")
+    time.sleep(0.3)
+    check("hero: badge edited", attrs(page, hero_id).get("badge") == "Финал 2027")
+
+    # Стиль в боковой панели
+    page.evaluate("() => wp.data.dispatch('core/edit-post').openGeneralSidebar('edit-post/block')")
+    time.sleep(0.8)
+    style_select = page.locator(".block-editor-block-inspector select").first
+    if style_select.count():
+        style_select.select_option("light")
+        time.sleep(0.5)
+    check("hero: style changed in sidebar", attrs(page, hero_id).get("variant") == "light", attrs(page, hero_id).get("variant"))
+    check("canvas: light class applied", cv.locator(".wpd-page--hero .wpd-hero--light").count() == 1)
+    page.screenshot(path=os.path.join(SHOTS, "editor-hero.png"))
+
+    # Выравнивание «широкое» через панель инструментов блока (атрибут align)
+    page.evaluate("id => wp.data.dispatch('core/block-editor').updateBlockAttributes(id, { align: 'wide' })", hero_id)
+    time.sleep(0.5)
+    check("hero: align wide supported", attrs(page, hero_id).get("align") == "wide")
+
+    # Статистика: добавить карточку и заполнить
+    select_block(page, stats_id)
+    before = len(attrs(page, stats_id).get("items", []))
+    cv.locator(".wpd-page--stats .wpd-ed-add button").click()
+    time.sleep(0.5)
+    items = attrs(page, stats_id).get("items", [])
+    check("stats: card added", len(items) == before + 1, len(items))
+    last = cv.locator(".wpd-page--stats .wpd-stat").last
+    last.locator(".wpd-stat__num textarea").fill("999+")
+    last.locator(".wpd-stat__label textarea").fill("карточка из браузера")
+    time.sleep(0.4)
+    items = attrs(page, stats_id).get("items", [])
+    check("stats: new card values", items[-1] == {"num": "999+", "label": "карточка из браузера"}, items[-1] if items else None)
+    # Переместить последнюю карточку вверх
+    last.locator(".wpd-ed-tools button").first.click()
+    time.sleep(0.4)
+    items = attrs(page, stats_id).get("items", [])
+    check("stats: card moved up", len(items) >= 2 and items[-2]["num"] == "999+", [i["num"] for i in items])
+    # Удалить первую карточку
+    n_before = len(items)
+    cv.locator(".wpd-page--stats .wpd-stat").first.locator(".wpd-ed-tools button").nth(2).click()
+    time.sleep(0.4)
+    check("stats: card removed", len(attrs(page, stats_id).get("items", [])) == n_before - 1)
+    page.screenshot(path=os.path.join(SHOTS, "editor-stats.png"))
+
+    # Документы: добавить документ с ссылкой
+    select_block(page, docs_id)
+    cv.locator(".wpd-page--docs .wpd-ed-add button").click()
+    time.sleep(0.5)
+    doc = cv.locator(".wpd-page--docs .wpd-ed-doc").last
+    doc.locator(".wpd-doc__name textarea").fill("Регламент финала")
+    doc.locator("input.wpd-ed-urlinput").fill("https://example.com/final.pdf")
+    time.sleep(0.4)
+    ditems = attrs(page, docs_id).get("items", [])
+    check("docs: document added", ditems and ditems[-1] == {"title": "Регламент финала", "url": "https://example.com/final.pdf"}, ditems[-1] if ditems else None)
+    check("docs: PDF icon in editor", doc.locator(".wpd-doc__icon").inner_text().strip() == "PDF")
+
+    # FAQ: добавить вопрос, ответ с форматированием в RichText
+    select_block(page, faq_id)
+    cv.locator(".wpd-page--faq .wpd-ed-add button").click()
+    time.sleep(0.5)
+    q = cv.locator(".wpd-page--faq .wpd-faq__item").last
+    q.locator(".wpd-faq__q textarea").fill("Вопрос из браузера?")
+    ans = q.locator(".wpd-faq__a[contenteditable='true']")
+    ans.click()
+    page.keyboard.type("Ответ ")
+    page.keyboard.press("Control+b")
+    page.keyboard.type("жирным")
+    page.keyboard.press("Control+b")
+    time.sleep(0.5)
+    fitems = attrs(page, faq_id).get("items", [])
+    check("faq: question added", fitems and fitems[-1].get("q") == "Вопрос из браузера?", fitems[-1] if fitems else None)
+    check("faq: rich answer with <strong>", fitems and "<strong>жирным</strong>" in fitems[-1].get("a", ""), fitems[-1].get("a") if fitems else None)
+
+    # Таймер: дата в боковой панели
+    select_block(page, cd_id)
+    dt = page.locator(".block-editor-block-inspector input[type='datetime-local']")
+    if dt.count():
+        dt.fill("2031-05-15T09:00")
+        time.sleep(0.4)
+    check("countdown: date set from sidebar", attrs(page, cd_id).get("date") == "2031-05-15 09:00", attrs(page, cd_id).get("date"))
+    check("countdown: date shown on canvas", "15.05.2031" in cv.locator(".wpd-page--countdown .wpd-countdown__value").inner_text())
+
+    # Сброс к общим настройкам (на копии: вставим ещё один hero, изменим и сбросим)
+    extra = page.evaluate("() => { const b = wp.blocks.createBlock('wpd/hero', { title: 'Временный' }); wp.data.dispatch('core/block-editor').insertBlocks(b); return b.clientId; }")
+    select_block(page, extra)
+    page.locator(".block-editor-block-inspector button", has_text="Значения по умолчанию").click()
+    time.sleep(0.3)
+    page.locator(".block-editor-block-inspector button", has_text="Вернуть значения из настроек").click()
+    time.sleep(0.4)
+    check("reset: block returns to settings defaults", attrs(page, extra).get("title") == default_title, attrs(page, extra).get("title"))
+    page.evaluate("id => wp.data.dispatch('core/block-editor').removeBlock(id)", extra)
+
+    # Сериализация: неизменённые поля не сохраняются
+    content = page.evaluate("() => wp.data.select('core/editor').getEditedPostContent()")
+    hero_comment = re.search(r"<!-- wp:wpd/hero (\{.*?\}) /-->", content)
+    hero_json = json.loads(hero_comment.group(1)) if hero_comment else {}
+    check("serialize: changed hero fields stored", hero_json.get("title") == "Заголовок из браузера" and hero_json.get("variant") == "light", hero_json)
+    check("serialize: untouched hero fields omitted", "lead" not in hero_json and "buttonText" not in hero_json, hero_json)
+    check("serialize: blocks are dynamic (self-closing)", "<!-- wp:wpd/faq " in content and "<!-- /wp:wpd/" not in content)
+
+    save(page)
+    post_id = page.evaluate("() => wp.data.select('core/editor').getCurrentPostId()")
+    page.evaluate("() => wp.data.dispatch('core/editor').editPost({ status: 'publish' })")
+    save(page)
+    check("editor: post saved without errors", page.evaluate("() => !wp.data.select('core/editor').didPostSaveRequestFail()"))
+
+    front = fetch(f"{BASE}/?page_id={post_id}")
+    check("front: hero title from editor", 'wpd-hero__title">Заголовок из браузера<' in front)
+    check("front: badge from editor", ">Финал 2027<" in front)
+    check("front: light hero", "wpd-hero--light" in front)
+    check("front: hero align wide", "wpd-page--hero alignwide" in front)
+    check("front: new stat card", ">999+<" in front and "карточка из браузера" in front)
+    check("front: new document", "https://example.com/final.pdf" in front and "Регламент финала" in front)
+    check("front: faq rich answer", "<strong>жирным</strong>" in front and "Вопрос из браузера?" in front)
+    check("front: countdown date", 'data-target="2031-05-15T09:00' in front)
+    check("front: css linked", "wpd.css" in front)
+
+    # Повторное открытие: значения на месте
+    page.goto(f"{BASE}/wp-admin/post.php?post={post_id}&action=edit", timeout=180000)
+    wait_editor(page)
+    time.sleep(1.5)
+    check("reopen: hero title persisted", canvas(page).locator(".wpd-page--hero .wpd-hero__title textarea").input_value() == "Заголовок из браузера")
+    page.screenshot(path=os.path.join(SHOTS, "editor-reopen.png"), full_page=False)
+
+    # ---------- 2. Панель «Блоки олимпиады» ----------
+    page.goto(BASE + "/wp-admin/post-new.php?post_type=page", timeout=180000)
+    wait_editor(page)
+    page.evaluate("() => wp.data.dispatch('core/editor').editPost({ title: 'Страница с панелью из браузера', status: 'publish', content: '<!-- wp:paragraph --><p>Основной текст</p><!-- /wp:paragraph -->' })")
+    time.sleep(0.5)
+    panel = page.locator("#wpd_page_blocks")
+    # В новых версиях область мета-боксов внизу редактора свёрнута — разворачиваем
+    if not panel.is_visible():
+        toggle = page.locator("button", has_text="Meta Boxes").first
+        if not toggle.count():
+            toggle = page.locator(".edit-post-meta-boxes-main__presenter button, .edit-post-meta-boxes-main button").first
+        if toggle.count():
+            # По центру кнопки лежит ручка изменения высоты — нажимаем с клавиатуры
+            toggle.focus()
+            page.keyboard.press("Enter")
+            time.sleep(1.5)
+    page.screenshot(path=os.path.join(SHOTS, "panel-area.png"))
+    panel.scroll_into_view_if_needed()
+    check("panel: visible in block editor", panel.is_visible())
+    # Включаем оформление (боковой мета-бокс)
+    enable = page.locator("input[name='wpd_enabled']")
+    if enable.count():
+        enable.check(force=True)
+    time.sleep(0.3)
+    check("panel: off-notice hides after enabling", page.locator("[data-wpd-off]").is_hidden())
+
+    # Перенести FAQ на самый верх стрелками
+    for _ in range(5):
+        page.locator(".wpd-pe__block[data-key='faq'] [data-wpd-move='-1']").click()
+    order = page.evaluate("() => [...document.querySelectorAll('.wpd-pe__block')].map(li => li.dataset.key)")
+    check("panel: arrows reorder blocks", order[0] == "faq", order)
+    # Скрыть документы
+    page.locator("input[name='wpd_page[show][docs]']").uncheck()
+    check("panel: hidden block dimmed", "is-hidden" in (page.locator(".wpd-pe__block[data-key='docs']").get_attribute("class") or ""))
+
+    # Свой заголовок главного блока
+    page.fill("input[name='wpd_page[hero][title]']", "Заголовок из панели")
+    page.select_option("select[name='wpd_page[hero][style]']", "gradient")
+
+    # Свои карточки статистики: режим custom создаёт пустую строку
+    stats_panel = page.locator("details.wpd-pe__panel", has_text="Статистика").first
+    stats_panel.locator("summary").click()
+    page.locator("input[name='wpd_page[stats_mode]'][value='custom']").check()
+    time.sleep(0.3)
+    rows = page.locator("[data-wpd-list='stats'] .wpd-pe__row")
+    check("panel: custom mode adds first row", rows.count() == 1, rows.count())
+    rows.nth(0).locator("[data-wpd-field='num']").fill("77")
+    rows.nth(0).locator("[data-wpd-field='label']").fill("строка из панели")
+    page.locator("[data-wpd-add='stats']").click()
+    rows.nth(1).locator("[data-wpd-field='num']").fill("88")
+    rows.nth(1).locator("[data-wpd-field='label']").fill("вторая строка")
+    # Вторая строка — вверх
+    rows.nth(1).locator("[data-wpd-row-move='-1']").click()
+    first_num = page.locator("[data-wpd-list='stats'] .wpd-pe__row").nth(0).locator("[data-wpd-field='num']").input_value()
+    check("panel: row moved up", first_num == "88", first_num)
+
+    # FAQ: скопировать из общих настроек
+    faq_panel = page.locator("details.wpd-pe__panel", has_text="Частые вопросы").first
+    faq_panel.locator("summary").click()
+    page.locator("input[name='wpd_page[faq_mode]'][value='custom']").check()
+    page.once("dialog", lambda d: d.accept())
+    page.locator("[data-wpd-copy='faq']").click()
+    time.sleep(0.3)
+    faq_rows = page.locator("[data-wpd-list='faq'] .wpd-pe__row").count()
+    check("panel: copy from settings fills rows", faq_rows >= 1, faq_rows)
+    page.locator("[data-wpd-list='faq'] .wpd-pe__row").first.locator("[data-wpd-field='q']").fill("Вопрос страницы?")
+    panel.screenshot(path=os.path.join(SHOTS, "panel.png"))
+
+    save(page)
+    pid2 = page.evaluate("() => wp.data.select('core/editor').getCurrentPostId()")
+    time.sleep(1)
+    front2 = fetch(f"{BASE}/?page_id={pid2}")
+    check("panel front: designed", 'class="wpd-page"' in front2)
+    check("panel front: custom hero title", 'wpd-hero__title">Заголовок из панели<' in front2)
+    check("panel front: gradient", "wpd-hero--gradient" in front2)
+    check("panel front: faq first", 0 <= front2.find('class="wpd-faq') < front2.find('class="wpd-hero'))
+    check("panel front: docs hidden", 'class="wpd-docs' not in front2)
+    check("panel front: custom stats in order", 0 <= front2.find(">88<") < front2.find(">77<"))
+    check("panel front: custom faq question", "Вопрос страницы?" in front2)
+    check("panel front: post content kept", "Основной текст" in front2)
+
+    # Перезагрузка: панель показывает сохранённое
+    page.goto(f"{BASE}/wp-admin/post.php?post={pid2}&action=edit", timeout=180000)
+    wait_editor(page)
+    order2 = page.evaluate("() => [...document.querySelectorAll('.wpd-pe__block')].map(li => li.dataset.key)")
+    check("panel reopen: order persisted", order2[0] == "faq", order2)
+    check("panel reopen: hero title persisted", page.locator("input[name='wpd_page[hero][title]']").input_value() == "Заголовок из панели")
+    check("panel reopen: 2 stat rows", page.locator("[data-wpd-list='stats'] .wpd-pe__row").count() == 2)
+
+    # Сайт: скриншот оформленной страницы
+    page.goto(f"{BASE}/?page_id={pid2}", timeout=120000)
+    page.wait_for_load_state("networkidle")
+    page.screenshot(path=os.path.join(SHOTS, "front-panel.png"), full_page=True)
+    page.goto(f"{BASE}/?page_id={post_id}", timeout=120000)
+    page.wait_for_load_state("networkidle")
+    page.screenshot(path=os.path.join(SHOTS, "front-blocks.png"), full_page=True)
+
+    check("no JavaScript errors", not js_errors, js_errors[:5])
+    browser.close()
+
