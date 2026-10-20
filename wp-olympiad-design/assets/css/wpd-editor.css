@@ -360,3 +360,15 @@
     color: #b32d2e;
     font-size: 12px;
 }
+
+/* Контакты: название организации со ссылкой (1.7.0) */
+.wpd-page .wpd-contacts__org {
+    grid-column: 1 / -1;
+    font-weight: 600;
+}
+
+.wpd-page .wpd-contacts__org .wpd-ed-link .wpd-ed-plain {
+    color: var(--wpd-primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}

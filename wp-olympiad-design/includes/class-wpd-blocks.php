@@ -167,11 +167,13 @@ class WPD_Blocks
             ],
             'contacts' => [
                 'title'       => 'Олимпиада: контакты',
-                'description' => 'Адрес со ссылкой на карту, телефон, e-mail и кнопка «Связаться».',
+                'description' => 'Название организации со ссылкой, адрес со ссылкой на карту, телефон, e-mail и кнопка «Связаться».',
                 'icon'        => 'location-alt',
                 'keywords'    => ['контакты', 'адрес', 'телефон', 'contacts'],
                 'attributes'  => [
                     'title'   => ['type' => 'string', 'default' => (string) $o['contacts_title']],
+                    'org'     => ['type' => 'string', 'default' => (string) $o['contact_org']],
+                    'orgUrl'  => ['type' => 'string', 'default' => (string) $o['contact_org_url']],
                     'address' => ['type' => 'string', 'default' => (string) $o['contact_address']],
                     'city'    => ['type' => 'string', 'default' => (string) $o['contact_city']],
                     'phone'   => ['type' => 'string', 'default' => (string) $o['contact_phone']],
@@ -493,10 +495,12 @@ class WPD_Blocks
         $a = is_array($a) ? $a : [];
         $o = WPD_Settings::get();
         $args = [];
-        foreach (['title' => 'contacts_title', 'address' => 'contact_address', 'city' => 'contact_city', 'phone' => 'contact_phone',
-                  'email' => 'contact_email', 'map' => 'contact_map', 'page' => 'contact_page', 'code' => 'contact_code'] as $key => $opt) {
+        foreach (['title' => 'contacts_title', 'org' => 'contact_org', 'address' => 'contact_address', 'city' => 'contact_city',
+                  'phone' => 'contact_phone', 'email' => 'contact_email', 'map' => 'contact_map', 'page' => 'contact_page',
+                  'code' => 'contact_code'] as $key => $opt) {
             $args[$key] = self::str($a, $key, (string) $o[$opt]);
         }
+        $args['org_url'] = self::str($a, 'orgUrl', (string) $o['contact_org_url']);
         return self::wrap(WPD_Renderer::contacts_html($o, $args), $a, 'contacts');
     }
 }

@@ -325,7 +325,7 @@ class WPD_Page_Editor
             'notice'    => $o['notice_title'] !== '' || $o['notice_image'] !== '' || $o['notice_content'] !== ''
                 ? 'из общих настроек' : 'не заполнено в общих настройках',
             'news'      => 'последние записи',
-            'contacts'  => $o['contact_address'] !== '' || $o['contact_phone'] !== '' || $o['contact_email'] !== ''
+            'contacts'  => $o['contact_org'] !== '' || $o['contact_address'] !== '' || $o['contact_phone'] !== '' || $o['contact_email'] !== ''
                 ? 'из общих настроек' : 'не заполнены в общих настройках',
         ];
 

@@ -12,6 +12,7 @@
 import atexit
 import json
 import os
+import re
 import sys
 import time
 import urllib.parse
@@ -238,6 +239,21 @@ with sync_playwright() as p:
     page.evaluate("id => wp.data.dispatch('core/block-editor').updateBlockAttributes(id, { layout: 'grid', count: 2 })", ids[4])
     time.sleep(2)
     check("news block: server render in editor", frame.locator(".wpd-ed-ssr .wpd-news, .wpd-ed-ssr .components-placeholder, .wpd-ed-ssr").count() >= 1)
+    # Название организации со ссылкой (1.7.0): название — на холсте, ссылка — в боковой панели
+    page.evaluate("id => wp.data.dispatch('core/block-editor').selectBlock(id)", ids[5])
+    time.sleep(0.8)
+    org_input = frame.locator(".wpd-page--contacts .wpd-contacts__org .wpd-ed-plain")
+    check("contacts block: organization row on canvas (1.7.0)", org_input.count() == 1, org_input.count())
+    if org_input.count():
+        org_input.first.fill("Центр «Юниор»")
+        time.sleep(0.4)
+    url_input = page.get_by_label("Ссылка организации")
+    if url_input.count():
+        url_input.first.fill("https://junior.example.org/")
+        time.sleep(0.4)
+    c = page.evaluate("id => wp.data.select('core/block-editor').getBlockAttributes(id)", ids[5])
+    check("contacts block: org name and link saved to attributes", c.get("org") == "Центр «Юниор»" and c.get("orgUrl") == "https://junior.example.org/", (c.get("org"), c.get("orgUrl")))
+    check("contacts block: linked name styled on canvas", frame.locator(".wpd-page--contacts .wpd-contacts__org .wpd-ed-link").count() == 1)
     page.screenshot(path=os.path.join(SHOTS, "editor-components.png"))
     page.evaluate("() => wp.data.dispatch('core/editor').editPost({ status: 'publish' })")
     page.evaluate("() => wp.data.dispatch('core/editor').savePost()")
@@ -251,6 +267,7 @@ with sync_playwright() as p:
     check("front: block news grid", "wpd-news--grid" in front)
     check("front: block slider from settings", "Слайд 2" in front)
     check("front: block contacts from settings", "mailto:h@example.com" in front)
+    check("front: organization link in contacts (1.7.0)", re.search(r'<li class="wpd-contacts__org">.*?<a href="https://junior\.example\.org/" target="_blank" rel="noopener noreferrer">Центр «Юниор»</a>', front) is not None)
 
     check("no JavaScript errors", not js_errors, js_errors)
     browser.close()

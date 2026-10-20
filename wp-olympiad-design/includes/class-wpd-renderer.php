@@ -414,6 +414,20 @@ class WPD_Renderer
     /**
      * Атрибуты ссылки: адрес и, при необходимости, открытие в новой вкладке.
      */
+    /**
+     * Ссылка ведёт на другой сайт (другой домен, чем у сайта WordPress). Относительные ссылки — свои.
+     */
+    public static function is_external(string $url): bool
+    {
+        $host = wp_parse_url($url, PHP_URL_HOST);
+        if (!$host) {
+            return false;
+        }
+        $own = (string) wp_parse_url(home_url(), PHP_URL_HOST);
+        $strip = function (string $h): string { return preg_replace('/^www\./', '', strtolower($h)); };
+        return $strip($host) !== $strip($own);
+    }
+
     private static function link_attrs(string $url, $new_tab): string
     {
         $attrs = ' href="' . esc_url($url) . '"';
@@ -719,12 +733,13 @@ class WPD_Renderer
     public static function contacts_html(array $o, array $args = []): string
     {
         $v = [];
-        foreach (['title' => 'contacts_title', 'address' => 'contact_address', 'city' => 'contact_city', 'phone' => 'contact_phone',
-                  'email' => 'contact_email', 'map' => 'contact_map', 'page' => 'contact_page', 'code' => 'contact_code'] as $k => $opt) {
+        foreach (['title' => 'contacts_title', 'org' => 'contact_org', 'org_url' => 'contact_org_url', 'address' => 'contact_address',
+                  'city' => 'contact_city', 'phone' => 'contact_phone', 'email' => 'contact_email', 'map' => 'contact_map',
+                  'page' => 'contact_page', 'code' => 'contact_code'] as $k => $opt) {
             $v[$k] = trim((string) self::arg($args, $k, $o[$opt]));
         }
         $v['email'] = (string) sanitize_email($v['email']);
-        if ($v['address'] === '' && $v['city'] === '' && $v['phone'] === '' && $v['email'] === '') {
+        if ($v['org'] === '' && $v['address'] === '' && $v['city'] === '' && $v['phone'] === '' && $v['email'] === '') {
             return '';
         }
         self::enqueue_icons();
@@ -734,6 +749,14 @@ class WPD_Renderer
         };
 
         $list = '';
+        if ($v['org'] !== '') {
+            // Название организации (1.7.0): со ссылкой, если она задана; чужой сайт — в новой вкладке
+            $org = esc_html($v['org']);
+            if ($v['org_url'] !== '' && esc_url($v['org_url']) !== '') {
+                $org = '<a' . self::link_attrs($v['org_url'], self::is_external($v['org_url'])) . '>' . $org . '</a>';
+            }
+            $list .= '<li class="wpd-contacts__org">' . $icon('building') . '<span>' . $org . '</span></li>';
+        }
         if ($v['address'] !== '' || $v['city'] !== '') {
             $addr = esc_html($v['address']) . ($v['address'] !== '' && $v['city'] !== '' ? '<br>' : '') . esc_html($v['city']);
             if ($v['map'] !== '' && esc_url($v['map']) !== '') {

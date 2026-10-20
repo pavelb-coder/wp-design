@@ -786,7 +786,7 @@
         var a = props.attributes;
         var set = props.setAttributes;
         var sel = props.isSelected;
-        var any = a.address || a.city || a.phone || a.email;
+        var any = a.org || a.address || a.city || a.phone || a.email;
 
         function row(cls, icon, fields) {
             return el('li', { className: 'wpd-contacts__' + cls },
@@ -801,6 +801,11 @@
         return el(Fragment, null,
             el(be.InspectorControls, null,
                 el(c.PanelBody, { title: 'Ссылки' },
+                    el(c.TextControl, {
+                        label: 'Ссылка организации', type: 'url', value: a.orgUrl || '', placeholder: 'https://…',
+                        help: 'Название организации станет ссылкой. Другой сайт открывается в новой вкладке.',
+                        onChange: function (v) { set({ orgUrl: v }); }
+                    }),
                     el(c.TextControl, {
                         label: 'Ссылка на карту', type: 'url', value: a.map || '',
                         help: 'Адрес станет ссылкой на карту.',
@@ -821,6 +826,7 @@
                     ) : null,
                     (sel || any) ? el('div', { className: 'wpd-contacts__box' },
                         el('ul', { className: 'wpd-contacts__list' },
+                            (sel || a.org) ? row('org', 'building', el('span', { className: a.orgUrl ? 'wpd-ed-link' : '' }, field('org', 'Название организации'))) : null,
                             (sel || a.address || a.city) ? row('address', 'location-alt', [
                                 el('span', { key: 'a', className: 'wpd-ed-line' }, field('address', 'Адрес')),
                                 el('span', { key: 'c', className: 'wpd-ed-line' }, field('city', 'Индекс и город'))

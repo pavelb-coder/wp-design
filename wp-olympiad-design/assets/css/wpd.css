@@ -1052,6 +1052,13 @@
     color: var(--wpd-primary);
 }
 
+/* Название организации (1.7.0) — первой строкой, во всю ширину */
+.wpd-page .wpd-contacts__list .wpd-contacts__org {
+    grid-column: 1 / -1;
+    font-weight: 600;
+    font-size: 1.05em;
+}
+
 @media (max-width: 782px) {
     .wpd-page .wpd-notice--image-text {
         grid-template-columns: 1fr;

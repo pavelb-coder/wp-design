@@ -285,6 +285,10 @@ class WPD_Settings
 
             // Контакты
             'contacts_title'  => ['label' => 'Заголовок блока', 'type' => 'text', 'section' => 'contacts', 'default' => 'Контакты'],
+            'contact_org'     => ['label' => 'Название организации', 'type' => 'text', 'section' => 'contacts', 'default' => '',
+                                  'desc' => 'Первая строка контактов — полное или краткое название, например: Краевой центр «Юниор».'],
+            'contact_org_url' => ['label' => 'Ссылка организации', 'type' => 'url', 'section' => 'contacts', 'default' => '',
+                                  'desc' => 'Название станет ссылкой. Ссылка на другой сайт открывается в новой вкладке. Пусто — просто текст.'],
             'contact_address' => ['label' => 'Адрес', 'type' => 'text', 'section' => 'contacts', 'default' => ''],
             'contact_city'    => ['label' => 'Индекс и город', 'type' => 'text', 'section' => 'contacts', 'default' => ''],
             'contact_phone'   => ['label' => 'Телефон', 'type' => 'text', 'section' => 'contacts', 'default' => ''],
@@ -910,7 +914,7 @@ class WPD_Settings
                     <tr><td><code>[wpd_cards]</code></td><td>цветные карточки-разделы</td></tr>
                     <tr><td><code>[wpd_notice]</code></td><td>объявление</td></tr>
                     <tr><td><code>[wpd_news]</code></td><td>последние новости из рубрики</td></tr>
-                    <tr><td><code>[wpd_contacts]</code></td><td>контакты: адрес, телефон, e-mail</td></tr>
+                    <tr><td><code>[wpd_contacts]</code></td><td>контакты: название организации со ссылкой, адрес, телефон, e-mail</td></tr>
                 </tbody>
             </table>
 
