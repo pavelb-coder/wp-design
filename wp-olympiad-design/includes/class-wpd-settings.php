@@ -64,7 +64,10 @@ class WPD_Settings
         return [
             'colors'   => 'Цвета и шрифт',
             'look'     => 'Типографика и вид',
-            'hero'     => 'Главный блок',
+            'code'     => 'Шрифты Google и свой CSS',
+            'hero'     => 'Текст и кнопки',
+            'hero_image' => 'Изображение',
+            'hero_look'  => 'Вид главного блока',
             'features' => 'Возможности',
             'stats'    => 'Статистика',
             'docs'     => 'Документы',
@@ -85,8 +88,8 @@ class WPD_Settings
     public static function tabs(): array
     {
         return [
-            'design'   => ['title' => 'Оформление', 'sections' => ['colors', 'look', 'behavior']],
-            'hero'     => ['title' => 'Главный блок', 'sections' => ['hero']],
+            'design'   => ['title' => 'Оформление', 'sections' => ['colors', 'look', 'behavior', 'code']],
+            'hero'     => ['title' => 'Главный блок', 'sections' => ['hero', 'hero_image', 'hero_look']],
             'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features']],
             'stats'    => ['title' => 'Статистика', 'sections' => ['stats']],
             'docs'     => ['title' => 'Документы', 'sections' => ['docs']],
@@ -147,9 +150,19 @@ class WPD_Settings
             // Типографика и вид (1.8.0)
             'font_heading'  => ['label' => 'Шрифт заголовков (CSS font-family)', 'type' => 'font', 'section' => 'look', 'default' => '', 'allow_empty' => true,
                                 'desc' => 'Пусто — как основной шрифт. Например: Georgia, serif или Montserrat, sans-serif.'],
+            'heading_weight' => ['label' => 'Насыщенность заголовков', 'type' => 'select', 'section' => 'look', 'default' => '800',
+                                 'options' => ['400' => 'Обычная (400)', '500' => 'Средняя (500)', '600' => 'Полужирная (600)', '700' => 'Жирная (700)', '800' => 'Очень жирная (800)']],
+            'heading_scale'  => ['label' => 'Размер заголовков разделов', 'type' => 'select', 'section' => 'look', 'default' => 'normal',
+                                 'options' => ['small' => 'Меньше', 'normal' => 'Обычный', 'large' => 'Крупнее']],
             'font_size'     => ['label' => 'Размер основного текста, px', 'type' => 'number', 'section' => 'look', 'default' => 16, 'min' => 14, 'max' => 20],
+            'line_height'   => ['label' => 'Межстрочный интервал', 'type' => 'select', 'section' => 'look', 'default' => 'normal',
+                                'options' => ['compact' => 'Плотный (1,45)', 'normal' => 'Обычный (1,6)', 'relaxed' => 'Свободный (1,8)']],
             'heading_color' => ['label' => 'Цвет заголовков', 'type' => 'color_opt', 'section' => 'look', 'default' => '',
                                 'desc' => 'Заголовки разделов, объявления и новостей. Пусто — цвет текста.'],
+            'link_color'    => ['label' => 'Цвет ссылок в тексте', 'type' => 'color_opt', 'section' => 'look', 'default' => '',
+                                'desc' => 'Ссылки в тексте страницы, ответах FAQ, объявлении и контактах. Пусто — как в теме.'],
+            'button_text_color' => ['label' => 'Цвет текста кнопок', 'type' => 'color_opt', 'section' => 'look', 'default' => '',
+                                'desc' => 'Для кнопок с заливкой. Пусто — белый.'],
             'content_width' => ['label' => 'Ширина содержимого, px', 'type' => 'number', 'section' => 'look', 'default' => 1200, 'min' => 720, 'max' => 1600,
                                 'desc' => 'Максимальная ширина оформленной страницы и шорткодов. Блоки «во всю ширину» не ограничиваются.'],
             'block_gap'     => ['label' => 'Отступ между блоками, px', 'type' => 'number', 'section' => 'look', 'default' => 40, 'min' => 16, 'max' => 96],
@@ -159,9 +172,15 @@ class WPD_Settings
                                 'options' => ['fill' => 'Заливка акцентным цветом', 'outline' => 'Контур']],
             'card_shadow'   => ['label' => 'Тень карточек', 'type' => 'select', 'section' => 'look', 'default' => 'light',
                                 'options' => ['none' => 'Нет (тонкая рамка)', 'light' => 'Лёгкая', 'strong' => 'Заметная']],
+            'border_width'  => ['label' => 'Толщина рамок, px', 'type' => 'number', 'section' => 'look', 'default' => 1, 'min' => 0, 'max' => 4,
+                                'desc' => 'Рамки документов, вопросов FAQ и светлого главного блока. 0 — без рамок.'],
+            'section_title_align' => ['label' => 'Заголовки разделов', 'type' => 'select', 'section' => 'look', 'default' => 'left',
+                                'options' => ['left' => 'Слева', 'center' => 'По центру']],
             'heading_underline' => ['label' => 'Черта под заголовками разделов', 'type' => 'checkbox', 'section' => 'look', 'default' => 1],
             'card_hover'    => ['label' => 'Подъём карточек при наведении', 'type' => 'checkbox', 'section' => 'look', 'default' => 1,
                                 'desc' => 'Статистика, документы, кнопки-ссылки, карточки и кнопки.'],
+            'alt_sections'  => ['label' => 'Чередующийся фон разделов', 'type' => 'checkbox', 'section' => 'look', 'default' => 0,
+                                'desc' => 'Каждый второй раздел оформленной страницы и [wpd_page] — на светлой подложке.'],
 
             // Главный блок
             'badge'            => ['label' => 'Метка над заголовком', 'type' => 'text', 'section' => 'hero', 'default' => 'Олимпиада 2026'],
@@ -172,29 +191,59 @@ class WPD_Settings
             'hero_button_text' => ['label' => 'Текст кнопки', 'type' => 'text', 'section' => 'hero', 'default' => 'Положение'],
             'hero_button_url'  => ['label' => 'Ссылка кнопки', 'type' => 'url', 'section' => 'hero', 'default' => ''],
             'hero_button_new_tab'  => ['label' => 'Кнопка в новой вкладке', 'type' => 'checkbox', 'section' => 'hero', 'default' => 0],
+            'hero_button_icon'     => ['label' => 'Иконка кнопки', 'type' => 'select', 'section' => 'hero', 'default' => '',
+                                       'options' => ['' => 'Без иконки'] + self::icons()],
             'hero_button2_text'    => ['label' => 'Текст второй кнопки', 'type' => 'text', 'section' => 'hero', 'default' => '',
                                        'desc' => 'Контурная кнопка рядом с основной, например «Задания прошлых лет». Без текста или ссылки не выводится.'],
             'hero_button2_url'     => ['label' => 'Ссылка второй кнопки', 'type' => 'url', 'section' => 'hero', 'default' => ''],
             'hero_button2_new_tab' => ['label' => 'Вторая кнопка в новой вкладке', 'type' => 'checkbox', 'section' => 'hero', 'default' => 0],
-            'hero_image_url'   => ['label' => 'Изображение главного блока (URL)', 'type' => 'url', 'section' => 'hero', 'default' => '',
+            'hero_button2_icon'    => ['label' => 'Иконка второй кнопки', 'type' => 'select', 'section' => 'hero', 'default' => '',
+                                       'options' => ['' => 'Без иконки'] + self::icons()],
+            'hero_countdown'       => ['label' => 'Таймер внутри главного блока', 'type' => 'checkbox', 'section' => 'hero', 'default' => 0,
+                                       'desc' => 'Обратный отсчёт с вкладки «Таймер и эффекты» под кнопками. Отдельный таймер под главным блоком тогда не выводится.'],
+            'hero_image_url'   => ['label' => 'Изображение главного блока (URL)', 'type' => 'url', 'section' => 'hero_image', 'default' => '',
                                    'desc' => 'Если у страницы есть «Запись изображение», используется оно.'],
-            'hero_image_alt'      => ['label' => 'Описание изображения (alt)', 'type' => 'text', 'section' => 'hero', 'default' => '',
+            'hero_image_alt'      => ['label' => 'Описание изображения (alt)', 'type' => 'text', 'section' => 'hero_image', 'default' => '',
                                       'desc' => 'Для незрячих посетителей и поисковиков. Пусто — изображение считается декоративным.'],
-            'hero_image_position' => ['label' => 'Положение изображения', 'type' => 'select', 'section' => 'hero', 'default' => 'right',
+            'hero_image_position' => ['label' => 'Положение изображения', 'type' => 'select', 'section' => 'hero_image', 'default' => 'right',
                                       'options' => ['right' => 'Справа от текста', 'left' => 'Слева от текста', 'background' => 'Фоном на весь блок']],
-            'hero_overlay'        => ['label' => 'Затемнение фона, %', 'type' => 'number', 'section' => 'hero', 'default' => 55, 'min' => 0, 'max' => 90,
-                                      'desc' => 'Только для изображения фоном: насколько затемнить его тёмным цветом, чтобы текст читался.'],
+            'hero_image_fit'      => ['label' => 'Подгонка изображения', 'type' => 'select', 'section' => 'hero_image', 'default' => 'cover',
+                                      'options' => ['cover' => 'Заполнить рамку (края обрезаются)', 'contain' => 'Вписать целиком (без обрезки)'],
+                                      'desc' => 'Для изображения справа или слева. «Вписать» подходит для логотипов и схем.'],
+            'hero_image_style'    => ['label' => 'Рамка изображения', 'type' => 'select', 'section' => 'hero_image', 'default' => 'rounded',
+                                      'options' => ['rounded' => 'Скруглённые углы', 'shadow' => 'Скруглённые углы и тень', 'square' => 'Прямые углы', 'circle' => 'Круг']],
+            'hero_image_mobile'   => ['label' => 'Показывать изображение на телефоне', 'type' => 'checkbox', 'section' => 'hero_image', 'default' => 1,
+                                      'desc' => 'Снимите флажок, чтобы на узких экранах (до 820 px) остался только текст.'],
+            'hero_overlay'        => ['label' => 'Затемнение фона, %', 'type' => 'number', 'section' => 'hero_image', 'default' => 55, 'min' => 0, 'max' => 90,
+                                      'desc' => 'Только для изображения фоном: насколько затемнить его, чтобы текст читался.'],
+            'hero_overlay_color'  => ['label' => 'Цвет затемнения', 'type' => 'color_opt', 'section' => 'hero_image', 'default' => '',
+                                      'desc' => 'Пусто — свой цвет фона или тёмный цвет из «Оформления».'],
 
-            'hero_style' => ['label' => 'Стиль главного блока', 'type' => 'select', 'section' => 'hero', 'default' => 'dark',
+            'hero_style' => ['label' => 'Стиль главного блока', 'type' => 'select', 'section' => 'hero_look', 'default' => 'dark',
                              'options' => ['dark' => 'Тёмный', 'gradient' => 'Градиент основного цвета', 'light' => 'Светлый'],
                              'desc' => 'Светлый вариант подходит для страниц, где много текста и мало иллюстраций.'],
-            'hero_bg'         => ['label' => 'Свой цвет фона', 'type' => 'color_opt', 'section' => 'hero', 'default' => '',
+            'hero_bg'         => ['label' => 'Свой цвет фона', 'type' => 'color_opt', 'section' => 'hero_look', 'default' => '',
                                   'desc' => 'Заменяет фон стиля. Цвет текста подбирается автоматически (светлый или тёмный). Пусто — фон стиля.'],
-            'hero_height'     => ['label' => 'Высота', 'type' => 'select', 'section' => 'hero', 'default' => 'normal',
+            'hero_badge_color' => ['label' => 'Цвет метки', 'type' => 'color_opt', 'section' => 'hero_look', 'default' => '',
+                                  'desc' => 'Фон метки над заголовком; цвет её текста подбирается сам. Пусто — акцентный цвет.'],
+            'hero_title_color' => ['label' => 'Цвет заголовка', 'type' => 'color_opt', 'section' => 'hero_look', 'default' => '',
+                                  'desc' => 'Пусто — по стилю и фону.'],
+            'hero_text_color'  => ['label' => 'Цвет текста под заголовком', 'type' => 'color_opt', 'section' => 'hero_look', 'default' => '',
+                                  'desc' => 'Пусто — по стилю и фону.'],
+            'hero_height'     => ['label' => 'Высота', 'type' => 'select', 'section' => 'hero_look', 'default' => 'normal',
                                   'options' => ['compact' => 'Компактный', 'normal' => 'Обычный', 'tall' => 'Высокий']],
-            'hero_align'      => ['label' => 'Выравнивание текста', 'type' => 'select', 'section' => 'hero', 'default' => 'left',
+            'hero_min_height' => ['label' => 'Минимальная высота, px', 'type' => 'number', 'section' => 'hero_look', 'default' => 0, 'min' => 0, 'max' => 900,
+                                  'desc' => '0 — по высоте блока. На телефоне не больше 70 % высоты экрана.'],
+            'hero_padding'    => ['label' => 'Внутренний отступ, px', 'type' => 'number', 'section' => 'hero_look', 'default' => 0, 'min' => 0, 'max' => 120,
+                                  'desc' => '0 — по высоте блока. На телефоне не больше 32 px.'],
+            'hero_valign'     => ['label' => 'Вертикальное выравнивание', 'type' => 'select', 'section' => 'hero_look', 'default' => 'center',
+                                  'options' => ['top' => 'По верху', 'center' => 'По центру', 'bottom' => 'По низу'],
+                                  'desc' => 'Текста относительно изображения и внутри блока заданной высоты.'],
+            'hero_align'      => ['label' => 'Выравнивание текста', 'type' => 'select', 'section' => 'hero_look', 'default' => 'left',
                                   'options' => ['left' => 'Слева', 'center' => 'По центру']],
-            'hero_title_size' => ['label' => 'Размер заголовка', 'type' => 'select', 'section' => 'hero', 'default' => 'normal',
+            'hero_text_width' => ['label' => 'Максимальная ширина текста, px', 'type' => 'number', 'section' => 'hero_look', 'default' => 0, 'min' => 0, 'max' => 1200,
+                                  'desc' => '0 — автоматически. Например, 600 — чтобы строки не растягивались на широком блоке.'],
+            'hero_title_size' => ['label' => 'Размер заголовка', 'type' => 'select', 'section' => 'hero_look', 'default' => 'normal',
                                   'options' => ['small' => 'Меньше', 'normal' => 'Обычный', 'large' => 'Крупнее']],
 
             // Возможности
@@ -239,6 +288,12 @@ class WPD_Settings
             // Поведение
             'hide_title' => ['label' => 'Скрывать заголовок темы', 'type' => 'checkbox', 'section' => 'behavior', 'default' => 1,
                              'desc' => 'Для страниц с включённым оформлением прячет стандартный заголовок темы: его заменяет главный блок.'],
+
+            // Шрифты Google и свой CSS (1.9.0)
+            'google_fonts' => ['label' => 'Шрифты Google Fonts', 'type' => 'fonts', 'section' => 'code', 'default' => '',
+                               'desc' => 'По одному на строку: название и, через двоеточие, насыщенности. Например: Montserrat:400,700 или PT Serif. До 5 шрифтов. Подключаются с fonts.googleapis.com там, где выводятся блоки плагина; затем укажите шрифт в полях «Шрифт» выше.'],
+            'custom_css'   => ['label' => 'Свой CSS', 'type' => 'css', 'section' => 'code', 'default' => '',
+                               'desc' => 'Добавляется после стилей плагина на сайте и в редакторе блоков. Пишите селекторы с .wpd-page, например: .wpd-page .wpd-hero__title { letter-spacing: -0.02em; }'],
 
             // Слайдер
             'slides' => ['label' => 'Слайды', 'type' => 'repeater', 'section' => 'slider', 'default' => [], 'max' => 10,
@@ -593,6 +648,15 @@ class WPD_Settings
                     $out[$key] = $value !== '' || !empty($field['allow_empty']) ? $value : $field['default'];
                     break;
 
+                case 'fonts':
+                    $out[$key] = implode("\n", self::google_font_lines($raw));
+                    break;
+
+                case 'css':
+                    // Без «<», чтобы CSS не мог закрыть тег <style>; длина ограничена
+                    $out[$key] = trim(substr(str_replace('<', '', wp_check_invalid_utf8($raw)), 0, 20000));
+                    break;
+
                 case 'textarea':
                     $out[$key] = ($key === 'faq')
                         ? wp_kses($raw, self::allowed_html())
@@ -654,6 +718,29 @@ class WPD_Settings
         if ((int) $o['block_gap'] !== 40) {
             $vars['--wpd-gap'] = (int) $o['block_gap'] . 'px';
         }
+        // 1.9.0
+        $map = self::field_map();
+        $weight = (string) $o['heading_weight'];
+        if ($weight !== '800' && isset($map['heading_weight']['options'][$weight])) {
+            $vars['--wpd-heading-weight'] = $weight;
+        }
+        $scale = ['small' => '0.85', 'large' => '1.2'];
+        if (isset($scale[$o['heading_scale']])) {
+            $vars['--wpd-h2-scale'] = $scale[$o['heading_scale']];
+        }
+        $lh = ['compact' => '1.45', 'relaxed' => '1.8'];
+        if (isset($lh[$o['line_height']])) {
+            $vars['--wpd-lh'] = $lh[$o['line_height']];
+        }
+        foreach (['link_color' => '--wpd-link', 'button_text_color' => '--wpd-btn-text'] as $key => $var) {
+            $color = (string) sanitize_hex_color((string) $o[$key]);
+            if ($color !== '') {
+                $vars[$var] = $color;
+            }
+        }
+        if ((int) $o['border_width'] !== 1) {
+            $vars['--wpd-border'] = max(0, min(4, (int) $o['border_width'])) . 'px';
+        }
         return $vars;
     }
 
@@ -693,7 +780,68 @@ class WPD_Settings
         if (empty($o['card_hover'])) {
             $classes[] = 'wpd-page--no-hover';
         }
+        // 1.9.0
+        if ($o['section_title_align'] === 'center') {
+            $classes[] = 'wpd-page--titles-center';
+        }
+        if (!empty($o['alt_sections'])) {
+            $classes[] = 'wpd-page--alt-sections';
+        }
+        if ((string) sanitize_hex_color((string) $o['link_color']) !== '') {
+            $classes[] = 'wpd-page--link-color';
+        }
         return $classes;
+    }
+
+    /**
+     * Строки поля «Шрифты Google Fonts» в виде «Название:400,700». Неверные строки отбрасываются, не больше 5 шрифтов.
+     */
+    public static function google_font_lines(string $raw): array
+    {
+        $out = [];
+        foreach (preg_split('/[\r\n]+/', $raw) as $line) {
+            $parts  = explode(':', $line, 2);
+            $family = trim((string) preg_replace('/\s+/', ' ', $parts[0]));
+            if ($family === '' || !preg_match('/^[A-Za-z0-9 ]{1,60}$/', $family)) {
+                continue;
+            }
+            $weights = [];
+            if (isset($parts[1])) {
+                foreach (preg_split('/[^0-9]+/', $parts[1]) as $w) {
+                    $w = (int) $w;
+                    if ($w >= 100 && $w <= 900 && $w % 100 === 0) {
+                        $weights[$w] = $w;
+                    }
+                }
+                ksort($weights);
+            }
+            if (isset($out[strtolower($family)])) {
+                continue; // повтор того же шрифта — остаётся первая строка
+            }
+            $out[strtolower($family)] = $family . ($weights ? ':' . implode(',', $weights) : '');
+            if (count($out) >= 5) {
+                break;
+            }
+        }
+        return array_values($out);
+    }
+
+    /**
+     * Адрес CSS Google Fonts (API css2) для поля «Шрифты Google Fonts». Пустая строка — шрифтов нет.
+     */
+    public static function google_fonts_url(?array $o = null): string
+    {
+        $o = $o ?? self::get();
+        $families = [];
+        foreach (self::google_font_lines((string) $o['google_fonts']) as $line) {
+            $parts = explode(':', $line, 2);
+            $param = str_replace(' ', '+', $parts[0]);
+            if (isset($parts[1])) {
+                $param .= ':wght@' . str_replace(',', ';', $parts[1]);
+            }
+            $families[] = 'family=' . $param;
+        }
+        return $families ? 'https://fonts.googleapis.com/css2?' . implode('&', $families) . '&display=swap' : '';
     }
 
     /**
@@ -1014,10 +1162,15 @@ class WPD_Settings
             <h2>Оформление и главный блок</h2>
             <ul style="list-style:disc;margin-left:20px">
                 <li><strong>Оформление → Типографика и вид:</strong> шрифт и цвет заголовков, размер текста, ширина содержимого,
-                    отступ между блоками, форма и вид кнопок, тень карточек, черта под заголовками, подъём карточек при наведении.
-                    Действует на все блоки, шорткоды и блоки редактора.</li>
-                <li><strong>Главный блок:</strong> две кнопки (вторая — контурная) с открытием в новой вкладке, изображение справа,
-                    слева или фоном с затемнением, описание изображения (alt), свой цвет фона, высота, выравнивание текста, размер заголовка.
+                    отступ между блоками, форма и вид кнопок, тень карточек, черта под заголовками, подъём карточек при наведении;
+                    с 1.9.0 — насыщенность и размер заголовков разделов, межстрочный интервал, цвет ссылок и текста кнопок, толщина рамок,
+                    заголовки по центру, чередующийся фон разделов. Действует на все блоки, шорткоды и блоки редактора.</li>
+                <li><strong>Оформление → Шрифты Google и свой CSS:</strong> шрифты Google Fonts подключаются по названию
+                    (например, <code>Montserrat:400,700</code>), свой CSS добавляется после стилей плагина на сайте и в редакторе.</li>
+                <li><strong>Главный блок:</strong> две кнопки (вторая — контурная) с иконками и открытием в новой вкладке, таймер под кнопками,
+                    изображение справа, слева или фоном с затемнением (цвет затемнения настраивается), подгонка и рамка изображения,
+                    скрытие на телефоне, описание (alt), свой цвет фона, цвета метки, заголовка и текста, высота, минимальная высота,
+                    внутренний отступ, вертикальное выравнивание, выравнивание и ширина текста, размер заголовка.
                     В блоке «Олимпиада: главный блок» всё это задаётся отдельно для страницы в боковой панели.</li>
             </ul>
 
@@ -1216,6 +1369,12 @@ class WPD_Settings
             case 'checkbox':
                 printf('<label><input type="checkbox" id="%1$s" name="%2$s" value="1" %3$s> Включено</label>',
                     esc_attr($id), esc_attr($name), checked((int) $value, 1, false));
+                break;
+
+            case 'fonts':
+            case 'css':
+                printf('<textarea id="%1$s" name="%2$s" rows="%3$d" class="large-text code" spellcheck="false">%4$s</textarea>',
+                    esc_attr($id), esc_attr($name), $field['type'] === 'css' ? 10 : 3, esc_textarea((string) $value));
                 break;
 
             case 'textarea':

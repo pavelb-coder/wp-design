@@ -57,7 +57,7 @@ class WPD_Renderer
     public static function sc_page(): string
     {
         $o = WPD_Settings::get();
-        return self::wrap(self::hero_html($o) . self::countdown_html($o) . self::stats_html($o)
+        return self::wrap(self::hero_html($o) . (empty($o['hero_countdown']) ? self::countdown_html($o) : '') . self::stats_html($o)
             . self::docs_html($o) . self::faq_html($o));
     }
 
@@ -188,6 +188,21 @@ class WPD_Renderer
             'height'          => $o['hero_height'],
             'align'           => $o['hero_align'],
             'title_size'      => $o['hero_title_size'],
+            // 1.9.0
+            'button_icon'     => $o['hero_button_icon'],
+            'button2_icon'    => $o['hero_button2_icon'],
+            'countdown'       => $o['hero_countdown'],
+            'image_fit'       => $o['hero_image_fit'],
+            'image_style'     => $o['hero_image_style'],
+            'image_mobile'    => $o['hero_image_mobile'],
+            'overlay_color'   => $o['hero_overlay_color'],
+            'badge_color'     => $o['hero_badge_color'],
+            'title_color'     => $o['hero_title_color'],
+            'text_color'      => $o['hero_text_color'],
+            'min_height'      => $o['hero_min_height'],
+            'padding'         => $o['hero_padding'],
+            'valign'          => $o['hero_valign'],
+            'text_width'      => $o['hero_text_width'],
         ], array_filter($args, function ($v) {
             return $v !== null;
         }));
@@ -206,6 +221,13 @@ class WPD_Renderer
         $overlay  = max(0, min(90, (int) $a['overlay']));
         $bg       = (string) sanitize_hex_color($a['bg']);
         $image    = esc_url($a['image']);
+        $fit      = $pick($a['image_fit'], ['cover', 'contain'], 'cover');
+        $istyle   = $pick($a['image_style'], ['rounded', 'shadow', 'square', 'circle'], 'rounded');
+        $valign   = $pick($a['valign'], ['top', 'center', 'bottom'], 'center');
+        $minh     = max(0, min(900, (int) $a['min_height']));
+        $pad      = max(0, min(120, (int) $a['padding']));
+        $twidth   = max(0, min(1200, (int) $a['text_width']));
+        $on       = function (string $v): bool { return $v !== '' && $v !== '0'; };
 
         $classes = ['wpd-hero', 'wpd-hero--' . $style];
         $vars    = '';
@@ -227,6 +249,51 @@ class WPD_Renderer
             // Кавычки, скобки и пробелы кодируются, чтобы адрес не мог выйти за пределы url("…")
             $safe  = strtr(esc_url_raw($a['image']), ['"' => '%22', "'" => '%27', '(' => '%28', ')' => '%29', '\\' => '%5C', ' ' => '%20']);
             $vars .= '--wpd-hero-img:url("' . $safe . '");--wpd-hero-overlay:' . $overlay . '%;';
+            $ocolor = (string) sanitize_hex_color($a['overlay_color']);
+            if ($ocolor !== '') {
+                $vars .= '--wpd-hero-overlay-color:' . $ocolor . ';';
+            }
+        }
+        // 1.9.0: изображение сбоку — подгонка и рамка; скрытие на телефоне
+        if ($image !== '' && $position !== 'background') {
+            if ($fit !== 'cover') {
+                $classes[] = 'wpd-hero--fit-' . $fit;
+            }
+            if ($istyle !== 'rounded') {
+                $classes[] = 'wpd-hero--imgstyle-' . $istyle;
+            }
+        }
+        if ($image !== '' && !$on($a['image_mobile'])) {
+            $classes[] = 'wpd-hero--img-hide-mobile';
+        }
+        if ($valign !== 'center') {
+            $classes[] = 'wpd-hero--valign-' . $valign;
+        }
+        // Цвета метки, заголовка и текста
+        $badge_color = (string) sanitize_hex_color($a['badge_color']);
+        if ($badge_color !== '') {
+            $classes[] = 'wpd-hero--c-badge';
+            $vars .= '--wpd-hero-badge:' . $badge_color . ';--wpd-hero-badge-fg:' . (self::is_light_color($badge_color) ? '#0f172a' : '#fff') . ';';
+        }
+        foreach (['title_color' => ['title', '--wpd-hero-title'], 'text_color' => ['text', '--wpd-hero-text']] as $key => $pair) {
+            $color = (string) sanitize_hex_color($a[$key]);
+            if ($color !== '') {
+                $classes[] = 'wpd-hero--c-' . $pair[0];
+                $vars .= $pair[1] . ':' . $color . ';';
+            }
+        }
+        // Размеры: минимальная высота, внутренний отступ, ширина текста
+        if ($minh > 0) {
+            $classes[] = 'wpd-hero--minh';
+            $vars .= '--wpd-hero-minh:' . $minh . 'px;';
+        }
+        if ($pad > 0) {
+            $classes[] = 'wpd-hero--pad';
+            $vars .= '--wpd-hero-pad:' . $pad . 'px;';
+        }
+        if ($twidth > 0) {
+            $classes[] = 'wpd-hero--text-w';
+            $vars .= '--wpd-hero-text-w:' . $twidth . 'px;';
         }
 
         $html = '<section class="' . esc_attr(implode(' ', $classes)) . '"' . ($vars !== '' ? ' style="' . esc_attr($vars) . '"' : '') . '>'
@@ -243,16 +310,30 @@ class WPD_Renderer
         }
 
         $buttons = '';
-        foreach ([['button_text', 'button_url', 'button_new_tab', 'wpd-btn'], ['button2_text', 'button2_url', 'button2_new_tab', 'wpd-btn wpd-btn--ghost']] as $b) {
+        $icons = WPD_Settings::icons();
+        foreach ([['button_text', 'button_url', 'button_new_tab', 'wpd-btn', 'button_icon'], ['button2_text', 'button2_url', 'button2_new_tab', 'wpd-btn wpd-btn--ghost', 'button2_icon']] as $b) {
             $url = esc_url($a[$b[1]]);
             if ($a[$b[0]] !== '' && $url !== '') {
+                $icon = isset($icons[$a[$b[4]]]) ? $a[$b[4]] : '';
+                if ($icon !== '') {
+                    self::enqueue_icons();
+                }
                 $buttons .= '<a class="' . $b[3] . '" href="' . $url . '"'
-                    . ($a[$b[2]] !== '' && $a[$b[2]] !== '0' ? ' target="_blank" rel="noopener noreferrer"' : '')
-                    . '>' . esc_html($a[$b[0]]) . ($b[3] === 'wpd-btn' ? ' &rarr;' : '') . '</a>';
+                    . ($on($a[$b[2]]) ? ' target="_blank" rel="noopener noreferrer"' : '')
+                    . '>' . ($icon !== '' ? '<span class="wpd-btn__icon dashicons dashicons-' . esc_attr($icon) . '" aria-hidden="true"></span>' : '')
+                    . esc_html($a[$b[0]]) . ($b[3] === 'wpd-btn' ? ' &rarr;' : '') . '</a>';
             }
         }
         if ($buttons !== '') {
             $html .= '<div class="wpd-hero__actions">' . $buttons . '</div>';
+        }
+
+        // Таймер внутри главного блока (1.9.0): даты и подписи — с вкладки «Таймер и эффекты»
+        if ($on($a['countdown'])) {
+            $timer = self::countdown_html($o, ['enabled' => true]);
+            if ($timer !== '') {
+                $html .= '<div class="wpd-hero__countdown">' . $timer . '</div>';
+            }
         }
 
         $html .= '</div>';
@@ -891,7 +972,10 @@ class WPD_Renderer
                     break;
 
                 case 'countdown':
-                    $inner .= self::countdown_html($o);
+                    // Таймер уже внутри видимого главного блока (1.9.0) — второй раз не выводим
+                    if (empty($o['hero_countdown']) || in_array('hero', $p['hidden'], true)) {
+                        $inner .= self::countdown_html($o);
+                    }
                     break;
 
                 case 'content':
@@ -1043,8 +1127,20 @@ class WPD_Renderer
      */
     public static function register_assets(): void
     {
-        wp_register_style('wpd-design', WPD_URL . 'assets/css/wpd.css', [], WPD_VERSION);
+        // Шрифты Google и свой CSS (1.9.0) — зависимость и встроенный стиль wpd.css: работают на сайте и в редакторе блоков
+        $o    = WPD_Settings::get();
+        $deps = [];
+        $fonts = WPD_Settings::google_fonts_url($o);
+        if ($fonts !== '') {
+            wp_register_style('wpd-google-fonts', $fonts, [], null); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- версия ломает адрес API
+            $deps[] = 'wpd-google-fonts';
+        }
+        wp_register_style('wpd-design', WPD_URL . 'assets/css/wpd.css', $deps, WPD_VERSION);
         wp_register_script('wpd-design', WPD_URL . 'assets/js/wpd.js', [], WPD_VERSION, true);
+        $css = trim(str_replace('<', '', (string) $o['custom_css']));
+        if ($css !== '') {
+            wp_add_inline_style('wpd-design', $css);
+        }
     }
 
     public static function enqueue(): void
@@ -1063,6 +1159,10 @@ class WPD_Renderer
      */
     private static function page_needs_icons(): bool
     {
+        $o = WPD_Settings::get();
+        if ($o['hero_button_icon'] !== '' || $o['hero_button2_icon'] !== '') {
+            return true; // иконки на кнопках главного блока (1.9.0)
+        }
         $post = get_queried_object();
         if (!$post instanceof WP_Post) {
             return false;

@@ -46,14 +46,25 @@ check('version >= 1.8.0', version_compare(WPD_VERSION, '1.8.0', '>='));
 $map  = WPD_Settings::field_map();
 $keys = array_keys($map);
 $tabs = WPD_Settings::tabs();
-check('design tab: colors, look, behavior', $tabs['design']['sections'] === ['colors', 'look', 'behavior']);
+check('design tab: colors, look, behavior (+ code 1.9.0)', array_slice($tabs['design']['sections'], 0, 3) === ['colors', 'look', 'behavior']);
+// порядок полей как подпоследовательность (в 1.9.0 между ними добавлены новые поля)
+function in_order(array $keys, array $want): bool {
+    $prev = -1;
+    foreach ($want as $k) {
+        $i = array_search($k, $keys, true);
+        if ($i === false || $i <= $prev) { return false; }
+        $prev = $i;
+    }
+    return true;
+}
+$hero_tab = $tabs['hero']['sections'];
 check('section look titled', (WPD_Settings::sections()['look'] ?? '') === 'Типографика и вид');
 check('10 look fields in section look', count(array_filter($look, function ($k) use ($map) { return ($map[$k]['section'] ?? '') === 'look'; })) === 10);
-check('look fields follow font', array_slice($keys, array_search('font', $keys, true) + 1, 10) === $look, implode(',', array_slice($keys, array_search('font', $keys, true) + 1, 10)));
-check('11 new hero fields in section hero', count(array_filter($hero_new, function ($k) use ($map) { return ($map[$k]['section'] ?? '') === 'hero'; })) === 11);
-check('hero order: buttons, image, style', array_slice($keys, array_search('hero_button_url', $keys, true), 14) === ['hero_button_url', 'hero_button_new_tab', 'hero_button2_text', 'hero_button2_url',
-    'hero_button2_new_tab', 'hero_image_url', 'hero_image_alt', 'hero_image_position', 'hero_overlay', 'hero_style', 'hero_bg', 'hero_height', 'hero_align', 'hero_title_size']);
-check('88 fields total', count($map) === 88);
+check('look fields follow font, in order', in_order($keys, array_merge(['font'], $look)) && array_search('font_heading', $keys, true) === array_search('font', $keys, true) + 1);
+check('11 new hero fields on hero tab', count(array_filter($hero_new, function ($k) use ($map, $hero_tab) { return in_array($map[$k]['section'] ?? '', $hero_tab, true); })) === 11);
+check('hero order: buttons, image, style', in_order($keys, ['hero_button_url', 'hero_button_new_tab', 'hero_button2_text', 'hero_button2_url',
+    'hero_button2_new_tab', 'hero_image_url', 'hero_image_alt', 'hero_image_position', 'hero_overlay', 'hero_style', 'hero_bg', 'hero_height', 'hero_align', 'hero_title_size']));
+check('112 fields total (1.9.0)', count($map) === 112);
 $d = WPD_Settings::get();
 check('defaults keep the old look', $d['font_heading'] === '' && $d['font_size'] === 16 && $d['heading_color'] === '' && $d['content_width'] === 1200 && $d['block_gap'] === 40
     && $d['button_shape'] === 'rounded' && $d['button_style'] === 'fill' && $d['card_shadow'] === 'light' && $d['heading_underline'] === 1 && $d['card_hover'] === 1);

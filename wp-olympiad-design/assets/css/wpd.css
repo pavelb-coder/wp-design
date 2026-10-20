@@ -19,7 +19,7 @@
     box-sizing: border-box;
     font-family: var(--wpd-font);
     font-size: var(--wpd-size, 16px);
-    line-height: 1.6;
+    line-height: var(--wpd-lh, 1.6);
     color: var(--wpd-text);
 }
 
@@ -92,7 +92,7 @@
     padding: 14px 26px;
     border-radius: calc(var(--wpd-radius) * 0.6);
     background: var(--wpd-accent);
-    color: #fff;
+    color: var(--wpd-btn-text, #fff);
     font-weight: 700;
     text-decoration: none;
     transition: transform 0.15s ease, filter 0.15s ease;
@@ -100,7 +100,7 @@
 
 .wpd-page .wpd-btn:hover,
 .wpd-page .wpd-btn:focus {
-    color: #fff;
+    color: var(--wpd-btn-text, #fff);
     filter: brightness(1.06);
     transform: translateY(-2px);
 }
@@ -120,7 +120,7 @@
 
 .wpd-page .wpd-h2 {
     margin: 0 0 20px;
-    font-size: 28px;
+    font-size: calc(28px * var(--wpd-h2-scale, 1));
     font-weight: 800;
     line-height: 1.2;
     color: var(--wpd-text);
@@ -180,7 +180,7 @@
     align-items: center;
     gap: 14px;
     padding: 18px 20px;
-    border: 1px solid #e5e7eb;
+    border: var(--wpd-border, 1px) solid #e5e7eb;
     border-radius: var(--wpd-radius);
     background: #fff;
     color: var(--wpd-text);
@@ -220,7 +220,7 @@
 
 .wpd-page .wpd-faq__item {
     overflow: hidden;
-    border: 1px solid #e5e7eb;
+    border: var(--wpd-border, 1px) solid #e5e7eb;
     border-radius: var(--wpd-radius);
     background: #fff;
 }
@@ -292,7 +292,7 @@
     }
 
     .wpd-page .wpd-h2 {
-        font-size: 24px;
+        font-size: calc(24px * var(--wpd-h2-scale, 1));
     }
 
     .wpd-page .wpd-stat__num {
@@ -325,7 +325,7 @@
 
 .wpd-page .wpd-hero--light {
     background: #fff;
-    border: 1px solid #e5e7eb;
+    border: var(--wpd-border, 1px) solid #e5e7eb;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
     color: var(--wpd-text);
 }
@@ -1171,7 +1171,7 @@
 .wpd-page--shadow-none .wpd-stat:hover,
 .wpd-page--shadow-none .wpd-card:hover,
 .wpd-page--shadow-none a.wpd-qbtn:hover {
-    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 0 0 var(--wpd-border, 1px) rgba(15, 23, 42, 0.08);
 }
 
 .wpd-page--shadow-strong .wpd-content,
@@ -1255,8 +1255,8 @@
 .wpd-page .wpd-hero.wpd-hero--img-background {
     background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), var(--wpd-hero-img) center / cover no-repeat, var(--wpd-dark);
     background:
-        linear-gradient(color-mix(in srgb, var(--wpd-hero-bg, var(--wpd-dark)) var(--wpd-hero-overlay, 55%), transparent),
-                        color-mix(in srgb, var(--wpd-hero-bg, var(--wpd-dark)) var(--wpd-hero-overlay, 55%), transparent)),
+        linear-gradient(color-mix(in srgb, var(--wpd-hero-overlay-color, var(--wpd-hero-bg, var(--wpd-dark))) var(--wpd-hero-overlay, 55%), transparent),
+                        color-mix(in srgb, var(--wpd-hero-overlay-color, var(--wpd-hero-bg, var(--wpd-dark))) var(--wpd-hero-overlay, 55%), transparent)),
         var(--wpd-hero-img) center / cover no-repeat,
         var(--wpd-hero-bg, var(--wpd-dark));
     border-color: transparent;
@@ -1371,5 +1371,195 @@
     .wpd-page .wpd-btn:hover,
     .wpd-page .wpd-btn:focus {
         transform: none;
+    }
+}
+
+/* -------------------------------------------------------------
+ * 1.9.0: ещё параметры оформления и главного блока
+ * ------------------------------------------------------------- */
+
+/* Насыщенность заголовков */
+.wpd-page .wpd-h2,
+.wpd-page .wpd-hero__title,
+.wpd-page .wpd-slide__title,
+.wpd-page .wpd-notice__title,
+.wpd-page .wpd-card__title {
+    font-weight: var(--wpd-heading-weight, 800);
+}
+
+/* Заголовки разделов по центру */
+.wpd-page--titles-center .wpd-h2 {
+    text-align: center;
+}
+
+.wpd-page--titles-center .wpd-h2::after {
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.wpd-page--titles-center .wpd-news__head {
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Цвет ссылок в тексте */
+.wpd-page--link-color .wpd-content a:not(.wpd-btn),
+.wpd-page--link-color .wpd-faq__a a,
+.wpd-page--link-color .wpd-notice__content a,
+.wpd-page--link-color .wpd-contacts__list a {
+    color: var(--wpd-link);
+}
+
+/* Чередующийся фон разделов (оформленная страница и [wpd_page]) */
+.wpd-page--alt-sections > :is(.wpd-stats, .wpd-docs, .wpd-faq, .wpd-buttons, .wpd-cards, .wpd-news, .wpd-contacts):nth-child(even) {
+    padding: 28px 32px;
+    border-radius: var(--wpd-radius);
+    background: rgba(15, 23, 42, 0.035);
+    background: color-mix(in srgb, var(--wpd-primary) 6%, #fff);
+}
+
+/* Иконка на кнопке */
+.wpd-page .wpd-btn__icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    line-height: 1;
+}
+
+/* Главный блок: цвета метки, заголовка и текста */
+.wpd-page .wpd-hero.wpd-hero--c-badge .wpd-badge {
+    background: var(--wpd-hero-badge);
+    color: var(--wpd-hero-badge-fg, #fff);
+}
+
+.wpd-page .wpd-hero.wpd-hero--c-title .wpd-hero__title {
+    color: var(--wpd-hero-title);
+}
+
+.wpd-page .wpd-hero.wpd-hero--c-text .wpd-hero__lead {
+    color: var(--wpd-hero-text);
+}
+
+/* Главный блок: подгонка и рамка изображения */
+.wpd-page .wpd-hero--fit-contain .wpd-hero__media img {
+    object-fit: contain;
+}
+
+.wpd-page .wpd-hero--imgstyle-shadow .wpd-hero__media img {
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18), 0 24px 56px rgba(0, 0, 0, 0.22);
+}
+
+.wpd-page .wpd-hero--imgstyle-square .wpd-hero__media img {
+    border-radius: 0;
+}
+
+.wpd-page .wpd-hero--imgstyle-circle .wpd-hero__media img {
+    max-width: 420px;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+/* Главный блок: минимальная высота, внутренний отступ, вертикальное выравнивание */
+.wpd-page .wpd-hero.wpd-hero--minh {
+    display: flex;
+    align-items: center;
+    min-height: var(--wpd-hero-minh);
+}
+
+.wpd-page .wpd-hero--minh .wpd-hero__inner {
+    width: 100%;
+}
+
+.wpd-page .wpd-hero.wpd-hero--pad {
+    padding: var(--wpd-hero-pad);
+}
+
+.wpd-page .wpd-hero.wpd-hero--valign-top {
+    align-items: flex-start;
+}
+
+.wpd-page .wpd-hero.wpd-hero--valign-bottom {
+    align-items: flex-end;
+}
+
+.wpd-page .wpd-hero--valign-top .wpd-hero__inner {
+    align-items: start;
+}
+
+.wpd-page .wpd-hero--valign-bottom .wpd-hero__inner {
+    align-items: end;
+}
+
+/* Главный блок: ширина текста */
+.wpd-page .wpd-hero.wpd-hero--text-w .wpd-hero__inner > .wpd-hero__text {
+    max-width: var(--wpd-hero-text-w);
+}
+
+.wpd-page .wpd-hero.wpd-hero--text-w.wpd-hero--align-center .wpd-hero__inner > .wpd-hero__text {
+    margin-right: auto;
+    margin-left: auto;
+}
+
+/* Главный блок: таймер под кнопками */
+.wpd-page .wpd-hero__countdown {
+    margin-top: 24px;
+}
+
+.wpd-page .wpd-hero__countdown .wpd-countdown {
+    margin-top: 0;
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+    color: inherit;
+    text-align: left;
+}
+
+.wpd-page .wpd-hero__countdown .wpd-countdown__label {
+    color: inherit;
+    opacity: 0.8;
+}
+
+.wpd-page .wpd-hero__countdown .wpd-countdown__value {
+    color: inherit;
+}
+
+.wpd-page .wpd-hero--light .wpd-hero__countdown .wpd-countdown,
+.wpd-page .wpd-hero.wpd-hero--fg-dark .wpd-hero__countdown .wpd-countdown {
+    background: rgba(15, 23, 42, 0.05);
+}
+
+.wpd-page .wpd-hero--img-background .wpd-hero__countdown .wpd-countdown {
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.wpd-page .wpd-hero--align-center .wpd-hero__countdown .wpd-countdown {
+    justify-content: center;
+    text-align: center;
+}
+
+.wpd-page .wpd-hero--align-center .wpd-hero__countdown .wpd-countdown__main {
+    flex-grow: 0;
+}
+
+@media (max-width: 820px) {
+    .wpd-page .wpd-hero--img-hide-mobile .wpd-hero__media {
+        display: none;
+    }
+
+    .wpd-page .wpd-hero.wpd-hero--img-hide-mobile.wpd-hero--img-background {
+        background: var(--wpd-hero-bg, var(--wpd-dark));
+    }
+
+    .wpd-page .wpd-hero.wpd-hero--minh {
+        min-height: min(var(--wpd-hero-minh), 70vh);
+    }
+
+    .wpd-page .wpd-hero.wpd-hero--pad {
+        padding: min(var(--wpd-hero-pad), 32px) min(var(--wpd-hero-pad), 24px);
+    }
+
+    .wpd-page--alt-sections > :is(.wpd-stats, .wpd-docs, .wpd-faq, .wpd-buttons, .wpd-cards, .wpd-news, .wpd-contacts):nth-child(even) {
+        padding: 20px;
     }
 }

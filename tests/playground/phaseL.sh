@@ -51,6 +51,7 @@ curl -s -c cjL.txt -b cjL.txt -o /dev/null --max-time 120 \
   --data-urlencode "wpd_settings[hero_image_position]=background" --data-urlencode "wpd_settings[hero_overlay]=70" \
   --data-urlencode "wpd_settings[hero_style]=gradient" --data-urlencode "wpd_settings[hero_height]=tall" --data-urlencode "wpd_settings[hero_align]=center" \
   --data-urlencode "wpd_settings[hero_title_size]=large" \
+  --data-urlencode "wpd_settings[hero_image_mobile]=1" \
   "$B/wp-admin/options.php"
 get "/wp-admin/admin.php?page=wpd-settings&tab=hero&settings-updated=true" l_hero2.html
 t "hero save: values stored"             "$([ "$(has l_hero2.html 'value="Задания прошлых лет"')$(grep -oE '<input[^>]*name="wpd_settings\[hero_overlay\]"[^>]*>' l_hero2.html | grep -q 'value="70"' && echo 1 || echo 0)" = "11" ] && echo 1 || echo 0)"

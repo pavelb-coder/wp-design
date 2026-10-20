@@ -235,6 +235,23 @@ with sync_playwright() as p:
         time.sleep(0.3)
     a2 = attrs(page, hero_id)
     check("hero: second button link and new tab in sidebar", a2.get("button2Url") == "https://example.com/archive" and a2.get("button2NewTab") is True, (a2.get("button2Url"), a2.get("button2NewTab")))
+    # 1.9.0: иконка кнопки и таймер внутри главного блока
+    u1 = insp.get_by_label("Ссылка кнопки", exact=True)
+    if u1.count():
+        u1.first.fill("https://example.com/rules")
+        time.sleep(0.3)
+    ic = insp.get_by_label("Иконка кнопки", exact=True)
+    check("hero: icon select in «Кнопки» (1.9.0)", ic.count() >= 1 and "Без иконки" in (ic.first.inner_text() if ic.count() else ""))
+    if ic.count():
+        ic.first.select_option("awards")
+        time.sleep(0.4)
+    tm = insp.get_by_label("Таймер под кнопками", exact=True)
+    if tm.count():
+        tm.first.check()
+        time.sleep(0.5)
+    a3 = attrs(page, hero_id)
+    check("hero: icon and timer set in sidebar", a3.get("buttonIcon") == "awards" and a3.get("showCountdown") is True, (a3.get("buttonIcon"), a3.get("showCountdown")))
+    check("canvas: icon on button and timer in hero", cv.locator(".wpd-page--hero .wpd-hero .wpd-btn__icon.dashicons-awards").count() == 1 and cv.locator(".wpd-page--hero .wpd-hero__countdown").count() == 1)
     img_panel = insp.get_by_role("button", name="Изображение", exact=True)
     if img_panel.count():
         img_panel.first.click()
@@ -249,6 +266,20 @@ with sync_playwright() as p:
     check("hero: overlay control shown for background image", insp.get_by_label("Затемнение фона, %").count() >= 1)
     hbg = cv.evaluate("() => { const h = document.querySelector('.wpd-page--hero .wpd-hero'); return h.className + '|' + getComputedStyle(h).backgroundImage; }")
     check("canvas: background image with overlay", "wpd-hero--img-background" in hbg and "url(" in hbg and "gradient" in hbg and cv.locator(".wpd-page--hero .wpd-hero__media img").count() == 0, hbg[:200])
+    # 1.9.0: панель «Размеры»
+    sz_panel = insp.get_by_role("button", name="Размеры", exact=True)
+    check("hero: «Размеры» panel (1.9.0)", sz_panel.count() >= 1)
+    if sz_panel.count():
+        sz_panel.first.click()
+        time.sleep(0.5)
+    mh = insp.get_by_role("spinbutton", name="Минимальная высота, px")
+    if mh.count():
+        mh.first.fill("520")
+        mh.first.press("Tab")
+        time.sleep(0.5)
+    check("hero: min height set in sidebar", attrs(page, hero_id).get("minHeight") == 520, attrs(page, hero_id).get("minHeight"))
+    mhc = cv.evaluate("() => { const h = document.querySelector('.wpd-page--hero .wpd-hero'); return h.className + '|' + getComputedStyle(h).minHeight; }")
+    check("canvas: min height applied", "wpd-hero--minh" in mhc and mhc.split("|")[1].endswith("px") and float(mhc.split("|")[1][:-2]) >= 300, mhc)
     page.screenshot(path=os.path.join(SHOTS, "editor-hero.png"))
 
     # Выравнивание «широкое» через панель инструментов блока (атрибут align)
@@ -270,13 +301,13 @@ with sync_playwright() as p:
     items = attrs(page, stats_id).get("items", [])
     check("stats: new card values", items[-1] == {"num": "999+", "label": "карточка из браузера"}, items[-1] if items else None)
     # Переместить последнюю карточку вверх
-    last.locator(".wpd-ed-tools button").first.click()
+    last.locator(".wpd-ed-tools button").first.dispatch_event("click")  # тулбар блока может перекрыть кнопку
     time.sleep(0.4)
     items = attrs(page, stats_id).get("items", [])
     check("stats: card moved up", len(items) >= 2 and items[-2]["num"] == "999+", [i["num"] for i in items])
     # Удалить первую карточку
     n_before = len(items)
-    cv.locator(".wpd-page--stats .wpd-stat").first.locator(".wpd-ed-tools button").nth(2).click()
+    cv.locator(".wpd-page--stats .wpd-stat").first.locator(".wpd-ed-tools button").nth(2).dispatch_event("click")
     time.sleep(0.4)
     check("stats: card removed", len(attrs(page, stats_id).get("items", [])) == n_before - 1)
     page.screenshot(path=os.path.join(SHOTS, "editor-stats.png"))
@@ -372,6 +403,9 @@ with sync_playwright() as p:
     check("front: second button (1.8.0)", 'class="wpd-btn wpd-btn--ghost" href="https://example.com/archive" target="_blank" rel="noopener noreferrer">Задания прошлых лет</a>' in front)
     check("front: background image, tall", '--wpd-hero-img:url(&quot;https://example.com/hero.jpg&quot;)' in front and "wpd-hero--height-tall" in front and "wpd-hero--img-background" in front)
     check("front: hero align wide", "wpd-page--hero alignwide" in front)
+    # Дата таймера в общих настройках не задана — таймера внутри блока на сайте нет (подсказка только в редакторе)
+    check("front: icon on button, min height (1.9.0)", re.search(r'<a class="wpd-btn" href="https://example.com/rules"><span class="wpd-btn__icon dashicons dashicons-awards" aria-hidden="true"></span>', front) is not None and "--wpd-hero-minh:520px" in front)
+    check("front: no hero timer without a date in settings", 'class="wpd-hero__countdown"' not in front)
     check("front: new stat card", ">999+<" in front and "карточка из браузера" in front)
     check("front: new document", "https://example.com/final.pdf" in front and "Регламент финала" in front)
     check("front: faq rich answer", "<strong>жирным</strong>" in front and "Вопрос из браузера?" in front)

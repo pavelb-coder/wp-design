@@ -202,6 +202,17 @@
         var bg = /^#[0-9a-f]{6}$/i.test(a.bgColor || '') ? a.bgColor : '';
         var overlay = typeof a.overlay === 'number' ? Math.max(0, Math.min(90, a.overlay)) : 55;
         var isBgImage = !!a.imageUrl && position === 'background';
+        // 1.9.0
+        var hex = function (v) { return /^#[0-9a-f]{6}$/i.test(v || '') ? v : ''; };
+        var num = function (v, max) { return typeof v === 'number' ? Math.max(0, Math.min(max, v)) : 0; };
+        var fit = pick(a.imageFit, ho.imageFit, 'cover');
+        var istyle = pick(a.imageStyle, ho.imageStyle, 'rounded');
+        var valign = pick(a.verticalAlign, ho.verticalAlign, 'center');
+        var minh = num(a.minHeight, 900);
+        var pad = num(a.padding, 120);
+        var twidth = num(a.textWidth, 1200);
+        var icons = data.icons || {};
+        var iconOptions = [{ value: '', label: 'Без иконки' }].concat(Object.keys(icons).map(function (k) { return { value: k, label: icons[k] }; }));
 
         var cls = ['wpd-hero', 'wpd-hero--' + variant];
         if (a.imageUrl) { cls.push('wpd-hero--img-' + position); }
@@ -216,7 +227,37 @@
         if (isBgImage) {
             style['--wpd-hero-img'] = 'url("' + String(a.imageUrl).replace(/["'()\\\s]/g, encodeURIComponent) + '")';
             style['--wpd-hero-overlay'] = overlay + '%';
+            if (hex(a.overlayColor)) { style['--wpd-hero-overlay-color'] = a.overlayColor; }
         }
+        if (a.imageUrl && !isBgImage) {
+            if (fit !== 'cover') { cls.push('wpd-hero--fit-' + fit); }
+            if (istyle !== 'rounded') { cls.push('wpd-hero--imgstyle-' + istyle); }
+        }
+        if (a.imageUrl && a.imageMobile === false) { cls.push('wpd-hero--img-hide-mobile'); }
+        if (valign !== 'center') { cls.push('wpd-hero--valign-' + valign); }
+        if (hex(a.badgeColor)) {
+            cls.push('wpd-hero--c-badge');
+            style['--wpd-hero-badge'] = a.badgeColor;
+            style['--wpd-hero-badge-fg'] = isLight(a.badgeColor) ? '#0f172a' : '#fff';
+        }
+        if (hex(a.titleColor)) { cls.push('wpd-hero--c-title'); style['--wpd-hero-title'] = a.titleColor; }
+        if (hex(a.textColor)) { cls.push('wpd-hero--c-text'); style['--wpd-hero-text'] = a.textColor; }
+        if (minh) { cls.push('wpd-hero--minh'); style['--wpd-hero-minh'] = minh + 'px'; }
+        if (pad) { cls.push('wpd-hero--pad'); style['--wpd-hero-pad'] = pad + 'px'; }
+        if (twidth) { cls.push('wpd-hero--text-w'); style['--wpd-hero-text-w'] = twidth + 'px'; }
+
+        // Таймер внутри блока: предпросмотр по датам из настроек (как блок «Обратный отсчёт» по умолчанию)
+        var cd = data.blocks['wpd/countdown'] ? defaults('wpd/countdown') : {};
+        var timerPreview = a.showCountdown
+            ? el('div', { className: 'wpd-hero__countdown' },
+                cd.date
+                    ? el('div', { className: 'wpd-countdown' },
+                        el('div', { className: 'wpd-countdown__main' },
+                            el('p', { className: 'wpd-countdown__label' }, cd.label || ''),
+                            el('p', { className: 'wpd-countdown__value' }, formatDate(cd.date))
+                        ))
+                    : (sel ? el('p', { className: 'wpd-ed-hint' }, 'Дата таймера не задана — укажите её в общих настройках, вкладка «Таймер и эффекты».') : null))
+            : null;
 
         var opts = function (o) { return Object.keys(o || {}).map(function (k) { return { value: k, label: o[k] }; }); };
         var styleOptions = Object.keys(data.heroStyles).map(function (key) {
@@ -237,22 +278,35 @@
         });
 
         function button(textKey, urlKey, klass, placeholder, arrow) {
+            var iconKey = textKey === 'buttonText' ? 'buttonIcon' : 'button2Icon';
             return (sel || a[textKey]) ? el('span', { className: klass + (a[textKey] ? '' : ' is-empty') },
+                icons[a[iconKey]] ? el('span', { className: 'wpd-btn__icon dashicons dashicons-' + a[iconKey], 'aria-hidden': 'true' }) : null,
                 el(Inline, { value: a[textKey], placeholder: placeholder, label: placeholder, onChange: function (v) { var o = {}; o[textKey] = v; set(o); } }),
                 arrow ? ' →' : null
             ) : null;
         }
 
-        var colorControl = c.ColorPalette ? el(c.BaseControl, { label: 'Свой цвет фона', help: 'Заменяет фон стиля, цвет текста подбирается сам. Пусто — фон стиля.', id: 'wpd-hero-bg' },
-            el(c.ColorPalette, {
-                colors: (data.palette || []).map(function (col, i) { return { name: 'Цвет ' + (i + 1), color: col }; }),
-                value: bg || undefined, clearable: true, disableCustomColors: false,
-                onChange: function (v) { set({ bgColor: v || '' }); }
-            })
-        ) : el(c.TextControl, {
-            label: 'Свой цвет фона (#rrggbb)', value: a.bgColor || '', placeholder: '#rrggbb',
-            onChange: function (v) { set({ bgColor: v }); }
-        });
+        function colorField(key, label, help) {
+            var value = hex(a[key]);
+            var update = function (v) { var o = {}; o[key] = v || ''; set(o); };
+            return c.ColorPalette ? el(c.BaseControl, { label: label, help: help, id: 'wpd-hero-' + key },
+                el(c.ColorPalette, {
+                    colors: (data.palette || []).map(function (col, i) { return { name: 'Цвет ' + (i + 1), color: col }; }),
+                    value: value || undefined, clearable: true, disableCustomColors: false,
+                    onChange: update
+                })
+            ) : el(c.TextControl, {
+                label: label + ' (#rrggbb)', value: a[key] || '', placeholder: '#rrggbb', help: help,
+                onChange: update
+            });
+        }
+        var colorControl = colorField('bgColor', 'Свой цвет фона', 'Заменяет фон стиля, цвет текста подбирается сам. Пусто — фон стиля.');
+        function range(key, label, max, step, help) {
+            return el(c.RangeControl, {
+                label: label, value: num(a[key], max), min: 0, max: max, step: step, help: help,
+                onChange: function (v) { var o = {}; o[key] = typeof v === 'number' ? v : 0; set(o); }
+            });
+        }
 
         return el(Fragment, null,
             el(be.InspectorControls, null,
@@ -273,7 +327,21 @@
                     el(c.SelectControl, {
                         label: 'Размер заголовка', value: tsize, options: opts(ho.titleSize),
                         onChange: function (v) { set({ titleSize: v }); }
+                    }),
+                    el(c.SelectControl, {
+                        label: 'Вертикальное выравнивание', value: valign, options: opts(ho.verticalAlign),
+                        onChange: function (v) { set({ verticalAlign: v }); }
                     })
+                ),
+                el(c.PanelBody, { title: 'Размеры', initialOpen: false },
+                    range('minHeight', 'Минимальная высота, px', 900, 10, '0 — по высоте блока.'),
+                    range('padding', 'Внутренний отступ, px', 120, 4, '0 — по высоте блока.'),
+                    range('textWidth', 'Максимальная ширина текста, px', 1200, 20, '0 — автоматически.')
+                ),
+                el(c.PanelBody, { title: 'Цвета текста', initialOpen: false },
+                    colorField('badgeColor', 'Цвет метки', 'Фон метки; цвет её текста подбирается сам. Пусто — акцентный цвет.'),
+                    colorField('titleColor', 'Цвет заголовка', 'Пусто — по стилю и фону.'),
+                    colorField('textColor', 'Цвет текста под заголовком', 'Пусто — по стилю и фону.')
                 ),
                 el(c.PanelBody, { title: 'Кнопки', initialOpen: false },
                     el(c.TextControl, {
@@ -293,6 +361,19 @@
                     el(Toggle, {
                         label: 'Вторая кнопка в новой вкладке', checked: !!a.button2NewTab,
                         onChange: function (v) { set({ button2NewTab: !!v }); }
+                    }),
+                    el(c.SelectControl, {
+                        label: 'Иконка кнопки', value: icons[a.buttonIcon] ? a.buttonIcon : '', options: iconOptions,
+                        onChange: function (v) { set({ buttonIcon: v }); }
+                    }),
+                    el(c.SelectControl, {
+                        label: 'Иконка второй кнопки', value: icons[a.button2Icon] ? a.button2Icon : '', options: iconOptions,
+                        onChange: function (v) { set({ button2Icon: v }); }
+                    }),
+                    el(Toggle, {
+                        label: 'Таймер под кнопками', checked: !!a.showCountdown,
+                        help: 'Даты и подписи — из общих настроек, вкладка «Таймер и эффекты».',
+                        onChange: function (v) { set({ showCountdown: !!v }); }
                     })
                 ),
                 el(c.PanelBody, { title: 'Изображение', initialOpen: false },
@@ -316,6 +397,19 @@
                         label: 'Затемнение фона, %', value: overlay, min: 0, max: 90, step: 5,
                         onChange: function (v) { set({ overlay: typeof v === 'number' ? v : 55 }); }
                     }) : null,
+                    position === 'background' ? colorField('overlayColor', 'Цвет затемнения', 'Пусто — свой цвет фона или тёмный цвет.') : null,
+                    position !== 'background' ? el(c.SelectControl, {
+                        label: 'Подгонка изображения', value: fit, options: opts(ho.imageFit),
+                        onChange: function (v) { set({ imageFit: v }); }
+                    }) : null,
+                    position !== 'background' ? el(c.SelectControl, {
+                        label: 'Рамка изображения', value: istyle, options: opts(ho.imageStyle),
+                        onChange: function (v) { set({ imageStyle: v }); }
+                    }) : null,
+                    el(Toggle, {
+                        label: 'Показывать на телефоне', checked: a.imageMobile !== false,
+                        onChange: function (v) { set({ imageMobile: !!v }); }
+                    }),
                     el(c.TextControl, {
                         label: 'Описание изображения (alt)', value: a.imageAlt || '',
                         help: 'Для незрячих посетителей и поисковиков. Пусто — декоративное изображение.',
@@ -343,7 +437,8 @@
                             ) : null,
                             (sel && ((a.buttonText && !a.buttonUrl) || (a.button2Text && !a.button2Url)))
                                 ? el('p', { className: 'wpd-ed-hint' }, 'Укажите ссылки кнопок в настройках блока справа (раздел «Кнопки»).')
-                                : null
+                                : null,
+                            timerPreview
                         ),
                         (a.imageUrl && !isBgImage)
                             ? el('div', { className: 'wpd-hero__media' }, el('img', { src: a.imageUrl, alt: a.imageAlt || '' }))
