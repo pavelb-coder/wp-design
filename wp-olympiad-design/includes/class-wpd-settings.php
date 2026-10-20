@@ -1,0 +1,330 @@
+<?php
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * Настройки плагина: описание полей, сохранение через Settings API и парсеры списков.
+ */
+class WPD_Settings
+{
+    const OPTION = 'wpd_settings';
+    const GROUP  = 'wpd_settings_group';
+    const PAGE   = 'wpd-settings';
+
+    public static function init(): void
+    {
+        add_action('admin_menu', [__CLASS__, 'add_menu']);
+        add_action('admin_init', [__CLASS__, 'register']);
+    }
+
+    /**
+     * Секции админки.
+     */
+    public static function sections(): array
+    {
+        return [
+            'colors'   => 'Цвета и шрифт',
+            'hero'     => 'Главный блок',
+            'stats'    => 'Статистика',
+            'docs'     => 'Документы',
+            'faq'      => 'Частые вопросы',
+            'behavior' => 'Поведение',
+        ];
+    }
+
+    /**
+     * Описание всех полей. Это единственный источник правды для дефолтов, санитизации и формы.
+     */
+    public static function field_map(): array
+    {
+        return [
+            // Цвета и шрифт
+            'primary'  => ['label' => 'Основной цвет', 'type' => 'color', 'section' => 'colors', 'default' => '#1d4ed8',
+                           'desc' => 'Рамки карточек, иконки документов, открытые вопросы.'],
+            'accent'   => ['label' => 'Акцентный цвет', 'type' => 'color', 'section' => 'colors', 'default' => '#f97316',
+                           'desc' => 'Цифры статистики, кнопка и метка в главном блоке.'],
+            'dark'     => ['label' => 'Тёмный фон главного блока', 'type' => 'color', 'section' => 'colors', 'default' => '#0b1220'],
+            'text'     => ['label' => 'Цвет текста', 'type' => 'color', 'section' => 'colors', 'default' => '#1f2937'],
+            'bg'       => ['label' => 'Фон страницы', 'type' => 'color', 'section' => 'colors', 'default' => '#f1f5f9'],
+            'radius'   => ['label' => 'Скругление углов, px', 'type' => 'number', 'section' => 'colors', 'default' => 16,
+                           'min' => 0, 'max' => 40],
+            'font'     => ['label' => 'Шрифт (CSS font-family)', 'type' => 'font', 'section' => 'colors',
+                           'default' => '-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                           'desc' => 'Например: Montserrat, Arial, sans-serif. Если шрифт нужен из Google Fonts, подключите его в теме.'],
+
+            // Главный блок
+            'badge'            => ['label' => 'Метка над заголовком', 'type' => 'text', 'section' => 'hero', 'default' => 'Олимпиада 2026'],
+            'hero_title'       => ['label' => 'Заголовок (для шорткода [wpd_hero])', 'type' => 'text', 'section' => 'hero',
+                                   'default' => 'Всероссийская олимпиада по техническому английскому'],
+            'hero_text'        => ['label' => 'Текст под заголовком', 'type' => 'textarea', 'section' => 'hero',
+                                   'default' => 'Краткое описание мероприятия: кто может участвовать, как проходит и где узнать результаты.'],
+            'hero_button_text' => ['label' => 'Текст кнопки', 'type' => 'text', 'section' => 'hero', 'default' => 'Положение'],
+            'hero_button_url'  => ['label' => 'Ссылка кнопки', 'type' => 'url', 'section' => 'hero', 'default' => ''],
+            'hero_image_url'   => ['label' => 'Изображение главного блока (URL)', 'type' => 'url', 'section' => 'hero', 'default' => '',
+                                   'desc' => 'Если у страницы есть «Запись изображение», используется оно.'],
+
+            // Статистика
+            'stats' => ['label' => 'Карточки статистики', 'type' => 'textarea', 'section' => 'stats',
+                        'default' => "12–18|возраст участников\n300+|школьников в прошлом году\n20|регионов России\n2|этапа: онлайн и очный финал",
+                        'desc' => 'Каждая строка: число|подпись. Пустое поле — блок не выводится.'],
+
+            // Документы
+            'docs_title' => ['label' => 'Заголовок блока документов', 'type' => 'text', 'section' => 'docs', 'default' => 'Документы'],
+            'docs'       => ['label' => 'Документы', 'type' => 'textarea', 'section' => 'docs', 'default' => '',
+                             'desc' => 'Каждая строка: название|ссылка (PDF или страница). Пустое поле — блок не выводится.'],
+
+            // FAQ
+            'faq_title' => ['label' => 'Заголовок блока FAQ', 'type' => 'text', 'section' => 'faq', 'default' => 'Часто задаваемые вопросы'],
+            'faq'       => ['label' => 'Вопросы и ответы', 'type' => 'textarea', 'section' => 'faq',
+                            'default' => "Как проходит олимпиада?\nВ два этапа: онлайн-отбор и очный финал. Лучшие участники отбора приглашаются на финал.\n\nУчастие бесплатное?\nДа, участие в отборочном этапе бесплатное.",
+                            'desc' => 'Первая строка блока — вопрос, остальные строки — ответ. Блоки разделяются пустой строкой. Разрешены теги a, strong, em, br.'],
+
+            // Поведение
+            'hide_title' => ['label' => 'Скрывать заголовок темы', 'type' => 'checkbox', 'section' => 'behavior', 'default' => 1,
+                             'desc' => 'Для страниц с включённым оформлением прячет стандартный заголовок темы: его заменяет главный блок.'],
+        ];
+    }
+
+    /**
+     * Дефолтные значения (для обратной совместимости и для get()).
+     */
+    public static function defaults(): array
+    {
+        $out = [];
+        foreach (self::field_map() as $key => $field) {
+            $out[$key] = $field['default'];
+        }
+        return $out;
+    }
+
+    /**
+     * Текущие настройки с подстановкой дефолтов.
+     */
+    public static function get(): array
+    {
+        $saved = get_option(self::OPTION, []);
+        $saved = is_array($saved) ? $saved : [];
+        $out = [];
+        foreach (self::field_map() as $key => $field) {
+            $out[$key] = array_key_exists($key, $saved) ? $saved[$key] : $field['default'];
+        }
+        return $out;
+    }
+
+    /**
+     * Санитизация при сохранении. Вызывается Settings API.
+     */
+    public static function sanitize($input): array
+    {
+        $input = is_array($input) ? $input : [];
+        $out = [];
+
+        foreach (self::field_map() as $key => $field) {
+            $has = array_key_exists($key, $input);
+            $raw = $has ? $input[$key] : null;
+
+            // Чекбокс не отправляется, когда снят — это и есть значение 0.
+            if ($field['type'] === 'checkbox') {
+                $out[$key] = empty($raw) ? 0 : 1;
+                continue;
+            }
+            if (!$has) {
+                $out[$key] = $field['default'];
+                continue;
+            }
+
+            $raw = is_scalar($raw) ? (string) $raw : '';
+
+            switch ($field['type']) {
+                case 'color':
+                    $value = sanitize_hex_color($raw);
+                    $out[$key] = $value ? $value : $field['default'];
+                    break;
+
+                case 'number':
+                    $out[$key] = min($field['max'], max($field['min'], (int) $raw));
+                    break;
+
+                case 'url':
+                    $out[$key] = esc_url_raw(trim($raw));
+                    break;
+
+                case 'font':
+                    $value = trim((string) preg_replace('/[^A-Za-z0-9 ,\'"\-]/', '', $raw));
+                    $out[$key] = $value !== '' ? $value : $field['default'];
+                    break;
+
+                case 'textarea':
+                    $out[$key] = ($key === 'faq')
+                        ? wp_kses($raw, self::allowed_html())
+                        : sanitize_textarea_field($raw);
+                    break;
+
+                default:
+                    $out[$key] = sanitize_text_field($raw);
+            }
+        }
+
+        return $out;
+    }
+
+    public static function allowed_html(): array
+    {
+        return [
+            'a'      => ['href' => [], 'target' => [], 'rel' => []],
+            'strong' => [],
+            'em'     => [],
+            'br'     => [],
+        ];
+    }
+
+    /**
+     * Разбор строк вида «левое|правое».
+     */
+    public static function parse_pairs(string $text): array
+    {
+        $items = [];
+        foreach (preg_split('/\R/u', $text) as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+            $parts  = array_map('trim', explode('|', $line, 2));
+            $items[] = [
+                'left'  => $parts[0],
+                'right' => isset($parts[1]) ? $parts[1] : '',
+            ];
+        }
+        return $items;
+    }
+
+    /**
+     * Разбор FAQ: блоки разделены пустой строкой, в блоке первая строка — вопрос.
+     */
+    public static function parse_faq(string $text): array
+    {
+        $items = [];
+        foreach (preg_split('/\R\s*\R/u', trim($text)) as $block) {
+            $lines    = preg_split('/\R/u', trim($block));
+            $question = trim((string) array_shift($lines));
+            if ($question === '') {
+                continue;
+            }
+            $items[] = [
+                'q' => $question,
+                'a' => trim(implode("\n", $lines)),
+            ];
+        }
+        return $items;
+    }
+
+    /* ---------------------------------------------------------------
+     * Админка
+     * ------------------------------------------------------------- */
+
+    public static function add_menu(): void
+    {
+        add_options_page(
+            'Дизайн олимпиады',
+            'Дизайн олимпиады',
+            'manage_options',
+            self::PAGE,
+            [__CLASS__, 'render_page']
+        );
+    }
+
+    public static function register(): void
+    {
+        register_setting(self::GROUP, self::OPTION, [
+            'type'              => 'array',
+            'sanitize_callback' => [__CLASS__, 'sanitize'],
+            'default'           => self::defaults(),
+        ]);
+
+        foreach (self::sections() as $id => $title) {
+            add_settings_section('wpd_' . $id, $title, '__return_false', self::PAGE);
+        }
+
+        foreach (self::field_map() as $key => $field) {
+            add_settings_field(
+                'wpd_' . $key,
+                $field['label'],
+                [__CLASS__, 'render_field'],
+                self::PAGE,
+                'wpd_' . $field['section'],
+                ['key' => $key]
+            );
+        }
+    }
+
+    public static function render_page(): void
+    {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+        ?>
+        <div class="wrap">
+            <h1>Дизайн олимпиады</h1>
+            <p>Настройте оформление и содержимое блоков. Чтобы вывести блоки на любой странице, используйте шорткоды:</p>
+            <ul style="list-style:disc;margin-left:20px">
+                <li><code>[wpd_page]</code> — все блоки сразу: главный блок, статистика, документы, FAQ;</li>
+                <li><code>[wpd_hero]</code>, <code>[wpd_stats]</code>, <code>[wpd_docs]</code>, <code>[wpd_faq]</code> — отдельные блоки.</li>
+            </ul>
+            <p>Чтобы оформить целую страницу, откройте её редактор и включите галочку «Оформление в стиле олимпиады» в правой колонке.</p>
+            <form method="post" action="options.php">
+                <?php
+                settings_fields(self::GROUP);
+                do_settings_sections(self::PAGE);
+                submit_button('Сохранить');
+                ?>
+            </form>
+        </div>
+        <?php
+    }
+
+    public static function render_field(array $args): void
+    {
+        $key    = $args['key'];
+        $field  = self::field_map()[$key];
+        $value  = self::get()[$key];
+        $id     = 'wpd_' . $key;
+        $name   = self::OPTION . '[' . $key . ']';
+
+        switch ($field['type']) {
+            case 'color':
+                printf('<input type="color" id="%1$s" name="%2$s" value="%3$s">',
+                    esc_attr($id), esc_attr($name), esc_attr($value));
+                break;
+
+            case 'number':
+                printf('<input type="number" id="%1$s" name="%2$s" value="%3$s" min="%4$d" max="%5$d" class="small-text">',
+                    esc_attr($id), esc_attr($name), esc_attr((string) $value), (int) $field['min'], (int) $field['max']);
+                break;
+
+            case 'checkbox':
+                printf('<label><input type="checkbox" id="%1$s" name="%2$s" value="1" %3$s> Включено</label>',
+                    esc_attr($id), esc_attr($name), checked((int) $value, 1, false));
+                break;
+
+            case 'textarea':
+                $rows = $key === 'faq' ? 10 : 5;
+                printf('<textarea id="%1$s" name="%2$s" rows="%3$d" class="large-text code">%4$s</textarea>',
+                    esc_attr($id), esc_attr($name), $rows, esc_textarea($value));
+                break;
+
+            case 'url':
+                printf('<input type="url" id="%1$s" name="%2$s" value="%3$s" class="regular-text code">',
+                    esc_attr($id), esc_attr($name), esc_attr($value));
+                break;
+
+            default:
+                printf('<input type="text" id="%1$s" name="%2$s" value="%3$s" class="regular-text">',
+                    esc_attr($id), esc_attr($name), esc_attr($value));
+        }
+
+        if (!empty($field['desc'])) {
+            printf('<p class="description">%s</p>', esc_html($field['desc']));
+        }
+    }
+}
