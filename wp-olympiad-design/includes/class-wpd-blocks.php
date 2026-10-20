@@ -49,13 +49,18 @@ class WPD_Blocks
             ],
             'countdown' => [
                 'title'       => 'Олимпиада: обратный отсчёт',
-                'description' => 'Таймер до даты события. Без JavaScript показывается сама дата.',
+                'description' => 'Таймер до начала и до окончания, кнопка-ссылка на время этапа. Без JavaScript показывается дата.',
                 'icon'        => 'clock',
-                'keywords'    => ['таймер', 'countdown', 'дата'],
+                'keywords'    => ['таймер', 'countdown', 'дата', 'окончание'],
                 'attributes'  => [
-                    'date'     => ['type' => 'string', 'default' => (string) $o['countdown_date']],
-                    'label'    => ['type' => 'string', 'default' => (string) $o['countdown_label']],
-                    'doneText' => ['type' => 'string', 'default' => (string) $o['countdown_done']],
+                    'date'       => ['type' => 'string', 'default' => (string) $o['countdown_date']],
+                    'label'      => ['type' => 'string', 'default' => (string) $o['countdown_label']],
+                    'end'        => ['type' => 'string', 'default' => (string) $o['countdown_end']],
+                    'endLabel'   => ['type' => 'string', 'default' => (string) $o['countdown_end_label']],
+                    'doneText'   => ['type' => 'string', 'default' => (string) $o['countdown_done']],
+                    'linkText'   => ['type' => 'string', 'default' => (string) $o['countdown_link_text']],
+                    'linkUrl'    => ['type' => 'string', 'default' => (string) $o['countdown_link_url']],
+                    'linkNewTab' => ['type' => 'boolean', 'default' => (bool) $o['countdown_link_new_tab']],
                 ],
                 'render'      => [__CLASS__, 'render_countdown'],
             ],
@@ -373,10 +378,15 @@ class WPD_Blocks
         $a = is_array($a) ? $a : [];
         $o = WPD_Settings::get();
         return self::wrap(WPD_Renderer::countdown_html($o, [
-            'enabled' => true,
-            'date'    => self::str($a, 'date', $o['countdown_date']),
-            'label'   => self::str($a, 'label', $o['countdown_label']),
-            'done'    => self::str($a, 'doneText', $o['countdown_done']),
+            'enabled'      => true,
+            'date'         => self::str($a, 'date', $o['countdown_date']),
+            'label'        => self::str($a, 'label', $o['countdown_label']),
+            'end'          => self::str($a, 'end', $o['countdown_end']),
+            'end_label'    => self::str($a, 'endLabel', $o['countdown_end_label']),
+            'done'         => self::str($a, 'doneText', $o['countdown_done']),
+            'link_text'    => self::str($a, 'linkText', $o['countdown_link_text']),
+            'link_url'     => self::str($a, 'linkUrl', $o['countdown_link_url']),
+            'link_new_tab' => self::flag($a, 'linkNewTab', $o['countdown_link_new_tab']),
         ]), $a, 'countdown');
     }
 

@@ -270,11 +270,31 @@ with sync_playwright() as p:
     # Таймер: дата в боковой панели
     select_block(page, cd_id)
     dt = page.locator(".block-editor-block-inspector input[type='datetime-local']")
+    check("countdown: start and end date fields (1.6.0)", dt.count() == 2, dt.count())
     if dt.count():
-        dt.fill("2031-05-15T09:00")
+        dt.first.fill("2031-05-15T09:00")
         time.sleep(0.4)
     check("countdown: date set from sidebar", attrs(page, cd_id).get("date") == "2031-05-15 09:00", attrs(page, cd_id).get("date"))
-    check("countdown: date shown on canvas", "15.05.2031" in cv.locator(".wpd-page--countdown .wpd-countdown__value").inner_text())
+    check("countdown: date shown on canvas", "15.05.2031" in cv.locator(".wpd-page--countdown .wpd-countdown__value").first.inner_text())
+    # 1.6.0: дата окончания и кнопка на время этапа
+    if dt.count() > 1:
+        dt.nth(1).fill("2031-05-16T18:00")
+        time.sleep(0.4)
+    check("countdown: end date set from sidebar", attrs(page, cd_id).get("end") == "2031-05-16 18:00", attrs(page, cd_id).get("end"))
+    check("countdown: end timer shown on canvas", "16.05.2031" in cv.locator(".wpd-page--countdown .wpd-ed-countdown-end").inner_text())
+    panel_btn = page.locator(".block-editor-block-inspector button", has_text="Кнопка на время этапа")
+    if panel_btn.count() and panel_btn.first.get_attribute("aria-expanded") == "false":
+        panel_btn.first.click()
+        time.sleep(0.3)
+    page.locator(".block-editor-block-inspector input[type='url']").first.fill("https://example.com/tasks")
+    time.sleep(0.4)
+    check("countdown: link url set", attrs(page, cd_id).get("linkUrl") == "https://example.com/tasks", attrs(page, cd_id).get("linkUrl"))
+    link_input = cv.locator(".wpd-page--countdown .wpd-countdown__link input")
+    check("countdown: button preview on canvas", link_input.count() == 1)
+    if link_input.count():
+        link_input.fill("К заданиям")
+        time.sleep(0.3)
+    check("countdown: button text edited on canvas", attrs(page, cd_id).get("linkText") == "К заданиям", attrs(page, cd_id).get("linkText"))
 
     # Сброс к общим настройкам (на копии: вставим ещё один hero, изменим и сбросим)
     extra = page.evaluate("() => { const b = wp.blocks.createBlock('wpd/hero', { title: 'Временный' }); wp.data.dispatch('core/block-editor').insertBlocks(b); return b.clientId; }")
@@ -308,6 +328,8 @@ with sync_playwright() as p:
     check("front: new stat card", ">999+<" in front and "карточка из браузера" in front)
     check("front: new document", "https://example.com/final.pdf" in front and "Регламент финала" in front)
     check("front: faq rich answer", "<strong>жирным</strong>" in front and "Вопрос из браузера?" in front)
+    check("front: countdown end and button (1.6.0)", 'data-end="2031-05-16T18:00' in front and 'href="https://example.com/tasks"' in front and "К заданиям" in front)
+    check("front: button hidden before start", re.search(r'class="wpd-btn wpd-countdown__link"[^>]*hidden', front) is not None)
     check("front: countdown date", 'data-target="2031-05-15T09:00' in front)
     check("front: css linked", "wpd.css" in front)
 

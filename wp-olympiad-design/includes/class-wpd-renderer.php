@@ -222,14 +222,23 @@ class WPD_Renderer
     }
 
     /**
-     * Обратный отсчёт до даты события. Без JavaScript показывается сама дата.
+     * Обратный отсчёт: до начала, затем (если задана дата окончания) до окончания, затем текст «прошло».
+     * Кнопка-ссылка видна только между началом и окончанием (без даты окончания — после начала).
+     * Этап определяется на сервере (страница без JavaScript сразу верная), скрипт переключает этапы на лету.
+     *
+     * @param array $args enabled, date, label, end, end_label, done, link_text, link_url, link_new_tab
      */
     public static function countdown_html(array $o, array $args = []): string
     {
         $enabled = array_key_exists('enabled', $args) ? (bool) $args['enabled'] : !empty($o['countdown_enabled']);
         $date    = isset($args['date']) ? WPD_Settings::normalize_datetime((string) $args['date']) : (string) $o['countdown_date'];
         $label   = isset($args['label']) ? (string) $args['label'] : (string) $o['countdown_label'];
+        $end     = isset($args['end']) ? WPD_Settings::normalize_datetime((string) $args['end']) : (string) $o['countdown_end'];
+        $end_lbl = isset($args['end_label']) ? (string) $args['end_label'] : (string) $o['countdown_end_label'];
         $done    = isset($args['done']) ? (string) $args['done'] : (string) $o['countdown_done'];
+        $l_text  = isset($args['link_text']) ? (string) $args['link_text'] : (string) $o['countdown_link_text'];
+        $l_url   = isset($args['link_url']) ? (string) $args['link_url'] : (string) $o['countdown_link_url'];
+        $l_new   = array_key_exists('link_new_tab', $args) && $args['link_new_tab'] !== null ? (bool) $args['link_new_tab'] : !empty($o['countdown_link_new_tab']);
 
         if (!$enabled || $date === '') {
             return '';
@@ -240,15 +249,54 @@ class WPD_Renderer
         if (!$dt) {
             return '';
         }
+        $end_dt = $end !== '' ? DateTime::createFromFormat('Y-m-d H:i|', $end, $tz) : false;
+        if ($end_dt && $end_dt->getTimestamp() <= $dt->getTimestamp()) {
+            $end_dt = false; // окончание не позже начала — второго таймера нет
+        }
 
-        $shown = wp_date(get_option('date_format') . ' H:i', $dt->getTimestamp(), $tz);
+        $now   = time();
+        $start = $dt->getTimestamp();
+        if ($now < $start) {
+            $phase = 'before';
+        } elseif ($end_dt && $now < $end_dt->getTimestamp()) {
+            $phase = 'active';
+        } else {
+            $phase = 'done';
+        }
+        $link_url  = esc_url($l_url);
+        $has_link  = $link_url !== '' && $l_text !== '';
+        $link_open = $now >= $start && (!$end_dt || $now < $end_dt->getTimestamp());
+
+        $format = get_option('date_format') . ' H:i';
+        switch ($phase) {
+            case 'before':
+                $shown_label = $label;
+                $shown_value = wp_date($format, $start, $tz);
+                break;
+            case 'active':
+                $shown_label = $end_lbl;
+                $shown_value = wp_date($format, $end_dt->getTimestamp(), $tz);
+                break;
+            default:
+                $shown_label = '';
+                $shown_value = $done;
+        }
 
         $html = '<div class="wpd-countdown" data-target="' . esc_attr($dt->format(DATE_ATOM)) . '"'
-            . ' data-done="' . esc_attr($done) . '">';
-        if ($label !== '') {
-            $html .= '<p class="wpd-countdown__label">' . esc_html($label) . '</p>';
+            . ($end_dt ? ' data-end="' . esc_attr($end_dt->format(DATE_ATOM)) . '"' : '')
+            . ' data-label="' . esc_attr($label) . '"'
+            . ($end_dt ? ' data-end-label="' . esc_attr($end_lbl) . '"' : '')
+            . ' data-done="' . esc_attr($done) . '" data-phase="' . $phase . '">';
+        $html .= '<div class="wpd-countdown__main">';
+        $html .= '<p class="wpd-countdown__label"' . ($shown_label === '' ? ' hidden' : '') . '>' . esc_html($shown_label) . '</p>';
+        $html .= '<p class="wpd-countdown__value">' . esc_html($shown_value) . '</p>';
+        $html .= '</div>';
+        if ($has_link) {
+            $html .= '<a class="wpd-btn wpd-countdown__link" href="' . $link_url . '"'
+                . ($l_new ? ' target="_blank" rel="noopener noreferrer"' : '')
+                . ($link_open ? '' : ' hidden') . '>' . esc_html($l_text) . ' &rarr;</a>';
         }
-        return $html . '<p class="wpd-countdown__value">' . esc_html($shown) . '</p></div>';
+        return $html . '</div>';
     }
 
     /**

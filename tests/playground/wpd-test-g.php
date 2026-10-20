@@ -1,5 +1,5 @@
 <?php
-// Фаза G (1.4.0, обновлена в 1.5.0): пункт меню «Олимпиада» и вкладки настроек — структура, адреса, санитизация по вкладке.
+// Фаза G (1.4.0, обновлена в 1.5.0 и 1.6.0): пункт меню «Олимпиада» и вкладки настроек — структура, адреса, санитизация по вкладке.
 register_shutdown_function(function () { $e = error_get_last(); if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_COMPILE_ERROR], true)) { echo "\nSHUTDOWN: {$e['message']} in {$e['file']}:{$e['line']}\n"; } });
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
@@ -16,7 +16,7 @@ function check(string $name, bool $cond, string $detail = ''): void {
     if (!$cond) { $fails++; }
 }
 
-check('version 1.5.0', WPD_VERSION === '1.5.0');
+check('version >= 1.5.0', version_compare(WPD_VERSION, '1.5.0', '>='));
 
 /* 1. Вкладки */
 $tabs = WPD_Settings::tabs();
@@ -33,8 +33,8 @@ $per_tab = [];
 foreach ($tabs as $id => $t) {
     $per_tab[$id] = count(array_filter(WPD_Settings::field_map(), function ($f) use ($t) { return in_array($f['section'], $t['sections'], true); }));
 }
-check('fields per tab (1.5.0)',
-    $per_tab === ['design' => 9, 'hero' => 7, 'features' => 6, 'stats' => 1, 'docs' => 2, 'faq' => 2, 'slider' => 8, 'buttons' => 1, 'cards' => 2, 'notice' => 8, 'news' => 5, 'contacts' => 8, 'help' => 0], json_encode($per_tab));
+check('fields per tab (1.6.0)',
+    $per_tab === ['design' => 9, 'hero' => 7, 'features' => 11, 'stats' => 1, 'docs' => 2, 'faq' => 2, 'slider' => 8, 'buttons' => 1, 'cards' => 2, 'notice' => 8, 'news' => 5, 'contacts' => 8, 'help' => 0], json_encode($per_tab));
 check('help tab is last', array_key_last($tabs) === 'help');
 
 /* 2. Адреса */
@@ -62,7 +62,7 @@ check('tab stats: color kept', $s['primary'] === '#0f766e');
 check('tab stats: checkboxes of other tabs kept', $s['countdown_enabled'] === 1 && $s['faq_search'] === 1 && $s['hide_title'] === 1);
 check('tab stats: hero text kept', $s['badge'] === 'Метка');
 check('_tab not stored', !array_key_exists('_tab', $s));
-check('all 59 keys returned', count($s) === 59);
+check('all 64 keys returned', count($s) === 64);
 
 $s = WPD_Settings::sanitize(['_tab' => 'features', 'faq_search' => '1', 'countdown_date' => '2031-01-01T10:00']);
 check('tab features: unchecked checkbox -> 0', $s['countdown_enabled'] === 0 && $s['stats_animate'] === 0);
@@ -88,7 +88,7 @@ WPD_Settings::flush_cache();
 update_option('wpd_settings', ['_tab' => 'hero', 'badge' => 'Финал', 'hero_style' => 'light']);
 $saved = get_option('wpd_settings');
 check('first save through tab: badge stored', ($saved['badge'] ?? '') === 'Финал');
-check('first save through tab: others defaults', ($saved['primary'] ?? '') === '#1d4ed8' && count($saved) === 59);
+check('first save through tab: others defaults', ($saved['primary'] ?? '') === '#1d4ed8' && count($saved) === 64);
 update_option('wpd_settings', ['_tab' => 'docs', 'docs' => 'A|https://example.com/a.pdf', 'docs_title' => 'Файлы']);
 $saved = get_option('wpd_settings');
 check('second save other tab: hero kept', $saved['badge'] === 'Финал' && $saved['hero_style'] === 'light');

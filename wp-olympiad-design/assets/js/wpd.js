@@ -15,35 +15,57 @@
 
     /* Обратный отсчёт */
     function initCountdown(box) {
-        var target = Date.parse(box.getAttribute('data-target'));
+        var start = Date.parse(box.getAttribute('data-target'));
+        var end = Date.parse(box.getAttribute('data-end') || '');
+        var labels = {
+            before: box.getAttribute('data-label') || '',
+            active: box.getAttribute('data-end-label') || ''
+        };
         var doneText = box.getAttribute('data-done') || '';
         var out = box.querySelector('.wpd-countdown__value');
-        if (isNaN(target) || !out) {
+        var labelEl = box.querySelector('.wpd-countdown__label');
+        var link = box.querySelector('.wpd-countdown__link');
+        if (isNaN(start) || !out) {
             return;
         }
+        if (isNaN(end) || end <= start) {
+            end = NaN; // второго таймера нет
+        }
 
-        var timer = null;
-        function tick() {
-            var diff = target - Date.now();
-            if (diff <= 0) {
-                out.textContent = doneText;
-                if (timer) {
-                    clearInterval(timer);
-                }
-                return;
-            }
+        function format(diff) {
             var days = Math.floor(diff / 86400000);
             var hours = Math.floor((diff % 86400000) / 3600000);
             var mins = Math.floor((diff % 3600000) / 60000);
             var secs = Math.floor((diff % 60000) / 1000);
-            out.textContent = days + ' дн. ' + hours + ' ч ' + pad(mins) + ' мин ' + pad(secs) + ' сек';
+            return days + ' дн. ' + hours + ' ч ' + pad(mins) + ' мин ' + pad(secs) + ' сек';
+        }
+
+        // До начала → до окончания (если задано) → текст «прошло». Кнопка — только между началом и окончанием.
+        // Тики привязаны к целым секундам до цели, поэтому смена этапа происходит ровно в момент начала/окончания.
+        var timer = null;
+        function tick() {
+            var now = Date.now();
+            var phase = now < start ? 'before' : (!isNaN(end) && now < end ? 'active' : 'done');
+            box.setAttribute('data-phase', phase);
+            if (labelEl) {
+                var text = phase === 'done' ? '' : labels[phase];
+                labelEl.textContent = text;
+                labelEl.hidden = text === '';
+            }
+            if (link) {
+                link.hidden = !(now >= start && (isNaN(end) || now < end));
+            }
+            if (phase === 'done') {
+                out.textContent = doneText;
+                return;
+            }
+            var diff = (phase === 'before' ? start : end) - now;
+            out.textContent = format(diff);
+            clearTimeout(timer);
+            timer = setTimeout(tick, (diff % 1000) + 20);
         }
 
         tick();
-        // Если дата уже прошла, tick() ничего не запустит
-        if (Date.now() < target) {
-            timer = setInterval(tick, 1000);
-        }
     }
 
     /* Поиск по вопросам FAQ */

@@ -141,11 +141,19 @@ class WPD_Settings
 
             // Возможности
             'countdown_enabled' => ['label' => 'Обратный отсчёт', 'type' => 'checkbox', 'section' => 'features', 'default' => 0,
-                                    'desc' => 'Показывает таймер до даты события под главным блоком и через шорткод [wpd_countdown].'],
-            'countdown_date'    => ['label' => 'Дата и время события', 'type' => 'datetime', 'section' => 'features', 'default' => '',
+                                    'desc' => 'Показывает таймер до начала (и до окончания) под главным блоком и через шорткод [wpd_countdown].'],
+            'countdown_date'    => ['label' => 'Дата и время начала', 'type' => 'datetime', 'section' => 'features', 'default' => '',
                                     'desc' => 'Часовой пояс — из настроек сайта (Настройки → Общие).'],
-            'countdown_label'   => ['label' => 'Подпись к таймеру', 'type' => 'text', 'section' => 'features', 'default' => 'До начала олимпиады'],
-            'countdown_done'    => ['label' => 'Текст после окончания отсчёта', 'type' => 'text', 'section' => 'features', 'default' => 'Олимпиада уже прошла'],
+            'countdown_label'   => ['label' => 'Подпись до начала', 'type' => 'text', 'section' => 'features', 'default' => 'До начала олимпиады'],
+            'countdown_end'     => ['label' => 'Дата и время окончания', 'type' => 'datetime', 'section' => 'features', 'default' => '',
+                                    'desc' => 'Необязательно. С наступлением начала тот же блок считает время до окончания. Пусто — один таймер, как раньше.'],
+            'countdown_end_label' => ['label' => 'Подпись до окончания', 'type' => 'text', 'section' => 'features', 'default' => 'До окончания олимпиады'],
+            'countdown_done'    => ['label' => 'Текст после окончания', 'type' => 'text', 'section' => 'features', 'default' => 'Олимпиада уже прошла',
+                                    'desc' => 'Показывается после даты окончания, а если она не задана — после даты начала.'],
+            'countdown_link_text' => ['label' => 'Текст кнопки', 'type' => 'text', 'section' => 'features', 'default' => 'Перейти к заданиям'],
+            'countdown_link_url'  => ['label' => 'Ссылка кнопки', 'type' => 'url', 'section' => 'features', 'default' => '',
+                                      'desc' => 'Например, платформа с заданиями. Кнопка видна только между началом и окончанием (без даты окончания — после начала). Пусто — кнопки нет.'],
+            'countdown_link_new_tab' => ['label' => 'Кнопка в новой вкладке', 'type' => 'checkbox', 'section' => 'features', 'default' => 1],
             'faq_search'        => ['label' => 'Поиск по вопросам FAQ', 'type' => 'checkbox', 'section' => 'features', 'default' => 1,
                                     'desc' => 'Поле поиска появляется, когда вопросов четыре и больше.'],
             'stats_animate'     => ['label' => 'Анимация чисел статистики', 'type' => 'checkbox', 'section' => 'features', 'default' => 1,
@@ -531,6 +539,15 @@ class WPD_Settings
             }
         }
 
+        // Дата окончания должна быть позже даты начала, иначе второй таймер не показывается
+        if (($sections === null || in_array('features', $sections, true))
+            && $out['countdown_date'] !== '' && $out['countdown_end'] !== ''
+            && strcmp($out['countdown_end'], $out['countdown_date']) <= 0
+            && function_exists('add_settings_error')
+            && !in_array('wpd_countdown_end', array_column(get_settings_errors('wpd_settings'), 'code'), true)) {
+            add_settings_error('wpd_settings', 'wpd_countdown_end', 'Дата окончания таймера не позже даты начала — второй таймер и кнопка не будут показаны.', 'warning');
+        }
+
         // Выбранная палитра задаёт цвета (только когда сохраняется вкладка с цветами или все поля сразу)
         if (($sections === null || in_array('colors', $sections, true)) && isset(self::palettes()[$out['palette']])) {
             foreach (self::PALETTE_KEYS as $i => $color_key) {
@@ -823,7 +840,7 @@ class WPD_Settings
                 <tbody>
                     <tr><td><code>[wpd_page]</code></td><td>все блоки сразу: главный блок, таймер, статистика, документы, FAQ</td></tr>
                     <tr><td><code>[wpd_hero]</code></td><td>главный блок</td></tr>
-                    <tr><td><code>[wpd_countdown]</code></td><td>обратный отсчёт (если включён и задана дата)</td></tr>
+                    <tr><td><code>[wpd_countdown]</code></td><td>обратный отсчёт до начала и до окончания, кнопка на время этапа (если включён и задана дата)</td></tr>
                     <tr><td><code>[wpd_stats]</code></td><td>статистика</td></tr>
                     <tr><td><code>[wpd_docs]</code></td><td>документы</td></tr>
                     <tr><td><code>[wpd_faq]</code></td><td>частые вопросы</td></tr>

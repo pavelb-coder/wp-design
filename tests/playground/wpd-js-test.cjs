@@ -183,6 +183,60 @@ function fakeLayout(w, sizes) {
     }
 
 
+
+    // 10. Таймер до начала и до окончания, кнопка на время этапа (1.6.0)
+    {
+        const iso = (ms) => new Date(Date.now() + ms).toISOString();
+        const page = (start, end, phase) => '<!doctype html><html><body><div class="wpd-page">'
+            + '<div class="wpd-countdown" data-target="' + start + '"' + (end ? ' data-end="' + end + '" data-end-label="До окончания"' : '')
+            + ' data-label="До начала" data-done="Завершено" data-phase="' + (phase || 'before') + '">'
+            + '<div class="wpd-countdown__main"><p class="wpd-countdown__label">До начала</p><p class="wpd-countdown__value">дата</p></div>'
+            + '<a class="wpd-btn wpd-countdown__link" href="https://example.com/tasks" hidden>К заданиям</a></div></div></body></html>';
+        const state = (w) => {
+            const box = w.document.querySelector('.wpd-countdown');
+            const label = box.querySelector('.wpd-countdown__label');
+            return {
+                phase: box.getAttribute('data-phase'),
+                label: label.hidden ? null : label.textContent,
+                value: box.querySelector('.wpd-countdown__value').textContent,
+                link: !box.querySelector('.wpd-countdown__link').hidden
+            };
+        };
+        const timerRe = /^\d+ дн\. \d+ ч \d{2} мин \d{2} сек$/;
+        let w = await load(page(iso(2 * 86400000), iso(3 * 86400000)), { noIO: true });
+        let st = state(w);
+        check('end timer: before start -> start label, timer, button hidden', st.phase === 'before' && st.label === 'До начала' && timerRe.test(st.value) && !st.link, JSON.stringify(st));
+        check('end timer: before start counts to start (1 day)', /^1 дн\./.test(st.value), st.value);
+        w.close();
+        w = await load(page(iso(-3600000), iso(26 * 3600000), 'before'), { noIO: true });
+        st = state(w);
+        check('end timer: during stage -> end label, timer to end, button visible', st.phase === 'active' && st.label === 'До окончания' && /^1 дн\. 1 ч/.test(st.value) && st.link, JSON.stringify(st));
+        w.close();
+        w = await load(page(iso(-7200000), iso(-3600000), 'active'), { noIO: true });
+        st = state(w);
+        check('end timer: after end -> done text, no label, button hidden', st.phase === 'done' && st.label === null && st.value === 'Завершено' && !st.link, JSON.stringify(st));
+        w.close();
+        w = await load(page(iso(-3600000), null), { noIO: true });
+        st = state(w);
+        check('end timer: no end, after start -> done text, button visible', st.phase === 'done' && st.value === 'Завершено' && st.link, JSON.stringify(st));
+        w.close();
+        w = await load(page(iso(-3600000), iso(-7200000)), { noIO: true });
+        st = state(w);
+        check('end timer: end before start ignored', st.phase === 'done' && st.link, JSON.stringify(st));
+        w.close();
+        // Переходы на лету: до начала → этап → окончание
+        w = await load(page(iso(1300), iso(3300)), { noIO: true });
+        st = state(w);
+        check('live: starts before', st.phase === 'before' && !st.link, JSON.stringify(st));
+        await wait(1800);
+        st = state(w);
+        check('live: switches to stage, shows button', st.phase === 'active' && st.label === 'До окончания' && st.link, JSON.stringify(st));
+        await wait(2200);
+        st = state(w);
+        check('live: switches to done, hides button', st.phase === 'done' && st.value === 'Завершено' && !st.link, JSON.stringify(st));
+        w.close();
+    }
+
     // 9. Слайдер и карусель новостей (1.5.0)
     if (compHtml) {
         const layout = { track: 1000, slider: 1000, news: 340 };

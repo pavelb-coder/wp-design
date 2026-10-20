@@ -366,6 +366,38 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Таймер с кнопкой (1.6.0): кнопка справа, на узких экранах — под таймером */
+.wpd-page .wpd-countdown {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+}
+
+.wpd-page .wpd-countdown__main {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+.wpd-page .wpd-countdown[data-phase="active"] {
+    border-left-color: var(--wpd-primary);
+}
+
+.wpd-page .wpd-countdown[data-phase="done"] .wpd-countdown__value {
+    font-size: 18px;
+}
+
+.wpd-page .wpd-countdown__link {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.wpd-page .wpd-countdown__label[hidden],
+.wpd-page .wpd-countdown__link[hidden] {
+    display: none !important;
+}
+
 /* Поиск по FAQ */
 .wpd-page .wpd-faq__search {
     display: block;

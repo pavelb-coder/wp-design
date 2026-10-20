@@ -258,31 +258,60 @@
         var a = props.attributes;
         var set = props.setAttributes;
         var shown = formatDate(a.date);
+        var shownEnd = formatDate(a.end);
+        var endValid = shownEnd !== '' && (a.end || '') > (a.date || '');
+        var dateField = function (label, key, help) {
+            return el(c.TextControl, {
+                label: label, type: 'datetime-local', help: help,
+                value: (a[key] || '').replace(' ', 'T'),
+                onChange: function (v) { var o = {}; o[key] = (v || '').replace('T', ' ').slice(0, 16); set(o); }
+            });
+        };
 
         return el(Fragment, null,
             el(be.InspectorControls, null,
                 el(c.PanelBody, { title: 'Обратный отсчёт' },
+                    dateField('Дата и время начала', 'date', 'Часовой пояс — из настроек сайта (Настройки → Общие).'),
+                    dateField('Дата и время окончания', 'end', 'Необязательно. С наступлением начала блок считает время до окончания.'),
+                    a.end && !endValid ? el('p', { className: 'wpd-ed-warn' }, 'Окончание должно быть позже начала — иначе второй таймер не показывается.') : null,
                     el(c.TextControl, {
-                        label: 'Дата и время события', type: 'datetime-local',
-                        value: (a.date || '').replace(' ', 'T'),
-                        help: 'Часовой пояс — из настроек сайта (Настройки → Общие).',
-                        onChange: function (v) { set({ date: (v || '').replace('T', ' ').slice(0, 16) }); }
-                    }),
-                    el(c.TextControl, {
-                        label: 'Текст после окончания отсчёта', value: a.doneText || '',
+                        label: 'Текст после окончания', value: a.doneText || '',
                         onChange: function (v) { set({ doneText: v }); }
+                    })
+                ),
+                el(c.PanelBody, { title: 'Кнопка на время этапа', initialOpen: !!a.linkUrl },
+                    el(c.TextControl, {
+                        label: 'Ссылка', type: 'url', value: a.linkUrl || '', placeholder: 'https://…',
+                        help: 'Видна только между началом и окончанием (без даты окончания — после начала). Пусто — кнопки нет.',
+                        onChange: function (v) { set({ linkUrl: v }); }
+                    }),
+                    el(c.ToggleControl || c.CheckboxControl, {
+                        label: 'Открывать в новой вкладке', checked: !!a.linkNewTab,
+                        onChange: function (v) { set({ linkNewTab: !!v }); }
                     })
                 ),
                 ResetPanel('wpd/countdown', set)
             ),
             Wrapper('countdown', props.className,
                 el('div', { className: 'wpd-countdown' },
-                    el('p', { className: 'wpd-countdown__label' },
-                        el(Plain, { value: a.label, single: true, placeholder: 'Подпись к таймеру', onChange: function (v) { set({ label: v }); } })
+                    el('div', { className: 'wpd-countdown__main' },
+                        el('p', { className: 'wpd-countdown__label' },
+                            el(Plain, { value: a.label, single: true, placeholder: 'Подпись до начала', onChange: function (v) { set({ label: v }); } })
+                        ),
+                        el('p', { className: 'wpd-countdown__value' },
+                            shown || el('span', { className: 'wpd-ed-hint' }, 'Дата не задана — укажите её в настройках блока справа. Без даты блок на сайте не выводится.')
+                        ),
+                        endValid ? el('div', { className: 'wpd-ed-countdown-end' },
+                            el('p', { className: 'wpd-countdown__label' },
+                                el(Plain, { value: a.endLabel, single: true, placeholder: 'Подпись до окончания', onChange: function (v) { set({ endLabel: v }); } })
+                            ),
+                            el('p', { className: 'wpd-countdown__value' }, shownEnd)
+                        ) : null
                     ),
-                    el('p', { className: 'wpd-countdown__value' },
-                        shown || el('span', { className: 'wpd-ed-hint' }, 'Дата не задана — укажите её в настройках блока справа. Без даты блок на сайте не выводится.')
-                    )
+                    a.linkUrl ? el('span', { className: 'wpd-btn wpd-countdown__link' },
+                        el(Inline, { value: a.linkText, placeholder: 'Текст кнопки', onChange: function (v) { set({ linkText: v }); } }),
+                        ' \u2192'
+                    ) : null
                 )
             )
         );

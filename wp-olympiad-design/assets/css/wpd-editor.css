@@ -338,3 +338,25 @@
 .wpd-ed-ssr .wpd-page {
     pointer-events: none;
 }
+
+/* 1.6.0: таймер окончания и кнопка в редакторе */
+.wpd-page .wpd-ed-countdown-end {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #dcdcde;
+}
+
+.wpd-page .wpd-countdown__link .wpd-ed-plain {
+    color: inherit;
+    font-weight: inherit;
+}
+
+.wpd-page .wpd-countdown__link .wpd-ed-plain::placeholder {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.wpd-ed-warn {
+    margin: -8px 0 16px;
+    color: #b32d2e;
+    font-size: 12px;
+}
