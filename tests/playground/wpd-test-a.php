@@ -63,7 +63,7 @@ check('body_class untouched outside singular', WPD_Renderer::body_class(['x']) =
 // 2. Дефолты и количество полей
 delete_option('wpd_settings');
 $defaults = WPD_Settings::defaults();
-check('defaults count = 26', count($defaults) === 26, (string) count($defaults));
+check('defaults count = 59', count($defaults) === 59, (string) count($defaults));
 check('get() returns defaults when empty', WPD_Settings::get()['primary'] === '#1d4ed8');
 
 $out = do_shortcode('[wpd_page]');
@@ -106,8 +106,8 @@ check('hide_title checkbox on -> 1', $bad['hide_title'] === 1);
 $off = WPD_Settings::sanitize(['primary' => '#000000']);
 check('missing checkbox -> 0', $off['hide_title'] === 0);
 check('missing text field -> default', $off['hero_title'] === WPD_Settings::field_map()['hero_title']['default']);
-check('sanitize([]) returns all keys', count(WPD_Settings::sanitize([])) === 26);
-check('sanitize(non-array) safe', count(WPD_Settings::sanitize('garbage')) === 26);
+check('sanitize([]) returns all keys', count(WPD_Settings::sanitize([])) === 59);
+check('sanitize(non-array) safe', count(WPD_Settings::sanitize('garbage')) === 59);
 
 // 4. Парсеры
 $pairs = WPD_Settings::parse_pairs("a|b\r\nc|d\r\n\r\n  e  \n");

@@ -83,7 +83,7 @@ import atexit
 atexit.register(report)
 
 with sync_playwright() as p:
-    browser = p.chromium.launch()
+    browser = p.chromium.launch(args=['--disable-dev-shm-usage'])
     ctx = browser.new_context(viewport={"width": 1440, "height": 1000}, locale="ru-RU")
     page = ctx.new_page()
     js_errors = []
@@ -142,7 +142,7 @@ with sync_playwright() as p:
     wait_editor(page)
 
     types = page.evaluate("() => wp.blocks.getBlockTypes().filter(b => b.name.indexOf('wpd/') === 0).map(b => b.name).sort()")
-    check("editor: 5 blocks registered on client", types == ["wpd/countdown", "wpd/docs", "wpd/faq", "wpd/hero", "wpd/stats"], types)
+    check("editor: 11 blocks registered on client", types == sorted(["wpd/hero", "wpd/countdown", "wpd/stats", "wpd/docs", "wpd/faq", "wpd/slider", "wpd/buttons", "wpd/cards", "wpd/notice", "wpd/news", "wpd/contacts"]), types)
     cat = page.evaluate("() => (wp.blocks.getCategories() || []).some(c => c.slug === 'wpd')")
     check("editor: category 'wpd' available", cat)
     pattern = page.evaluate("""() => {
@@ -345,9 +345,12 @@ with sync_playwright() as p:
     check("panel: off-notice hides after enabling", page.locator("[data-wpd-off]").is_hidden())
 
     # Перенести FAQ на самый верх стрелками
-    for _ in range(5):
+    order_js = "() => [...document.querySelectorAll('.wpd-pe__block')].map(li => li.dataset.key)"
+    for _ in range(12):
+        if page.evaluate(order_js)[0] == "faq":
+            break
         page.locator(".wpd-pe__block[data-key='faq'] [data-wpd-move='-1']").click()
-    order = page.evaluate("() => [...document.querySelectorAll('.wpd-pe__block')].map(li => li.dataset.key)")
+    order = page.evaluate(order_js)
     check("panel: arrows reorder blocks", order[0] == "faq", order)
     # Скрыть документы
     page.locator("input[name='wpd_page[show][docs]']").uncheck()

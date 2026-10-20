@@ -1,0 +1,169 @@
+/* WP Olympiad Design — страница настроек «Олимпиада» */
+
+/* Палитры */
+.wpd-palettes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.wpd-palette {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 120px;
+    padding: 8px;
+    border: 2px solid #dcdcde;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.wpd-palette input {
+    position: absolute;
+    opacity: 0;
+}
+
+.wpd-palette:has(input:checked) {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+.wpd-palette:has(input:focus-visible) {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+
+.wpd-palette__sw {
+    display: flex;
+    height: 28px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.wpd-palette__sw span {
+    flex: 1;
+}
+
+.wpd-palette__sw .wpd-palette__custom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: repeating-linear-gradient(45deg, #f0f0f1, #f0f0f1 6px, #fff 6px, #fff 12px);
+    color: #50575e;
+    font-size: 16px;
+}
+
+.wpd-palette__name {
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Повторяющиеся поля */
+.wpd-rep {
+    max-width: 900px;
+}
+
+.wpd-rep__list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.wpd-rep__row {
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.wpd-rep__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    border-bottom: 1px solid #f0f0f1;
+    background: #f6f7f7;
+    border-radius: 6px 6px 0 0;
+}
+
+.wpd-rep__tools .button-link {
+    padding: 2px;
+    color: #50575e;
+}
+
+.wpd-rep__tools .button-link-delete {
+    color: #b32d2e;
+}
+
+.wpd-rep__fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 10px 16px;
+    padding: 12px;
+}
+
+.wpd-rep__f {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.wpd-rep__f > span:first-child,
+.wpd-rep__f > label {
+    font-weight: 600;
+}
+
+.wpd-rep__f--wide {
+    grid-column: 1 / -1;
+}
+
+.wpd-rep__f--check {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    font-weight: normal;
+}
+
+.wpd-rep__f .regular-text {
+    width: 100%;
+}
+
+/* Изображение */
+.wpd-img {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.wpd-img img {
+    width: 72px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #dcdcde;
+}
+
+.wpd-img img[hidden] {
+    display: none;
+}
+
+.wpd-img .regular-text {
+    flex: 1 1 260px;
+}
+
+/* Иконки */
+.wpd-icon-pick {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wpd-icon-pick .dashicons {
+    width: 32px;
+    height: 32px;
+    font-size: 32px;
+    color: #2271b1;
+}

@@ -5,7 +5,7 @@ PASS=0; FAIL=0
 t() { if [ "$2" = "1" ]; then echo "PASS $1"; PASS=$((PASS+1)); else echo "FAIL $1"; FAIL=$((FAIL+1)); fi; }
 has() { grep -q -- "$2" "$1" && echo 1 || echo 0; }
 hasnot() { grep -q -- "$2" "$1" && echo 0 || echo 1; }
-fields() { grep -o 'name="wpd_settings\[[a-z_]*\]"' "$1" | grep -v '\[_tab\]' | sort -u | wc -l | tr -d ' '; }
+fields() { grep -oE "name=[\"']wpd_settings\[[a-z_]+\]" "$1" | grep -v '\[_tab\]' | sed "s/'/\"/" | sort -u | wc -l | tr -d ' '; }
 set_opt() { curl -s --max-time 60 "$B/wpd-set.php?json=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))' "$1")" > /dev/null; }
 
 rm -f cjG.txt
@@ -21,12 +21,12 @@ get "/wp-admin/admin.php?page=wpd-settings" g_design.html
 t "menu: top-level item"               "$(has g_design.html 'toplevel_page_wpd-settings')"
 t "menu: icon"                         "$(has g_design.html 'dashicons-awards')"
 t "menu: not under Settings"           "$(hasnot g_design.html "options-general.php?page=wpd-settings")"
-t "page: 7 tabs"                       "$([ "$(grep -oE 'class="nav-tab( nav-tab-active)?"' g_design.html | wc -l)" = "7" ] && echo 1 || echo 0)"
+t "page: 13 tabs"                       "$([ "$(grep -oE 'class="nav-tab( nav-tab-active)?"' g_design.html | wc -l)" = "13" ] && echo 1 || echo 0)"
 t "page: design tab active by default" "$(python3 -c "import re,sys;s=open('g_design.html',encoding='utf-8').read();print(1 if re.search(r'tab=design\"\s*class=\"nav-tab nav-tab-active\"',s) else 0)")"
 t "page: hidden _tab=design"           "$(has g_design.html 'name="wpd_settings\[_tab\]" value="design"')"
 
-declare -A EXPECT=([design]=8 [hero]=7 [features]=6 [stats]=1 [docs]=2 [faq]=2 [help]=0)
-for tab in design hero features stats docs faq help; do
+declare -A EXPECT=([design]=9 [hero]=7 [features]=6 [stats]=1 [docs]=2 [faq]=2 [slider]=8 [buttons]=1 [cards]=2 [notice]=8 [news]=5 [contacts]=8 [help]=0)
+for tab in design hero features stats docs faq slider buttons cards notice news contacts help; do
   get "/wp-admin/admin.php?page=wpd-settings&tab=$tab" "g_$tab.html"
   t "tab $tab: ${EXPECT[$tab]} fields"  "$([ "$(fields g_$tab.html)" = "${EXPECT[$tab]}" ] && echo 1 || echo 0)"
 done
@@ -35,7 +35,7 @@ t "tab help: shortcodes"               "$(has g_help.html '\[wpd_countdown\]')"
 t "tab help: panel and blocks"         "$([ "$(has g_help.html 'Блоки олимпиады')$(has g_help.html 'Страница олимпиады')" = "11" ] && echo 1 || echo 0)"
 t "submenu: stats highlighted"         "$(grep -qE "<li class=\"current\"><a href='admin.php\?page=wpd-settings&(amp;|#038;)?tab=stats'" g_stats.html && echo 1 || echo 0)"
 t "submenu: no relative links"         "$(grep -q "href='wpd-settings" g_stats.html && echo 0 || echo 1)"
-t "submenu: 6 tab links via admin.php" "$([ "$(grep -oE "href='admin.php\?page=wpd-settings&(amp;|#038;)?tab=[a-z]+'" g_stats.html | wc -l)" = "6" ] && echo 1 || echo 0)"
+t "submenu: 12 tab links via admin.php" "$([ "$(grep -oE "href='admin.php\?page=wpd-settings&(amp;|#038;)?tab=[a-z]+'" g_stats.html | wc -l)" = "12" ] && echo 1 || echo 0)"
 get "/wp-admin/admin.php?page=wpd-settings&tab=evil" g_evil.html
 t "invalid tab -> design"              "$(has g_evil.html 'name="wpd_settings\[_tab\]" value="design"')"
 

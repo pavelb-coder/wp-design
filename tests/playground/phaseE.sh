@@ -49,12 +49,13 @@ t "edit: wpd-blocks.js enqueued"          "$(has e_edit.html 'wpd-blocks.js')"
 t "edit: blocks data inline"              "$(has e_edit.html 'window.wpdBlocks')"
 t "edit: media library enqueued"          "$(has e_edit.html 'media-views')"
 
-# Настройки (1.4.0 — вкладки): всего 26 полей, справка о способах редактирования на вкладке «Справка»
+# Настройки (1.4.0 — вкладки): 56 простых полей + 3 повторителя, справка о способах редактирования на вкладке «Справка»
 : > e_settings.html
-for tab in design hero features stats docs faq help; do
+for tab in design hero features stats docs faq slider buttons cards notice news contacts help; do
   curl -s -c cjE.txt -b cjE.txt --max-time 60 "$B/wp-admin/admin.php?page=wpd-settings&tab=$tab" >> e_settings.html
 done
-t "settings: still 26 fields"             "$([ "$(grep -o 'name="wpd_settings\[[a-z_]*\]"' e_settings.html | grep -v _tab | wc -l)" = "26" ] && echo 1 || echo 0)"
+plain_fields() { grep -oE "name=[\"']wpd_settings\[[a-z_]+\][\"']" "$1" | grep -v '\[_tab\]' | tr "'" '"' | sort -u | wc -l | tr -d ' '; }
+t "settings: 56 plain fields (+3 repeaters)" "$([ "$(plain_fields e_settings.html)" = "56" ] && echo 1 || echo 0)"
 t "settings: help mentions panel"         "$(has e_settings.html 'Блоки олимпиады')"
 t "settings: help mentions editor blocks" "$(has e_settings.html 'Страница олимпиады')"
 t "edit: panel links to settings tab"     "$(has e_edit.html 'admin.php?page=wpd-settings&#038;tab=stats')"

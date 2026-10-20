@@ -11,7 +11,15 @@ class WPD_Renderer
     const META_KEY = '_wpd_enabled';
 
     /** Шорткоды плагина: по ним определяем, нужен ли CSS на странице. */
-    const SHORTCODES = ['wpd_page', 'wpd_hero', 'wpd_stats', 'wpd_docs', 'wpd_faq', 'wpd_countdown'];
+    const SHORTCODES = ['wpd_page', 'wpd_hero', 'wpd_stats', 'wpd_docs', 'wpd_faq', 'wpd_countdown',
+        'wpd_slider', 'wpd_buttons', 'wpd_cards', 'wpd_notice', 'wpd_news', 'wpd_contacts'];
+
+    /** Компоненты (1.5.0), которым нужны иконки Dashicons на сайте. */
+    const ICON_PARTS = ['buttons', 'contacts'];
+
+    /** Варианты объявления и ленты новостей. */
+    const NOTICE_LAYOUTS = ['image_text', 'text', 'image'];
+    const NEWS_LAYOUTS   = ['carousel', 'grid'];
 
     /** Минимум вопросов, при котором появляется поиск по FAQ. */
     const FAQ_SEARCH_MIN = 4;
@@ -27,6 +35,11 @@ class WPD_Renderer
         add_shortcode('wpd_docs', [__CLASS__, 'sc_docs']);
         add_shortcode('wpd_faq', [__CLASS__, 'sc_faq']);
         add_shortcode('wpd_countdown', [__CLASS__, 'sc_countdown']);
+        foreach (['slider', 'buttons', 'cards', 'notice', 'news', 'contacts'] as $part) {
+            add_shortcode('wpd_' . $part, function () use ($part) {
+                return self::part_shortcode($part);
+            });
+        }
 
         add_action('init', [__CLASS__, 'register_assets']);
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue']);
@@ -75,6 +88,37 @@ class WPD_Renderer
     {
         $html = self::faq_html(WPD_Settings::get());
         return $html === '' ? '' : self::wrap($html);
+    }
+
+    /**
+     * Шорткоды компонентов 1.5.0: содержимое из общих настроек, пустой компонент ничего не выводит.
+     */
+    public static function part_shortcode(string $part): string
+    {
+        $html = self::part_html($part, WPD_Settings::get());
+        return $html === '' ? '' : self::wrap($html);
+    }
+
+    /**
+     * Разметка компонента с содержимым из общих настроек.
+     */
+    public static function part_html(string $part, array $o): string
+    {
+        switch ($part) {
+            case 'slider':
+                return self::slider_html($o);
+            case 'buttons':
+                return self::buttons_html($o);
+            case 'cards':
+                return self::cards_html($o);
+            case 'notice':
+                return self::notice_html($o);
+            case 'news':
+                return self::news_html($o);
+            case 'contacts':
+                return self::contacts_html($o);
+        }
+        return '';
     }
 
     /* ---------------------------------------------------------------
@@ -314,6 +358,363 @@ class WPD_Renderer
     }
 
     /* ---------------------------------------------------------------
+     * Компоненты 1.5.0: слайдер, кнопки-ссылки, карточки, объявление, новости, контакты
+     * ------------------------------------------------------------- */
+
+    /**
+     * Атрибуты ссылки: адрес и, при необходимости, открытие в новой вкладке.
+     */
+    private static function link_attrs(string $url, $new_tab): string
+    {
+        $attrs = ' href="' . esc_url($url) . '"';
+        if ($new_tab) {
+            $attrs .= ' target="_blank" rel="noopener noreferrer"';
+        }
+        return $attrs;
+    }
+
+    /**
+     * Иконки Dashicons на сайте. Подключаются только там, где выводятся кнопки или контакты.
+     */
+    public static function enqueue_icons(): void
+    {
+        if (!wp_style_is('dashicons', 'enqueued')) {
+            wp_enqueue_style('dashicons');
+        }
+    }
+
+    /**
+     * Значение из $args, если оно передано (не null), иначе из общих настроек.
+     */
+    private static function arg(array $args, string $key, $fallback)
+    {
+        return array_key_exists($key, $args) && $args[$key] !== null ? $args[$key] : $fallback;
+    }
+
+    /**
+     * Слайдер. Без JavaScript слайды листаются прокруткой (scroll-snap), скрипт добавляет стрелки, точки и автопрокрутку.
+     *
+     * @param array $args items, height, autoplay, arrows, dots, mobile, mobile_headings, mobile_texts
+     */
+    public static function slider_html(array $o, array $args = []): string
+    {
+        $items = WPD_Settings::sanitize_rows(self::arg($args, 'items', $o['slides']), 'slides');
+        if (!$items) {
+            return '';
+        }
+
+        $height  = min(900, max(200, (int) self::arg($args, 'height', $o['slider_height'])));
+        $classes = ['wpd-slider'];
+        if (!self::arg($args, 'mobile', $o['slider_mobile'])) {
+            $classes[] = 'wpd-slider--hide-mobile';
+        }
+        if (!self::arg($args, 'mobile_headings', $o['slider_mobile_headings'])) {
+            $classes[] = 'wpd-slider--no-mobile-headings';
+        }
+        if (!self::arg($args, 'mobile_texts', $o['slider_mobile_texts'])) {
+            $classes[] = 'wpd-slider--no-mobile-texts';
+        }
+
+        $count = count($items);
+        $html  = sprintf(
+            '<section class="%s" style="--wpd-slider-h:%dpx" aria-roledescription="carousel" aria-label="Слайдер"'
+            . ' data-wpd-carousel="slider"%s%s%s>',
+            esc_attr(implode(' ', $classes)),
+            $height,
+            self::arg($args, 'autoplay', $o['slider_autoplay']) ? ' data-autoplay="6000"' : '',
+            self::arg($args, 'arrows', $o['slider_arrows']) ? ' data-arrows' : '',
+            self::arg($args, 'dots', $o['slider_dots']) ? ' data-dots' : ''
+        );
+        $html .= '<div class="wpd-slider__track" data-wpd-track tabindex="0">';
+
+        foreach ($items as $i => $item) {
+            $inner = '';
+            if ($item['image'] !== '') {
+                $inner .= '<img class="wpd-slide__img" src="' . esc_url($item['image']) . '" alt=""'
+                    . ($i === 0 ? '' : ' loading="lazy"') . '>';
+            }
+            if ($item['heading'] !== '' || $item['text'] !== '') {
+                $inner .= '<div class="wpd-slide__caption">';
+                if ($item['heading'] !== '') {
+                    $inner .= '<h2 class="wpd-slide__title">' . esc_html($item['heading']) . '</h2>';
+                }
+                if ($item['text'] !== '') {
+                    $inner .= '<p class="wpd-slide__text">' . nl2br(esc_html($item['text'])) . '</p>';
+                }
+                $inner .= '</div>';
+            }
+            if ($item['url'] !== '') {
+                $inner = '<a class="wpd-slide__link"' . self::link_attrs($item['url'], $item['new_tab']) . '>' . $inner . '</a>';
+            }
+            $html .= sprintf(
+                '<div class="wpd-slide%s" role="group" aria-roledescription="slide" aria-label="%d из %d">%s</div>',
+                $item['image'] === '' ? ' wpd-slide--noimg' : '',
+                $i + 1,
+                $count,
+                $inner
+            );
+        }
+        $html .= '</div>';
+
+        // Управление показывает скрипт: без него оно не работает, поэтому скрыто
+        if ($count > 1) {
+            $html .= '<button type="button" class="wpd-slider__arrow wpd-slider__arrow--prev" data-wpd-prev hidden aria-label="Предыдущий слайд">&#8249;</button>'
+                . '<button type="button" class="wpd-slider__arrow wpd-slider__arrow--next" data-wpd-next hidden aria-label="Следующий слайд">&#8250;</button>'
+                . '<div class="wpd-slider__dots" data-wpd-dots hidden></div>';
+        }
+        return $html . '</section>';
+    }
+
+    /**
+     * Кнопки-ссылки с иконками. Кнопка без ссылки выводится как подпись.
+     *
+     * @param array|null $items null — из общих настроек
+     */
+    public static function buttons_html(array $o, ?array $items = null): string
+    {
+        $items = WPD_Settings::sanitize_rows($items === null ? $o['buttons'] : $items, 'buttons');
+        $items = array_values(array_filter($items, function ($item) {
+            return $item['text'] !== '';
+        }));
+        if (!$items) {
+            return '';
+        }
+        self::enqueue_icons();
+
+        $html = '<nav class="wpd-buttons" aria-label="Быстрые ссылки"><ul class="wpd-buttons__grid">';
+        foreach ($items as $item) {
+            $class = 'wpd-qbtn' . ($item['small'] ? ' wpd-qbtn--small' : '') . ($item['url'] === '' ? ' wpd-qbtn--nolink' : '');
+            $inner = '<span class="wpd-qbtn__icon dashicons dashicons-' . esc_attr($item['icon']) . '" aria-hidden="true"></span>'
+                . '<span class="wpd-qbtn__text">' . esc_html($item['text']) . '</span>';
+            $html .= '<li>' . ($item['url'] !== ''
+                ? '<a class="' . $class . '"' . self::link_attrs($item['url'], $item['new_tab']) . '>' . $inner . '</a>'
+                : '<span class="' . $class . '">' . $inner . '</span>') . '</li>';
+        }
+        return $html . '</ul></nav>';
+    }
+
+    /**
+     * Цветные карточки-разделы.
+     *
+     * @param array|null  $items null — из общих настроек
+     * @param string|null $title null — из общих настроек; пустая строка — без заголовка
+     */
+    public static function cards_html(array $o, ?array $items = null, ?string $title = null): string
+    {
+        $items = WPD_Settings::sanitize_rows($items === null ? $o['cards'] : $items, 'cards');
+        if (!$items) {
+            return '';
+        }
+        $title = $title === null ? (string) $o['cards_title'] : $title;
+
+        $html = '<section class="wpd-cards">';
+        if ($title !== '') {
+            $html .= '<h2 class="wpd-h2">' . esc_html($title) . '</h2>';
+        }
+        $html .= '<ul class="wpd-cards__grid">';
+        foreach ($items as $item) {
+            $inner = '<span class="wpd-card__title">' . esc_html($item['title']) . '</span>';
+            if ($item['image'] !== '') {
+                $inner .= '<img class="wpd-card__img" src="' . esc_url($item['image']) . '" alt="" loading="lazy">';
+            }
+            if ($item['text'] !== '') {
+                $inner .= '<span class="wpd-card__text">' . nl2br(esc_html($item['text'])) . '</span>';
+            }
+            if ($item['url'] !== '') {
+                $inner .= '<span class="wpd-card__more" aria-hidden="true">&rarr;</span>';
+                $inner  = '<a class="wpd-card__link"' . self::link_attrs($item['url'], $item['new_tab']) . '>' . $inner . '</a>';
+            } else {
+                $inner = '<div class="wpd-card__link">' . $inner . '</div>';
+            }
+            $style = $item['color'] !== '' ? ' style="--wpd-card:' . esc_attr($item['color']) . '"' : '';
+            $html .= '<li class="wpd-card' . ($item['color'] !== '' ? ' has-color' : '') . '"' . $style . '>' . $inner . '</li>';
+        }
+        return $html . '</ul></section>';
+    }
+
+    /**
+     * Объявление: изображение и/или текст, необязательная ссылка.
+     *
+     * @param array $args layout, image, color, url, new_tab, pre_title, title, content
+     */
+    public static function notice_html(array $o, array $args = []): string
+    {
+        $layout  = (string) self::arg($args, 'layout', $o['notice_layout']);
+        $layout  = in_array($layout, self::NOTICE_LAYOUTS, true) ? $layout : 'image_text';
+        $image   = esc_url((string) self::arg($args, 'image', $o['notice_image']));
+        $color   = (string) sanitize_hex_color((string) self::arg($args, 'color', $o['notice_color']));
+        $url     = (string) self::arg($args, 'url', $o['notice_url']);
+        $new_tab = (bool) self::arg($args, 'new_tab', $o['notice_new_tab']);
+        $pre     = (string) self::arg($args, 'pre_title', $o['notice_pre_title']);
+        $title   = (string) self::arg($args, 'title', $o['notice_title']);
+        $content = trim(wp_kses_post((string) self::arg($args, 'content', $o['notice_content'])));
+
+        $has_text = $pre !== '' || $title !== '' || $content !== '';
+        if ($layout === 'image_text' && $image === '') {
+            $layout = 'text';
+        }
+        if (($layout === 'image' && $image === '') || ($layout === 'text' && !$has_text)) {
+            return '';
+        }
+        if ($layout === 'image_text' && !$has_text) {
+            $layout = 'image';
+        }
+
+        $open  = $url !== '' ? '<a' . self::link_attrs($url, $new_tab) . '>' : '';
+        $close = $url !== '' ? '</a>' : '';
+        $style = $color !== '' ? ' style="--wpd-notice-bg:' . esc_attr($color) . '"' : '';
+
+        $html = '<section class="wpd-notice wpd-notice--' . str_replace('_', '-', $layout) . '"' . $style . '>';
+        if ($layout !== 'text') {
+            $html .= '<div class="wpd-notice__media">' . $open . '<img src="' . $image . '" alt="' . esc_attr($title) . '" loading="lazy">' . $close . '</div>';
+        }
+        if ($layout !== 'image') {
+            $html .= '<div class="wpd-notice__body">';
+            if ($pre !== '') {
+                $html .= '<p class="wpd-notice__pre">' . esc_html($pre) . '</p>';
+            }
+            if ($title !== '') {
+                $html .= '<h2 class="wpd-notice__title">' . $open . esc_html($title) . $close . '</h2>';
+            }
+            if ($content !== '') {
+                $html .= '<div class="wpd-notice__content">' . wpautop($content) . '</div>';
+            }
+            $html .= '</div>';
+        }
+        return $html . '</section>';
+    }
+
+    /**
+     * Последние записи. Текст анонса строится без фильтра the_content, чтобы блок новостей внутри записи
+     * не вызывал сам себя.
+     *
+     * @param array $args title, category, count, layout, more
+     */
+    public static function news_html(array $o, array $args = []): string
+    {
+        $title    = (string) self::arg($args, 'title', $o['news_title']);
+        $category = absint(self::arg($args, 'category', $o['news_category']));
+        $count    = min(24, max(1, (int) self::arg($args, 'count', $o['news_count'])));
+        $layout   = (string) self::arg($args, 'layout', $o['news_layout']);
+        $layout   = in_array($layout, self::NEWS_LAYOUTS, true) ? $layout : 'carousel';
+        $more     = (string) self::arg($args, 'more', $o['news_more']);
+
+        $query = [
+            'post_type'           => 'post',
+            'post_status'         => 'publish',
+            'posts_per_page'      => $count,
+            'ignore_sticky_posts' => true,
+            'no_found_rows'       => true,
+        ];
+        if ($category) {
+            $query['cat'] = $category;
+        }
+        $current = is_singular() ? get_queried_object_id() : 0;
+        if ($current) {
+            $query['post__not_in'] = [$current];
+        }
+        $posts = get_posts((array) apply_filters('wpd_news_query', $query));
+        if (!$posts) {
+            return '';
+        }
+
+        $more_url = '';
+        if ($more !== '') {
+            $more_url = $category ? get_category_link($category) : get_post_type_archive_link('post');
+            $more_url = is_string($more_url) ? $more_url : '';
+        }
+
+        $html = '<section class="wpd-news wpd-news--' . $layout . '"' . ($layout === 'carousel' ? ' data-wpd-carousel="news" data-arrows' : '') . '>';
+        $html .= '<div class="wpd-news__head">';
+        if ($title !== '') {
+            $html .= '<h2 class="wpd-h2">' . esc_html($title) . '</h2>';
+        }
+        if ($more_url !== '') {
+            $html .= '<a class="wpd-news__more" href="' . esc_url($more_url) . '">' . esc_html($more) . ' &rarr;</a>';
+        }
+        $html .= '</div><div class="wpd-news__track" data-wpd-track>';
+
+        foreach ($posts as $post) {
+            $link  = get_permalink($post);
+            $thumb = get_the_post_thumbnail_url($post, 'medium_large') ?: get_the_post_thumbnail_url($post, 'full');
+            if (has_excerpt($post)) {
+                $excerpt = wp_strip_all_tags($post->post_excerpt);
+            } else {
+                $text    = excerpt_remove_blocks(strip_shortcodes($post->post_content));
+                $excerpt = wp_trim_words(wp_strip_all_tags($text), 20, '…');
+            }
+
+            $html .= '<article class="wpd-news__item">'
+                . '<a class="wpd-news__media" href="' . esc_url($link) . '" tabindex="-1" aria-hidden="true">'
+                . ($thumb ? '<img src="' . esc_url($thumb) . '" alt="" loading="lazy">' : '<span class="wpd-news__ph"></span>')
+                . '</a><div class="wpd-news__body">'
+                . '<time class="wpd-news__date" datetime="' . esc_attr(get_the_date(DATE_ATOM, $post)) . '">' . esc_html(get_the_date('', $post)) . '</time>'
+                . '<h3 class="wpd-news__title"><a href="' . esc_url($link) . '">' . esc_html(get_the_title($post)) . '</a></h3>'
+                . ($excerpt !== '' ? '<p class="wpd-news__excerpt">' . esc_html($excerpt) . '</p>' : '')
+                . '</div></article>';
+        }
+        $html .= '</div>';
+        if ($layout === 'carousel' && count($posts) > 1) {
+            $html .= '<button type="button" class="wpd-slider__arrow wpd-slider__arrow--prev" data-wpd-prev hidden aria-label="Предыдущие новости">&#8249;</button>'
+                . '<button type="button" class="wpd-slider__arrow wpd-slider__arrow--next" data-wpd-next hidden aria-label="Следующие новости">&#8250;</button>';
+        }
+        return $html . '</section>';
+    }
+
+    /**
+     * Контакты. Выводятся, если заполнен хотя бы адрес, телефон или e-mail.
+     *
+     * @param array $args title, address, city, phone, email, map, page, code
+     */
+    public static function contacts_html(array $o, array $args = []): string
+    {
+        $v = [];
+        foreach (['title' => 'contacts_title', 'address' => 'contact_address', 'city' => 'contact_city', 'phone' => 'contact_phone',
+                  'email' => 'contact_email', 'map' => 'contact_map', 'page' => 'contact_page', 'code' => 'contact_code'] as $k => $opt) {
+            $v[$k] = trim((string) self::arg($args, $k, $o[$opt]));
+        }
+        $v['email'] = (string) sanitize_email($v['email']);
+        if ($v['address'] === '' && $v['city'] === '' && $v['phone'] === '' && $v['email'] === '') {
+            return '';
+        }
+        self::enqueue_icons();
+
+        $icon = function (string $name): string {
+            return '<span class="wpd-contacts__icon dashicons dashicons-' . $name . '" aria-hidden="true"></span>';
+        };
+
+        $list = '';
+        if ($v['address'] !== '' || $v['city'] !== '') {
+            $addr = esc_html($v['address']) . ($v['address'] !== '' && $v['city'] !== '' ? '<br>' : '') . esc_html($v['city']);
+            if ($v['map'] !== '' && esc_url($v['map']) !== '') {
+                $addr = '<a' . self::link_attrs($v['map'], true) . '>' . $addr . '</a>';
+            }
+            $list .= '<li class="wpd-contacts__address">' . $icon('location-alt') . '<span>' . $addr . '</span></li>';
+        }
+        if ($v['code'] !== '') {
+            $list .= '<li class="wpd-contacts__code">' . $icon('id') . '<span>' . esc_html($v['code']) . '</span></li>';
+        }
+        if ($v['email'] !== '') {
+            $list .= '<li class="wpd-contacts__email">' . $icon('email-alt') . '<a href="' . esc_url('mailto:' . $v['email']) . '">' . esc_html($v['email']) . '</a></li>';
+        }
+        if ($v['phone'] !== '') {
+            $tel   = preg_replace('/[^\d+]/', '', $v['phone']);
+            $phone = $tel !== '' ? '<a href="' . esc_url('tel:' . $tel, ['tel']) . '">' . esc_html($v['phone']) . '</a>' : esc_html($v['phone']);
+            $list .= '<li class="wpd-contacts__phone">' . $icon('phone') . $phone . '</li>';
+        }
+
+        $button = '';
+        $target = $v['page'] !== '' ? $v['page'] : ($v['email'] !== '' ? 'mailto:' . $v['email'] : '');
+        if ($target !== '' && esc_url($target) !== '') {
+            $button = '<a class="wpd-btn wpd-contacts__btn" href="' . esc_url($target) . '">Связаться &rarr;</a>';
+        }
+
+        return '<section class="wpd-contacts">'
+            . ($v['title'] !== '' ? '<h2 class="wpd-h2">' . esc_html($v['title']) . '</h2>' : '')
+            . '<div class="wpd-contacts__box"><ul class="wpd-contacts__list">' . $list . '</ul>' . $button . '</div></section>';
+    }
+
+    /* ---------------------------------------------------------------
      * Оформление страницы целиком
      * ------------------------------------------------------------- */
 
@@ -371,6 +772,10 @@ class WPD_Renderer
                 case 'faq':
                     $inner .= self::faq_html($o, $p['faq_mode'] === 'custom' ? $p['faq'] : null, $p['faq_title']);
                     break;
+
+                default:
+                    // Компоненты 1.5.0: содержимое из общих настроек
+                    $inner .= self::part_html($key, $o);
             }
         }
 
@@ -507,7 +912,33 @@ class WPD_Renderer
     {
         if (self::page_needs_assets()) {
             self::enqueue_assets();
+            if (self::page_needs_icons()) {
+                self::enqueue_icons();
+            }
         }
+    }
+
+    /**
+     * Нужны ли иконки в <head>: на странице есть кнопки-ссылки или контакты (шорткод, блок или панель страницы).
+     * Если не угадали, компонент подключит иконки сам при выводе (в подвале).
+     */
+    private static function page_needs_icons(): bool
+    {
+        $post = get_queried_object();
+        if (!$post instanceof WP_Post) {
+            return false;
+        }
+        foreach (self::ICON_PARTS as $part) {
+            if (has_shortcode($post->post_content, 'wpd_' . $part)
+                || strpos($post->post_content, '<!-- wp:' . WPD_Blocks::NS . '/' . $part) !== false) {
+                return true;
+            }
+        }
+        if (self::is_design_enabled((int) $post->ID)) {
+            $p = WPD_Page_Editor::get((int) $post->ID);
+            return (bool) array_diff(self::ICON_PARTS, $p['hidden']);
+        }
+        return false;
     }
 
     /**

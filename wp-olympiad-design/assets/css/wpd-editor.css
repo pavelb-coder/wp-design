@@ -196,3 +196,145 @@
     max-width: 100%;
     border-radius: 4px;
 }
+
+/* ---------------------------------------------------------------
+ * 1.5.0: компоненты в редакторе
+ * ------------------------------------------------------------- */
+
+/* Панель настроек элемента (слайда, кнопки, карточки) под ним, когда блок выделен */
+.wpd-page .wpd-ed-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    background: #fff;
+    color: #1e1e1e;
+    font-size: 13px;
+    font-weight: normal;
+    line-height: 1.4;
+    text-align: left;
+}
+
+.wpd-page .wpd-ed-item .wpd-ed-tools {
+    position: static;
+    margin-left: auto;
+}
+
+.wpd-page .wpd-ed-item .wpd-ed-urlinput {
+    flex: 1 1 180px;
+    min-width: 0;
+}
+
+.wpd-page .wpd-ed-item--top {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    z-index: 3;
+    margin: 0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.wpd-page .wpd-ed-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.wpd-page .wpd-ed-select {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    font-size: 13px;
+}
+
+.wpd-ed-color {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wpd-ed-color input[type="color"] {
+    width: 36px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    background: none;
+}
+
+/* Слайды в редакторе стоят столбиком, а не листаются */
+.wpd-page .wpd-slider--editor {
+    background: transparent;
+    overflow: visible;
+}
+
+.wpd-page .wpd-slider__track.wpd-ed-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: visible;
+}
+
+.wpd-page .wpd-ed-stack .wpd-slide {
+    border-radius: var(--wpd-radius);
+    overflow: hidden;
+}
+
+.wpd-page .wpd-slide .wpd-ed-plain {
+    color: #fff;
+}
+
+.wpd-page .wpd-slide .wpd-ed-plain::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Карточки и кнопки: текст правится на месте */
+.wpd-page .wpd-card .wpd-ed-plain,
+.wpd-page .wpd-card .wpd-ed-plain::placeholder {
+    color: #fff;
+}
+
+.wpd-page .wpd-card .wpd-ed-item {
+    margin: 0 12px 12px;
+}
+
+.wpd-page .wpd-qbtn .wpd-ed-plain {
+    text-align: center;
+}
+
+.wpd-page .wpd-buttons li {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Объявление */
+.wpd-page .wpd-notice .wpd-ed-media-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 220px;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.wpd-page .wpd-notice__content[contenteditable] {
+    min-height: 1.6em;
+}
+
+/* Контакты */
+.wpd-page .wpd-contacts .wpd-ed-line {
+    display: block;
+}
+
+/* Новости строит сервер: без ссылок и кликов в редакторе */
+.wpd-ed-ssr .wpd-page {
+    pointer-events: none;
+}

@@ -16,6 +16,12 @@ function check(string $name, bool $cond, string $detail = ''): void {
     $results[] = ($cond ? 'PASS ' : 'FAIL ') . $name . ($cond || $detail === '' ? '' : ' :: ' . $detail);
     if (!$cond) { $fails++; }
 }
+
+/** Порядок без новых компонентов 1.5.0 (они скрыты по умолчанию и встают на свои места). */
+function vis(array $keys): array
+{
+    return array_values(array_diff($keys, WPD_Page_Editor::OPT_IN));
+}
 function has(string $h, string $n): bool { return strpos($h, $n) !== false; }
 
 // Рабочие общие настройки
@@ -36,15 +42,20 @@ check('version >= 1.3.0', version_compare(WPD_VERSION, '1.3.0', '>='));
 
 /* 2. Значения по умолчанию */
 $d = WPD_Page_Editor::defaults();
-check('defaults: order of 6 blocks', $d['order'] === ['hero', 'countdown', 'content', 'stats', 'docs', 'faq']);
-check('defaults: nothing hidden', $d['hidden'] === []);
+check('defaults: order of 12 blocks', $d['order'] === ['slider', 'hero', 'buttons', 'countdown', 'notice', 'content', 'cards', 'stats', 'news', 'docs', 'faq', 'contacts'], implode(',', $d['order']));
+check('defaults: only new 1.5.0 components hidden', $d['hidden'] === WPD_Page_Editor::OPT_IN, implode(',', $d['hidden']));
+check('defaults: old blocks visible order unchanged', vis($d['order']) === ['hero', 'countdown', 'content', 'stats', 'docs', 'faq']);
 check('defaults: lists use global', $d['stats_mode'] === 'global' && $d['docs_mode'] === 'global' && $d['faq_mode'] === 'global');
 check('get() of page without meta = defaults', WPD_Page_Editor::get(999999) === $d);
 
 /* 3. normalize: мусор, дубли, новые блоки */
 $n = WPD_Page_Editor::normalize(['order' => ['faq', 'faq', 'bogus', 'hero', ['x']], 'hidden' => ['bogus', 'docs'], 'hero' => 'str', 'stats' => 'str', 'stats_mode' => 'weird']);
-check('normalize: order dedup + unknown dropped + missing appended', $n['order'] === ['faq', 'hero', 'countdown', 'content', 'stats', 'docs'], implode(',', $n['order']));
-check('normalize: hidden only known', $n['hidden'] === ['docs']);
+check('normalize: order dedup + unknown dropped + missing inserted after nearest known', $n['order'] === ['slider', 'faq', 'contacts', 'hero', 'buttons', 'countdown', 'notice', 'content', 'cards', 'stats', 'news', 'docs'], implode(',', $n['order']));
+check('normalize: old blocks keep relative order', vis($n['order']) === ['faq', 'hero', 'countdown', 'content', 'stats', 'docs']);
+check('normalize: hidden only known', !in_array('bogus', $n['hidden'], true) && vis($n['hidden']) === ['docs'], implode(',', $n['hidden']));
+check('normalize: missing new components become hidden', !array_diff(WPD_Page_Editor::OPT_IN, $n['hidden']));
+$n2 = WPD_Page_Editor::normalize(['order' => array_keys(WPD_Page_Editor::blocks()), 'hidden' => []]);
+check('normalize: new components present in order stay shown', $n2['hidden'] === []);
 check('normalize: hero non-array -> defaults', $n['hero'] === $d['hero']);
 check('normalize: list non-array -> []', $n['stats'] === []);
 check('normalize: bad mode -> global', $n['stats_mode'] === 'global');
@@ -64,8 +75,9 @@ $s = WPD_Page_Editor::sanitize([
     'faq_mode' => 'custom', 'faq_title' => 'FAQ страницы',
     'faq' => [['q' => 'Вопрос?', 'a' => '<strong>да</strong><script>x</script><a href="https://e.com" onclick="x">ссылка</a>'], ['q' => '', 'a' => '']],
 ]);
-check('sanitize: order kept', $s['order'] === ['faq', 'hero', 'content', 'stats', 'docs', 'countdown']);
-check('sanitize: unchecked -> hidden', $s['hidden'] === ['docs', 'countdown'], implode(',', $s['hidden']));
+check('sanitize: order kept', vis($s['order']) === ['faq', 'hero', 'content', 'stats', 'docs', 'countdown'], implode(',', $s['order']));
+check('sanitize: unchecked -> hidden', vis($s['hidden']) === ['docs', 'countdown'], implode(',', $s['hidden']));
+check('sanitize: unposted new components hidden', !array_diff(WPD_Page_Editor::OPT_IN, $s['hidden']));
 check('sanitize: hero title tags stripped', $s['hero']['title'] === 'Заголовок', $s['hero']['title']);
 check('sanitize: badge tags stripped', $s['hero']['badge'] === 'Метка');
 check('sanitize: lead keeps newline, strips tags', $s['hero']['lead'] === "Строка 1\nСтрока 2", json_encode($s['hero']['lead']));
@@ -82,7 +94,7 @@ check('sanitize: faq answer kses (strong kept)', has($s['faq'][0]['a'], '<strong
 check('sanitize: faq answer kses (script removed)', !has($s['faq'][0]['a'], '<script'));
 check('sanitize: faq answer kses (onclick removed)', !has($s['faq'][0]['a'], 'onclick'));
 check('sanitize: empty faq row removed', count($s['faq']) === 1);
-check('sanitize: without order -> nothing hidden', WPD_Page_Editor::sanitize(['hero' => ['title' => 'x']])['hidden'] === []);
+check('sanitize: without order -> default hidden (new components only)', WPD_Page_Editor::sanitize(['hero' => ['title' => 'x']])['hidden'] === WPD_Page_Editor::OPT_IN);
 check('sanitize(garbage) = defaults', WPD_Page_Editor::sanitize('garbage') === $d);
 
 /* 5. Сохранение через save_post */
@@ -104,8 +116,8 @@ do_action('save_post', $pid, get_post($pid), true);
 $saved = WPD_Page_Editor::get($pid);
 check('save: meta stored', is_array(get_post_meta($pid, '_wpd_page', true)));
 check('save: apostrophe preserved (no extra slashes)', $saved['hero']['title'] === "Свой заголовок O'Reilly", $saved['hero']['title']);
-check('save: order', $saved['order'][0] === 'faq');
-check('save: countdown hidden', $saved['hidden'] === ['countdown']);
+check('save: order', vis($saved['order'])[0] === 'faq');
+check('save: countdown hidden', vis($saved['hidden']) === ['countdown'], implode(',', $saved['hidden']));
 check('save: custom stats', $saved['stats'] === [['num' => '42', 'label' => 'финалиста']]);
 check('save: faq rows kept but mode global', $saved['faq_mode'] === 'global');
 
@@ -119,18 +131,18 @@ do_action('save_post', $pid, get_post($pid), true);
 // Неверный nonce
 $_POST = ['wpd_page_nonce' => 'bad', 'wpd_page' => ['order' => ['hero']]];
 do_action('save_post', $pid, get_post($pid), true);
-check('save: invalid nonce ignored', WPD_Page_Editor::get($pid)['order'][0] === 'faq');
+check('save: invalid nonce ignored', vis(WPD_Page_Editor::get($pid)['order'])[0] === 'faq');
 
 // Без nonce панели (например, сохранение из REST) — ничего не меняется
 $_POST = [];
 do_action('save_post', $pid, get_post($pid), true);
-check('save: no panel nonce -> untouched', WPD_Page_Editor::get($pid)['order'][0] === 'faq');
+check('save: no panel nonce -> untouched', vis(WPD_Page_Editor::get($pid)['order'])[0] === 'faq');
 
 // Без прав
 wp_set_current_user(0);
 $_POST = wp_slash(['wpd_page_nonce' => wp_create_nonce('wpd_save_page'), 'wpd_page' => ['order' => ['hero']]]);
 do_action('save_post', $pid, get_post($pid), true);
-check('save: no capability -> ignored', WPD_Page_Editor::get($pid)['order'][0] === 'faq');
+check('save: no capability -> ignored', vis(WPD_Page_Editor::get($pid)['order'])[0] === 'faq');
 wp_set_current_user(1);
 
 // Ревизия
@@ -147,7 +159,7 @@ if ($rev) {
 $pid_def = wp_insert_post(['post_title' => 'По умолчанию', 'post_status' => 'publish', 'post_type' => 'page']);
 update_post_meta($pid_def, '_wpd_page', ['order' => ['faq']]);
 $_POST = wp_slash(['wpd_page_nonce' => wp_create_nonce('wpd_save_page'), 'wpd_page' => [
-    'order' => array_keys(WPD_Page_Editor::blocks()), 'show' => array_fill_keys(array_keys(WPD_Page_Editor::blocks()), 1),
+    'order' => array_keys(WPD_Page_Editor::blocks()), 'show' => array_fill_keys(array_diff(array_keys(WPD_Page_Editor::blocks()), WPD_Page_Editor::OPT_IN), 1),
     'hero' => ['title' => '', 'badge' => '', 'lead' => '', 'button_text' => '', 'button_url' => '', 'image_id' => '', 'style' => ''],
     'stats_mode' => 'global', 'docs_mode' => 'global', 'faq_mode' => 'global', 'docs_title' => '', 'faq_title' => '',
 ]]);
@@ -158,7 +170,7 @@ $_POST = [];
 // Старый флажок по-прежнему сохраняется отдельно и не трогает панель
 $_POST = ['wpd_nonce' => wp_create_nonce('wpd_save_meta'), 'wpd_enabled' => '1'];
 do_action('save_post', $pid, get_post($pid), true);
-check('legacy checkbox save keeps panel data', WPD_Page_Editor::get($pid)['order'][0] === 'faq');
+check('legacy checkbox save keeps panel data', vis(WPD_Page_Editor::get($pid)['order'])[0] === 'faq');
 $_POST = [];
 
 /* 6. Вывод оформленной страницы */
@@ -215,7 +227,7 @@ do_action('add_meta_boxes', 'post', get_post($pid));
 check('panel registered for post', isset($GLOBALS['wp_meta_boxes']['post']['normal']['high']['wpd_page_blocks']));
 ob_start(); WPD_Page_Editor::meta_box_html(get_post($pid)); $mb = ob_get_clean();
 check('panel: nonce field', has($mb, 'name="wpd_page_nonce"'));
-check('panel: 6 order rows', substr_count($mb, 'name="wpd_page[order][]"') === 6);
+check('panel: 12 order rows', substr_count($mb, 'name="wpd_page[order][]"') === 12);
 check('panel: saved order first = faq', strpos($mb, 'value="faq"') < strpos($mb, 'value="hero"'));
 check('panel: countdown unchecked', !preg_match('/name="wpd_page\[show\]\[countdown\]" value="1" checked/', $mb));
 check('panel: hero title value escaped', has($mb, 'value="Свой заголовок O&#039;Reilly"'));

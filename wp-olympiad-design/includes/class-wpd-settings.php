@@ -23,6 +23,7 @@ class WPD_Settings
         add_action('admin_menu', [__CLASS__, 'add_menu']);
         add_action('admin_init', [__CLASS__, 'register']);
         add_action('admin_init', [__CLASS__, 'redirect_old_url'], 1);
+        add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue']);
         add_filter('plugin_action_links_' . plugin_basename(WPD_DIR . 'wp-olympiad-design.php'), [__CLASS__, 'action_links']);
 
         // Сброс кеша при любом изменении опции в этом же запросе.
@@ -49,6 +50,12 @@ class WPD_Settings
             'docs'     => 'Документы',
             'faq'      => 'Частые вопросы',
             'behavior' => 'Поведение',
+            'slider'   => 'Слайдер',
+            'buttons'  => 'Кнопки-ссылки',
+            'cards'    => 'Карточки',
+            'notice'   => 'Объявление',
+            'news'     => 'Новости',
+            'contacts' => 'Контакты',
         ];
     }
 
@@ -64,6 +71,12 @@ class WPD_Settings
             'stats'    => ['title' => 'Статистика', 'sections' => ['stats']],
             'docs'     => ['title' => 'Документы', 'sections' => ['docs']],
             'faq'      => ['title' => 'Частые вопросы', 'sections' => ['faq']],
+            'slider'   => ['title' => 'Слайдер', 'sections' => ['slider']],
+            'buttons'  => ['title' => 'Кнопки-ссылки', 'sections' => ['buttons']],
+            'cards'    => ['title' => 'Карточки', 'sections' => ['cards']],
+            'notice'   => ['title' => 'Объявление', 'sections' => ['notice']],
+            'news'     => ['title' => 'Новости', 'sections' => ['news']],
+            'contacts' => ['title' => 'Контакты', 'sections' => ['contacts']],
             'help'     => ['title' => 'Справка', 'sections' => []],
         ];
     }
@@ -96,6 +109,8 @@ class WPD_Settings
     {
         return [
             // Цвета и шрифт
+            'palette'  => ['label' => 'Палитра', 'type' => 'palette', 'section' => 'colors', 'default' => 'custom',
+                           'desc' => 'Готовый набор цветов. При сохранении цвета ниже заменяются цветами палитры; «Свои цвета» — значения из полей ниже.'],
             'primary'  => ['label' => 'Основной цвет', 'type' => 'color', 'section' => 'colors', 'default' => '#1d4ed8',
                            'desc' => 'Рамки карточек, иконки документов, открытые вопросы.'],
             'accent'   => ['label' => 'Акцентный цвет', 'type' => 'color', 'section' => 'colors', 'default' => '#f97316',
@@ -155,7 +170,230 @@ class WPD_Settings
             // Поведение
             'hide_title' => ['label' => 'Скрывать заголовок темы', 'type' => 'checkbox', 'section' => 'behavior', 'default' => 1,
                              'desc' => 'Для страниц с включённым оформлением прячет стандартный заголовок темы: его заменяет главный блок.'],
+
+            // Слайдер
+            'slides' => ['label' => 'Слайды', 'type' => 'repeater', 'section' => 'slider', 'default' => [], 'max' => 10,
+                         'item' => 'Слайд', 'add' => 'Добавить слайд',
+                         'fields' => [
+                             'image'   => ['label' => 'Изображение', 'type' => 'image'],
+                             'heading' => ['label' => 'Заголовок', 'type' => 'text'],
+                             'text'    => ['label' => 'Текст', 'type' => 'textarea'],
+                             'url'     => ['label' => 'Ссылка', 'type' => 'url'],
+                             'new_tab' => ['label' => 'Открывать в новой вкладке', 'type' => 'checkbox'],
+                         ],
+                         'desc' => 'До 10 слайдов. Слайд без изображения, заголовка, текста и ссылки не выводится. Нет слайдов — блок не выводится.'],
+            'slider_height'          => ['label' => 'Высота слайдера, px', 'type' => 'number', 'section' => 'slider', 'default' => 420,
+                                         'min' => 200, 'max' => 900],
+            'slider_autoplay'        => ['label' => 'Автопрокрутка', 'type' => 'checkbox', 'section' => 'slider', 'default' => 1,
+                                         'desc' => 'Слайды меняются каждые 6 секунд, при наведении — пауза. Отключается для пользователей с настройкой «уменьшить движение».'],
+            'slider_arrows'          => ['label' => 'Стрелки', 'type' => 'checkbox', 'section' => 'slider', 'default' => 1],
+            'slider_dots'            => ['label' => 'Точки-переключатели', 'type' => 'checkbox', 'section' => 'slider', 'default' => 1],
+            'slider_mobile'          => ['label' => 'Показывать на телефонах', 'type' => 'checkbox', 'section' => 'slider', 'default' => 1],
+            'slider_mobile_headings' => ['label' => 'Заголовки слайдов на телефонах', 'type' => 'checkbox', 'section' => 'slider', 'default' => 1],
+            'slider_mobile_texts'    => ['label' => 'Тексты слайдов на телефонах', 'type' => 'checkbox', 'section' => 'slider', 'default' => 0],
+
+            // Кнопки-ссылки
+            'buttons' => ['label' => 'Кнопки', 'type' => 'repeater', 'section' => 'buttons', 'max' => 12,
+                          'item' => 'Кнопка', 'add' => 'Добавить кнопку',
+                          'default' => [
+                              ['icon' => 'media-document', 'text' => 'Положение', 'url' => '', 'new_tab' => 0, 'small' => 0],
+                              ['icon' => 'edit', 'text' => 'Регистрация', 'url' => '', 'new_tab' => 0, 'small' => 0],
+                              ['icon' => 'awards', 'text' => 'Результаты', 'url' => '', 'new_tab' => 0, 'small' => 0],
+                              ['icon' => 'email-alt', 'text' => 'Контакты', 'url' => '', 'new_tab' => 0, 'small' => 0],
+                          ],
+                          'fields' => [
+                              'icon'    => ['label' => 'Иконка', 'type' => 'icon'],
+                              'text'    => ['label' => 'Текст', 'type' => 'text'],
+                              'url'     => ['label' => 'Ссылка', 'type' => 'url'],
+                              'new_tab' => ['label' => 'Открывать в новой вкладке', 'type' => 'checkbox'],
+                              'small'   => ['label' => 'Мелкий текст (для длинных подписей)', 'type' => 'checkbox'],
+                          ],
+                          'desc' => 'Плитки с иконками для быстрых переходов: положение, регистрация, расписание и т. п. Кнопка без ссылки выводится как подпись.'],
+
+            // Карточки
+            'cards_title' => ['label' => 'Заголовок блока карточек', 'type' => 'text', 'section' => 'cards', 'default' => '',
+                              'desc' => 'Пусто — без заголовка.'],
+            'cards'       => ['label' => 'Карточки', 'type' => 'repeater', 'section' => 'cards', 'max' => 8,
+                              'item' => 'Карточка', 'add' => 'Добавить карточку',
+                              'default' => [
+                                  ['title' => 'Участникам', 'text' => 'Положение, сроки и правила участия.', 'image' => '', 'color' => '', 'url' => '', 'new_tab' => 0],
+                                  ['title' => 'Учителям', 'text' => 'Методические материалы и регистрация команд.', 'image' => '', 'color' => '', 'url' => '', 'new_tab' => 0],
+                                  ['title' => 'Результаты', 'text' => 'Списки победителей и призёров.', 'image' => '', 'color' => '', 'url' => '', 'new_tab' => 0],
+                              ],
+                              'fields' => [
+                                  'title'   => ['label' => 'Заголовок', 'type' => 'text'],
+                                  'text'    => ['label' => 'Текст', 'type' => 'textarea'],
+                                  'image'   => ['label' => 'Изображение', 'type' => 'image'],
+                                  'color'   => ['label' => 'Цвет', 'type' => 'color_opt'],
+                                  'url'     => ['label' => 'Ссылка', 'type' => 'url'],
+                                  'new_tab' => ['label' => 'Открывать в новой вкладке', 'type' => 'checkbox'],
+                              ],
+                              'desc' => 'Цветные плитки-разделы. Пустой цвет — цвета палитры по очереди (основной, акцентный, тёмный).'],
+
+            // Объявление
+            'notice_layout'    => ['label' => 'Вид', 'type' => 'select', 'section' => 'notice', 'default' => 'image_text',
+                                   'options' => ['image_text' => 'Изображение и текст', 'text' => 'Только текст', 'image' => 'Только изображение'],
+                                   'desc' => 'Без изображения вид «Изображение и текст» выводится как «Только текст».'],
+            'notice_pre_title' => ['label' => 'Текст над заголовком', 'type' => 'text', 'section' => 'notice', 'default' => ''],
+            'notice_title'     => ['label' => 'Заголовок', 'type' => 'text', 'section' => 'notice', 'default' => ''],
+            'notice_content'   => ['label' => 'Текст объявления', 'type' => 'html', 'section' => 'notice', 'default' => ''],
+            'notice_image'     => ['label' => 'Изображение', 'type' => 'image', 'section' => 'notice', 'default' => ''],
+            'notice_color'     => ['label' => 'Цвет фона', 'type' => 'color_opt', 'section' => 'notice', 'default' => '',
+                                   'desc' => 'Пусто — светлый оттенок основного цвета.'],
+            'notice_url'       => ['label' => 'Ссылка', 'type' => 'url', 'section' => 'notice', 'default' => '',
+                                   'desc' => 'Ссылкой становятся заголовок и изображение.'],
+            'notice_new_tab'   => ['label' => 'Открывать ссылку в новой вкладке', 'type' => 'checkbox', 'section' => 'notice', 'default' => 0],
+
+            // Новости
+            'news_title'    => ['label' => 'Заголовок блока', 'type' => 'text', 'section' => 'news', 'default' => 'Новости'],
+            'news_category' => ['label' => 'Рубрика', 'type' => 'category', 'section' => 'news', 'default' => 0],
+            'news_count'    => ['label' => 'Количество записей', 'type' => 'number', 'section' => 'news', 'default' => 6, 'min' => 1, 'max' => 24],
+            'news_layout'   => ['label' => 'Вид', 'type' => 'select', 'section' => 'news', 'default' => 'carousel',
+                                'options' => ['carousel' => 'Карусель (листается стрелками)', 'grid' => 'Сетка']],
+            'news_more'     => ['label' => 'Текст ссылки на все новости', 'type' => 'text', 'section' => 'news', 'default' => 'Все новости',
+                                'desc' => 'Ссылка ведёт на рубрику, а если рубрика не выбрана — на страницу записей. Пусто — без ссылки.'],
+
+            // Контакты
+            'contacts_title'  => ['label' => 'Заголовок блока', 'type' => 'text', 'section' => 'contacts', 'default' => 'Контакты'],
+            'contact_address' => ['label' => 'Адрес', 'type' => 'text', 'section' => 'contacts', 'default' => ''],
+            'contact_city'    => ['label' => 'Индекс и город', 'type' => 'text', 'section' => 'contacts', 'default' => ''],
+            'contact_phone'   => ['label' => 'Телефон', 'type' => 'text', 'section' => 'contacts', 'default' => ''],
+            'contact_email'   => ['label' => 'E-mail', 'type' => 'email', 'section' => 'contacts', 'default' => ''],
+            'contact_map'     => ['label' => 'Ссылка на карту', 'type' => 'url', 'section' => 'contacts', 'default' => '',
+                                  'desc' => 'Адрес станет ссылкой на карту (Яндекс Карты, 2ГИС и т. п.).'],
+            'contact_page'    => ['label' => 'Страница «Контакты»', 'type' => 'url', 'section' => 'contacts', 'default' => '',
+                                  'desc' => 'Кнопка «Связаться». Пусто — кнопка ведёт на e-mail, а без e-mail не выводится.'],
+            'contact_code'    => ['label' => 'Код организации', 'type' => 'text', 'section' => 'contacts', 'default' => '',
+                                  'desc' => 'Необязательно: ИНН, код образовательной организации и т. п.'],
         ];
+    }
+
+    /**
+     * Готовые палитры: основной, акцентный, тёмный фон, текст, фон страницы.
+     */
+    public static function palettes(): array
+    {
+        return [
+            'olympiad' => ['title' => 'Олимпиада', 'colors' => ['#1d4ed8', '#f97316', '#0b1220', '#1f2937', '#f1f5f9']],
+            'sea'      => ['title' => 'Море', 'colors' => ['#0e7490', '#f59e0b', '#083344', '#1e293b', '#ecfeff']],
+            'forest'   => ['title' => 'Лес', 'colors' => ['#15803d', '#eab308', '#052e16', '#1c2a1f', '#f0fdf4']],
+            'cherry'   => ['title' => 'Вишня', 'colors' => ['#be123c', '#f59e0b', '#2a0a12', '#292524', '#fff1f2']],
+            'violet'   => ['title' => 'Фиалка', 'colors' => ['#6d28d9', '#ec4899', '#1e1033', '#1f1b2e', '#f5f3ff']],
+            'graphite' => ['title' => 'Графит', 'colors' => ['#334155', '#0ea5e9', '#0f172a', '#1e293b', '#f8fafc']],
+        ];
+    }
+
+    /** Поля цветов в порядке значений палитры. */
+    const PALETTE_KEYS = ['primary', 'accent', 'dark', 'text', 'bg'];
+
+    /**
+     * Иконки для кнопок-ссылок (Dashicons из ядра WordPress, подписи для выбора).
+     */
+    public static function icons(): array
+    {
+        return [
+            'media-document'     => 'Документ',
+            'edit'               => 'Карандаш',
+            'awards'             => 'Награда',
+            'email-alt'          => 'Конверт',
+            'welcome-learn-more' => 'Академическая шапка',
+            'book'               => 'Книга',
+            'calendar-alt'       => 'Календарь',
+            'clock'              => 'Часы',
+            'groups'             => 'Группа людей',
+            'admin-users'        => 'Человек',
+            'businessperson'     => 'Преподаватель',
+            'star-filled'        => 'Звезда',
+            'flag'               => 'Флаг',
+            'megaphone'          => 'Рупор',
+            'portfolio'          => 'Портфель',
+            'clipboard'          => 'Планшет',
+            'welcome-write-blog' => 'Блокнот',
+            'format-chat'        => 'Чат',
+            'phone'              => 'Телефон',
+            'location-alt'       => 'Метка на карте',
+            'admin-site-alt3'    => 'Глобус',
+            'admin-links'        => 'Ссылка',
+            'download'           => 'Скачать',
+            'video-alt3'         => 'Видео',
+            'format-gallery'     => 'Галерея',
+            'camera'             => 'Камера',
+            'art'                => 'Палитра',
+            'lightbulb'          => 'Лампочка',
+            'chart-bar'          => 'Диаграмма',
+            'info-outline'       => 'Информация',
+            'editor-help'        => 'Вопрос',
+            'yes-alt'            => 'Галочка',
+            'warning'            => 'Внимание',
+            'heart'              => 'Сердце',
+            'building'           => 'Здание',
+            'admin-home'         => 'Дом',
+            'laptop'             => 'Ноутбук',
+            'smartphone'         => 'Смартфон',
+            'tickets-alt'        => 'Билет',
+            'money-alt'          => 'Оплата',
+            'shield'             => 'Щит',
+            'search'             => 'Поиск',
+            'translation'        => 'Перевод',
+            'microphone'         => 'Микрофон',
+            'id'                 => 'Удостоверение',
+            'external'           => 'Внешняя ссылка',
+        ];
+    }
+
+    /**
+     * Очистка строк повторяющегося поля (слайды, кнопки, карточки). Пустые строки отбрасываются,
+     * лишние сверх max — тоже. Используется и настройками, и блоками редактора.
+     */
+    public static function sanitize_rows($rows, string $key): array
+    {
+        $field = self::field_map()[$key] ?? null;
+        if (!$field || $field['type'] !== 'repeater' || !is_array($rows)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($rows as $index => $row) {
+            // Строка-шаблон повторителя (__i__) и мусор не сохраняются
+            if (!is_array($row) || $index === '__i__') {
+                continue;
+            }
+            $clean = [];
+            $empty = true;
+            foreach ($field['fields'] as $sub => $def) {
+                $raw = isset($row[$sub]) && is_scalar($row[$sub]) ? (string) $row[$sub] : '';
+                switch ($def['type']) {
+                    case 'checkbox':
+                        $clean[$sub] = ($raw !== '' && $raw !== '0' && $raw !== 'false') ? 1 : 0;
+                        continue 2;
+                    case 'url':
+                    case 'image':
+                        $clean[$sub] = esc_url_raw(trim($raw));
+                        break;
+                    case 'color_opt':
+                        $clean[$sub] = (string) sanitize_hex_color(trim($raw));
+                        continue 2;
+                    case 'icon':
+                        $clean[$sub] = isset(self::icons()[$raw]) ? $raw : (string) array_key_first(self::icons());
+                        continue 2;
+                    case 'textarea':
+                        $clean[$sub] = sanitize_textarea_field($raw);
+                        break;
+                    default:
+                        $clean[$sub] = sanitize_text_field($raw);
+                }
+                if ($clean[$sub] !== '') {
+                    $empty = false;
+                }
+            }
+            if (!$empty) {
+                $out[] = $clean;
+            }
+            if (count($out) >= (int) $field['max']) {
+                break;
+            }
+        }
+        return $out;
     }
 
     /**
@@ -218,6 +456,11 @@ class WPD_Settings
                 $out[$key] = empty($raw) ? 0 : 1;
                 continue;
             }
+            // Повторяющееся поле: форма всегда отправляет маркер «_», поэтому пустой список — это []
+            if ($field['type'] === 'repeater') {
+                $out[$key] = $has ? self::sanitize_rows($raw, $key) : $field['default'];
+                continue;
+            }
             if (!$has) {
                 $out[$key] = $field['default'];
                 continue;
@@ -247,6 +490,31 @@ class WPD_Settings
                     $out[$key] = self::normalize_datetime($raw);
                     break;
 
+                case 'color_opt':
+                    $out[$key] = (string) sanitize_hex_color(trim($raw));
+                    break;
+
+                case 'image':
+                    $out[$key] = esc_url_raw(trim($raw));
+                    break;
+
+                case 'email':
+                    $out[$key] = sanitize_email($raw);
+                    break;
+
+                case 'html':
+                    $out[$key] = trim(wp_kses_post($raw));
+                    break;
+
+                case 'category':
+                    $id = absint($raw);
+                    $out[$key] = ($id && term_exists($id, 'category')) ? $id : 0;
+                    break;
+
+                case 'palette':
+                    $out[$key] = ($raw === 'custom' || isset(self::palettes()[$raw])) ? $raw : 'custom';
+                    break;
+
                 case 'font':
                     $value = trim((string) preg_replace('/[^A-Za-z0-9 ,\'"\-]/', '', $raw));
                     $out[$key] = $value !== '' ? $value : $field['default'];
@@ -260,6 +528,13 @@ class WPD_Settings
 
                 default:
                     $out[$key] = sanitize_text_field($raw);
+            }
+        }
+
+        // Выбранная палитра задаёт цвета (только когда сохраняется вкладка с цветами или все поля сразу)
+        if (($sections === null || in_array('colors', $sections, true)) && isset(self::palettes()[$out['palette']])) {
+            foreach (self::PALETTE_KEYS as $i => $color_key) {
+                $out[$color_key] = self::palettes()[$out['palette']]['colors'][$i];
             }
         }
 
@@ -437,9 +712,31 @@ class WPD_Settings
                 [__CLASS__, 'render_field'],
                 self::PAGE,
                 'wpd_' . $field['section'],
-                ['key' => $key, 'label_for' => 'wpd_' . $key]
+                in_array($field['type'], ['repeater', 'palette', 'checkbox'], true)
+                    ? ['key' => $key]
+                    : ['key' => $key, 'label_for' => $field['type'] === 'html' ? 'wpd' . str_replace('_', '', $key) : 'wpd_' . $key]
             );
         }
+    }
+
+    /**
+     * Скрипты страницы настроек: повторяющиеся поля, медиатека, выбор цвета, палитры.
+     */
+    public static function enqueue(): void
+    {
+        // phpcs:ignore WordPress.Security.NonceVerification
+        if (!isset($_GET['page']) || $_GET['page'] !== self::PAGE) {
+            return;
+        }
+        wp_enqueue_media();
+        wp_enqueue_style('wp-color-picker');
+        wp_enqueue_style('wpd-settings', WPD_URL . 'assets/css/wpd-settings.css', ['wp-color-picker'], WPD_VERSION);
+        wp_enqueue_script('wpd-settings', WPD_URL . 'assets/js/wpd-settings.js', ['jquery', 'wp-color-picker'], WPD_VERSION, true);
+        wp_localize_script('wpd-settings', 'wpdSettings', [
+            'chooseImage' => 'Выбор изображения',
+            'use'         => 'Выбрать',
+            'remove'      => 'Удалить?',
+        ]);
     }
 
     public static function render_page(): void
@@ -515,7 +812,8 @@ class WPD_Settings
                     Включите «Оформление в стиле олимпиады» в боковой панели, затем меняйте порядок блоков, скрывайте ненужные
                     и задавайте для страницы свой главный блок, статистику, документы и FAQ.
                     В блочном редакторе панель находится в области <em>Meta Boxes</em> внизу экрана.</li>
-                <li><strong>Блоки редактора</strong> в категории «Олимпиада»: главный блок, обратный отсчёт, статистика, документы, FAQ.
+                <li><strong>Блоки редактора</strong> в категории «Олимпиада»: главный блок, обратный отсчёт, статистика, документы, FAQ,
+                    слайдер, кнопки-ссылки, карточки, объявление, новости, контакты.
                     Текст правится прямо на странице. Готовый шаблон — «Паттерны → Олимпиада → Страница олимпиады».</li>
             </ol>
 
@@ -529,17 +827,167 @@ class WPD_Settings
                     <tr><td><code>[wpd_stats]</code></td><td>статистика</td></tr>
                     <tr><td><code>[wpd_docs]</code></td><td>документы</td></tr>
                     <tr><td><code>[wpd_faq]</code></td><td>частые вопросы</td></tr>
+                    <tr><td><code>[wpd_slider]</code></td><td>слайдер</td></tr>
+                    <tr><td><code>[wpd_buttons]</code></td><td>кнопки-ссылки с иконками</td></tr>
+                    <tr><td><code>[wpd_cards]</code></td><td>цветные карточки-разделы</td></tr>
+                    <tr><td><code>[wpd_notice]</code></td><td>объявление</td></tr>
+                    <tr><td><code>[wpd_news]</code></td><td>последние новости из рубрики</td></tr>
+                    <tr><td><code>[wpd_contacts]</code></td><td>контакты: адрес, телефон, e-mail</td></tr>
                 </tbody>
             </table>
+
+            <h2>Главная страница из компонентов</h2>
+            <p>Слайдер, кнопки-ссылки, карточки, объявление, новости и контакты удобно собрать на главной странице сайта:</p>
+            <ol>
+                <li>Заполните вкладки «Слайдер», «Кнопки-ссылки», «Карточки», «Объявление», «Новости» и «Контакты».</li>
+                <li>Вставьте шаблон <strong>«Паттерны → Олимпиада → Главная страница»</strong> в редакторе блоков — или включите
+                    оформление страницы и отметьте нужные компоненты в панели «Блоки олимпиады».</li>
+                <li>Назначьте страницу главной: <em>Настройки → Чтение → Статическая страница</em>.</li>
+            </ol>
+            <p>На уже оформленных страницах новые компоненты скрыты, пока вы не отметите их в панели «Блоки олимпиады».</p>
 
             <h2>Форматы списков</h2>
             <ul style="list-style:disc;margin-left:20px">
                 <li><strong>Статистика:</strong> одна карточка на строку, <code>число|подпись</code>.</li>
                 <li><strong>Документы:</strong> одна ссылка на строку, <code>название|ссылка</code>.</li>
                 <li><strong>FAQ:</strong> блоки через пустую строку; первая строка — вопрос, остальные — ответ. Разрешены теги a, strong, em, br.</li>
+                <li><strong>Слайды, кнопки, карточки:</strong> строки добавляются кнопкой «+ Добавить…», переставляются стрелками; изображение можно выбрать из медиатеки.</li>
             </ul>
         </div>
         <?php
+    }
+
+    /**
+     * Палитры: карточки с образцами цветов, радиокнопки работают и без JavaScript.
+     */
+    private static function render_palette(string $name, string $value): void
+    {
+        echo '<fieldset class="wpd-palettes"><legend class="screen-reader-text">Палитра</legend>';
+        $all = self::palettes() + ['custom' => ['title' => 'Свои цвета', 'colors' => []]];
+        foreach ($all as $id => $palette) {
+            $swatches = '';
+            foreach ($palette['colors'] as $color) {
+                $swatches .= '<span style="background:' . esc_attr($color) . '"></span>';
+            }
+            if ($id === 'custom') {
+                $swatches = '<span class="wpd-palette__custom" aria-hidden="true">✎</span>';
+            }
+            printf(
+                '<label class="wpd-palette"><input type="radio" name="%1$s" value="%2$s" data-colors="%3$s"%4$s>'
+                . '<span class="wpd-palette__sw">%5$s</span><span class="wpd-palette__name">%6$s</span></label>',
+                esc_attr($name),
+                esc_attr($id),
+                esc_attr((string) wp_json_encode(array_combine(
+                    array_slice(self::PALETTE_KEYS, 0, count($palette['colors'])),
+                    $palette['colors']
+                ) ?: new stdClass())),
+                checked($value, $id, false),
+                $swatches, // phpcs:ignore WordPress.Security.EscapeOutput -- собрано выше с esc_attr
+                esc_html($palette['title'])
+            );
+        }
+        echo '</fieldset>';
+    }
+
+    /**
+     * Поле изображения: адрес + выбор из медиатеки + превью.
+     */
+    private static function image_input(string $id, string $name, string $value): string
+    {
+        return sprintf(
+            '<span class="wpd-img" data-wpd-s-media>'
+            . '<img src="%3$s" alt="" data-wpd-s-preview%4$s>'
+            . '<input type="url" id="%1$s" name="%2$s" value="%3$s" class="regular-text code" placeholder="https://…" data-wpd-s-url>'
+            . ' <button type="button" class="button" data-wpd-s-pick>Медиатека…</button>'
+            . '</span>',
+            esc_attr($id),
+            esc_attr($name),
+            esc_attr($value),
+            $value === '' ? ' hidden' : ''
+        );
+    }
+
+    /**
+     * Повторяющееся поле: список строк, шаблон новой строки и кнопка добавления.
+     * Скрытый маркер «_» отправляется всегда, чтобы пустой список сохранялся как пустой.
+     */
+    private static function render_repeater(string $key, array $field, array $rows): void
+    {
+        printf(
+            '<div class="wpd-rep" data-wpd-rep="%1$s" data-max="%2$d" data-next="%3$d">'
+            . '<input type="hidden" name="%4$s[%1$s][_]" value="">'
+            . '<div class="wpd-rep__list" data-wpd-rep-list>',
+            esc_attr($key),
+            (int) $field['max'],
+            count($rows),
+            esc_attr(self::OPTION)
+        );
+        foreach (array_values($rows) as $i => $row) {
+            echo self::repeater_row($key, $field, (string) $i, is_array($row) ? $row : []); // phpcs:ignore WordPress.Security.EscapeOutput
+        }
+        echo '</div>';
+        echo '<template data-wpd-rep-tpl>' . self::repeater_row($key, $field, '__i__', []) . '</template>'; // phpcs:ignore WordPress.Security.EscapeOutput
+        printf(
+            '<p><button type="button" class="button" data-wpd-rep-add%3$s>+ %1$s</button> <span class="description">не больше %2$d</span></p></div>',
+            esc_html($field['add']),
+            (int) $field['max'],
+            count($rows) >= (int) $field['max'] ? ' disabled' : ''
+        );
+    }
+
+    private static function repeater_row(string $key, array $field, string $i, array $row): string
+    {
+        $base  = self::OPTION . '[' . $key . '][' . $i . ']';
+        $html  = '<div class="wpd-rep__row" data-wpd-rep-row>';
+        $html .= '<div class="wpd-rep__head"><strong class="wpd-rep__title">' . esc_html($field['item']) . ' <span data-wpd-rep-num>'
+            . ($i === '__i__' ? '' : esc_html((string) ((int) $i + 1))) . '</span></strong>'
+            . '<span class="wpd-rep__tools">'
+            . '<button type="button" class="button-link" data-wpd-rep-move="-1" aria-label="Выше"><span class="dashicons dashicons-arrow-up-alt2"></span></button>'
+            . '<button type="button" class="button-link" data-wpd-rep-move="1" aria-label="Ниже"><span class="dashicons dashicons-arrow-down-alt2"></span></button>'
+            . '<button type="button" class="button-link button-link-delete" data-wpd-rep-remove aria-label="Удалить"><span class="dashicons dashicons-trash"></span></button>'
+            . '</span></div><div class="wpd-rep__fields">';
+
+        foreach ($field['fields'] as $sub => $def) {
+            $name  = $base . '[' . $sub . ']';
+            $value = isset($row[$sub]) && is_scalar($row[$sub]) ? (string) $row[$sub] : '';
+            $id    = 'wpd_' . $key . '_' . $i . '_' . $sub;
+            $label = esc_html($def['label']);
+
+            switch ($def['type']) {
+                case 'checkbox':
+                    $html .= sprintf('<label class="wpd-rep__f wpd-rep__f--check"><input type="checkbox" name="%s" value="1"%s> %s</label>',
+                        esc_attr($name), checked($value, '1', false), $label);
+                    break;
+                case 'textarea':
+                    $html .= sprintf('<label class="wpd-rep__f wpd-rep__f--wide" for="%1$s"><span>%2$s</span><textarea id="%1$s" name="%3$s" rows="2" class="large-text">%4$s</textarea></label>',
+                        esc_attr($id), $label, esc_attr($name), esc_textarea($value));
+                    break;
+                case 'image':
+                    $html .= '<div class="wpd-rep__f wpd-rep__f--wide"><label for="' . esc_attr($id) . '">' . $label . '</label>'
+                        . self::image_input($id, $name, $value) . '</div>';
+                    break;
+                case 'color_opt':
+                    $html .= sprintf('<div class="wpd-rep__f"><label for="%1$s">%2$s</label><input type="text" id="%1$s" name="%3$s" value="%4$s" class="wpd-color-opt" placeholder="#rrggbb" maxlength="7"></div>',
+                        esc_attr($id), $label, esc_attr($name), esc_attr($value));
+                    break;
+                case 'icon':
+                    $current = isset(self::icons()[$value]) ? $value : (string) array_key_first(self::icons());
+                    $opts = '';
+                    foreach (self::icons() as $icon => $icon_label) {
+                        $opts .= sprintf('<option value="%s"%s>%s</option>', esc_attr($icon), selected($current, $icon, false), esc_html($icon_label));
+                    }
+                    $html .= sprintf('<label class="wpd-rep__f" for="%1$s"><span>%2$s</span><span class="wpd-icon-pick">'
+                        . '<span class="dashicons dashicons-%3$s" data-wpd-icon-preview aria-hidden="true"></span>'
+                        . '<select id="%1$s" name="%4$s" data-wpd-icon>%5$s</select></span></label>',
+                        esc_attr($id), $label, esc_attr($current), esc_attr($name), $opts);
+                    break;
+                default:
+                    $html .= sprintf('<label class="wpd-rep__f" for="%1$s"><span>%2$s</span><input type="%5$s" id="%1$s" name="%3$s" value="%4$s" class="regular-text"%6$s></label>',
+                        esc_attr($id), $label, esc_attr($name), esc_attr($value), $def['type'] === 'url' ? 'url' : 'text',
+                        $def['type'] === 'url' ? ' placeholder="https://…"' : '');
+            }
+        }
+        return $html . '</div></div>';
     }
 
     public static function render_field(array $args): void
@@ -584,6 +1032,49 @@ class WPD_Settings
                         esc_attr($opt_value), selected($value, $opt_value, false), esc_html($opt_label));
                 }
                 echo '</select>';
+                break;
+
+            case 'repeater':
+                self::render_repeater($key, $field, is_array($value) ? $value : []);
+                break;
+
+            case 'palette':
+                self::render_palette($name, (string) $value);
+                break;
+
+            case 'image':
+                echo self::image_input($id, $name, (string) $value); // phpcs:ignore WordPress.Security.EscapeOutput -- экранировано внутри
+                break;
+
+            case 'color_opt':
+                printf('<input type="text" id="%1$s" name="%2$s" value="%3$s" class="wpd-color-opt" placeholder="#rrggbb" maxlength="7">',
+                    esc_attr($id), esc_attr($name), esc_attr((string) $value));
+                break;
+
+            case 'email':
+                printf('<input type="email" id="%1$s" name="%2$s" value="%3$s" class="regular-text">',
+                    esc_attr($id), esc_attr($name), esc_attr((string) $value));
+                break;
+
+            case 'html':
+                wp_editor((string) $value, 'wpd' . str_replace('_', '', $key), [
+                    'textarea_name' => $name,
+                    'textarea_rows' => 6,
+                    'media_buttons' => false,
+                    'teeny'         => true,
+                ]);
+                break;
+
+            case 'category':
+                wp_dropdown_categories([
+                    'show_option_all' => 'Все рубрики',
+                    'name'            => $name,
+                    'id'              => $id,
+                    'selected'        => (int) $value,
+                    'hide_empty'      => 0,
+                    'hierarchical'    => 1,
+                    'orderby'         => 'name',
+                ]);
                 break;
 
             case 'datetime':

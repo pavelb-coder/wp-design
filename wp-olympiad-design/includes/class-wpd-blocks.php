@@ -91,6 +91,92 @@ class WPD_Blocks
                 ],
                 'render'      => [__CLASS__, 'render_faq'],
             ],
+            'slider' => [
+                'title'       => 'Олимпиада: слайдер',
+                'description' => 'Листающиеся слайды с изображением, заголовком, текстом и ссылкой.',
+                'icon'        => 'slides',
+                'keywords'    => ['слайдер', 'карусель', 'slider', 'баннер'],
+                'attributes'  => [
+                    'items'          => ['type' => 'array', 'default' => array_values((array) $o['slides'])],
+                    'height'         => ['type' => 'integer', 'default' => (int) $o['slider_height']],
+                    'autoplay'       => ['type' => 'boolean', 'default' => (bool) $o['slider_autoplay']],
+                    'arrows'         => ['type' => 'boolean', 'default' => (bool) $o['slider_arrows']],
+                    'dots'           => ['type' => 'boolean', 'default' => (bool) $o['slider_dots']],
+                    'mobile'         => ['type' => 'boolean', 'default' => (bool) $o['slider_mobile']],
+                    'mobileHeadings' => ['type' => 'boolean', 'default' => (bool) $o['slider_mobile_headings']],
+                    'mobileTexts'    => ['type' => 'boolean', 'default' => (bool) $o['slider_mobile_texts']],
+                ],
+                'render'      => [__CLASS__, 'render_slider'],
+            ],
+            'buttons' => [
+                'title'       => 'Олимпиада: кнопки-ссылки',
+                'description' => 'Плитки с иконками для быстрых переходов.',
+                'icon'        => 'screenoptions',
+                'keywords'    => ['кнопки', 'ссылки', 'иконки', 'меню'],
+                'attributes'  => [
+                    'items' => ['type' => 'array', 'default' => array_values((array) $o['buttons'])],
+                ],
+                'render'      => [__CLASS__, 'render_buttons'],
+            ],
+            'cards' => [
+                'title'       => 'Олимпиада: карточки',
+                'description' => 'Цветные карточки-разделы с изображением, текстом и ссылкой.',
+                'icon'        => 'grid-view',
+                'keywords'    => ['карточки', 'разделы', 'плитки', 'cards'],
+                'attributes'  => [
+                    'title' => ['type' => 'string', 'default' => (string) $o['cards_title']],
+                    'items' => ['type' => 'array', 'default' => array_values((array) $o['cards'])],
+                ],
+                'render'      => [__CLASS__, 'render_cards'],
+            ],
+            'notice' => [
+                'title'       => 'Олимпиада: объявление',
+                'description' => 'Заметное объявление: изображение, заголовок, текст и ссылка.',
+                'icon'        => 'megaphone',
+                'keywords'    => ['объявление', 'новость', 'notice', 'баннер'],
+                'attributes'  => [
+                    'layout'   => ['type' => 'string', 'default' => (string) $o['notice_layout']],
+                    'image'    => ['type' => 'string', 'default' => (string) $o['notice_image']],
+                    'color'    => ['type' => 'string', 'default' => (string) $o['notice_color']],
+                    'url'      => ['type' => 'string', 'default' => (string) $o['notice_url']],
+                    'newTab'   => ['type' => 'boolean', 'default' => (bool) $o['notice_new_tab']],
+                    'preTitle' => ['type' => 'string', 'default' => (string) $o['notice_pre_title']],
+                    'title'    => ['type' => 'string', 'default' => (string) $o['notice_title']],
+                    'content'  => ['type' => 'string', 'default' => (string) $o['notice_content']],
+                ],
+                'render'      => [__CLASS__, 'render_notice'],
+            ],
+            'news' => [
+                'title'       => 'Олимпиада: новости',
+                'description' => 'Последние записи из рубрики — каруселью или сеткой.',
+                'icon'        => 'admin-post',
+                'keywords'    => ['новости', 'записи', 'блог', 'news'],
+                'attributes'  => [
+                    'title'    => ['type' => 'string', 'default' => (string) $o['news_title']],
+                    'category' => ['type' => 'integer', 'default' => (int) $o['news_category']],
+                    'count'    => ['type' => 'integer', 'default' => (int) $o['news_count']],
+                    'layout'   => ['type' => 'string', 'default' => (string) $o['news_layout']],
+                    'more'     => ['type' => 'string', 'default' => (string) $o['news_more']],
+                ],
+                'render'      => [__CLASS__, 'render_news'],
+            ],
+            'contacts' => [
+                'title'       => 'Олимпиада: контакты',
+                'description' => 'Адрес со ссылкой на карту, телефон, e-mail и кнопка «Связаться».',
+                'icon'        => 'location-alt',
+                'keywords'    => ['контакты', 'адрес', 'телефон', 'contacts'],
+                'attributes'  => [
+                    'title'   => ['type' => 'string', 'default' => (string) $o['contacts_title']],
+                    'address' => ['type' => 'string', 'default' => (string) $o['contact_address']],
+                    'city'    => ['type' => 'string', 'default' => (string) $o['contact_city']],
+                    'phone'   => ['type' => 'string', 'default' => (string) $o['contact_phone']],
+                    'email'   => ['type' => 'string', 'default' => (string) $o['contact_email']],
+                    'map'     => ['type' => 'string', 'default' => (string) $o['contact_map']],
+                    'page'    => ['type' => 'string', 'default' => (string) $o['contact_page']],
+                    'code'    => ['type' => 'string', 'default' => (string) $o['contact_code']],
+                ],
+                'render'      => [__CLASS__, 'render_contacts'],
+            ],
         ];
     }
 
@@ -100,11 +186,11 @@ class WPD_Blocks
             return;
         }
 
-        wp_register_style('wpd-editor', WPD_URL . 'assets/css/wpd-editor.css', ['wpd-design'], WPD_VERSION);
+        wp_register_style('wpd-editor', WPD_URL . 'assets/css/wpd-editor.css', ['wpd-design', 'dashicons'], WPD_VERSION);
         wp_register_script(
             'wpd-blocks',
             WPD_URL . 'assets/js/wpd-blocks.js',
-            ['wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components'],
+            ['wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-server-side-render'],
             WPD_VERSION,
             true
         );
@@ -153,6 +239,11 @@ class WPD_Blocks
             ],
             'heroStyles'  => ['dark' => 'Тёмный', 'gradient' => 'Градиент основного цвета', 'light' => 'Светлый'],
             'settingsUrl' => WPD_Settings::url(),
+            'icons'       => WPD_Settings::icons(),
+            // Список рубрик нужен только редактору; на сайте лишний запрос не делаем
+            'categories'  => is_admin() ? self::categories() : [],
+            'noticeLayouts' => WPD_Settings::field_map()['notice_layout']['options'],
+            'newsLayouts'   => WPD_Settings::field_map()['news_layout']['options'],
         ]) . ';', 'before');
 
         if (function_exists('register_block_pattern')) {
@@ -172,7 +263,35 @@ class WPD_Blocks
                     '<!-- wp:wpd/faq /-->',
                 ]),
             ]);
+            register_block_pattern(self::NS . '/front-page', [
+                'title'       => 'Главная страница',
+                'description' => 'Слайдер, кнопки-ссылки, объявление, карточки, новости и контакты — содержимое из общих настроек.',
+                'categories'  => [self::NS],
+                'content'     => implode("\n\n", [
+                    '<!-- wp:wpd/slider {"align":"wide"} /-->',
+                    '<!-- wp:wpd/buttons /-->',
+                    '<!-- wp:wpd/notice /-->',
+                    '<!-- wp:wpd/cards /-->',
+                    '<!-- wp:wpd/news /-->',
+                    '<!-- wp:wpd/contacts /-->',
+                ]),
+            ]);
         }
+    }
+
+    /**
+     * Рубрики для выбора в блоке новостей.
+     */
+    private static function categories(): array
+    {
+        $out   = [['value' => 0, 'label' => 'Все рубрики']];
+        $terms = get_terms(['taxonomy' => 'category', 'hide_empty' => false, 'number' => 200]);
+        if (is_array($terms)) {
+            foreach ($terms as $term) {
+                $out[] = ['value' => (int) $term->term_id, 'label' => $term->name];
+            }
+        }
+        return $out;
     }
 
     public static function category(array $categories): array
@@ -282,5 +401,89 @@ class WPD_Blocks
         $o = WPD_Settings::get();
         $items = self::items($a, WPD_Settings::parse_faq($o['faq']));
         return self::wrap(WPD_Renderer::faq_html($o, $items, self::str($a, 'title', $o['faq_title'])), $a, 'faq');
+    }
+
+    /**
+     * Логический и числовой атрибуты. Отсутствует — значение из общих настроек.
+     */
+    private static function flag(array $a, string $key, $fallback): bool
+    {
+        return array_key_exists($key, $a) ? (bool) $a[$key] : (bool) $fallback;
+    }
+
+    private static function num(array $a, string $key, $fallback): int
+    {
+        return array_key_exists($key, $a) && is_numeric($a[$key]) ? (int) $a[$key] : (int) $fallback;
+    }
+
+    public static function render_slider($a): string
+    {
+        $a = is_array($a) ? $a : [];
+        $o = WPD_Settings::get();
+        return self::wrap(WPD_Renderer::slider_html($o, [
+            'items'           => self::items($a, (array) $o['slides']),
+            'height'          => self::num($a, 'height', $o['slider_height']),
+            'autoplay'        => self::flag($a, 'autoplay', $o['slider_autoplay']),
+            'arrows'          => self::flag($a, 'arrows', $o['slider_arrows']),
+            'dots'            => self::flag($a, 'dots', $o['slider_dots']),
+            'mobile'          => self::flag($a, 'mobile', $o['slider_mobile']),
+            'mobile_headings' => self::flag($a, 'mobileHeadings', $o['slider_mobile_headings']),
+            'mobile_texts'    => self::flag($a, 'mobileTexts', $o['slider_mobile_texts']),
+        ]), $a, 'slider');
+    }
+
+    public static function render_buttons($a): string
+    {
+        $a = is_array($a) ? $a : [];
+        $o = WPD_Settings::get();
+        return self::wrap(WPD_Renderer::buttons_html($o, self::items($a, (array) $o['buttons'])), $a, 'buttons');
+    }
+
+    public static function render_cards($a): string
+    {
+        $a = is_array($a) ? $a : [];
+        $o = WPD_Settings::get();
+        return self::wrap(WPD_Renderer::cards_html($o, self::items($a, (array) $o['cards']), self::str($a, 'title', (string) $o['cards_title'])), $a, 'cards');
+    }
+
+    public static function render_notice($a): string
+    {
+        $a = is_array($a) ? $a : [];
+        $o = WPD_Settings::get();
+        return self::wrap(WPD_Renderer::notice_html($o, [
+            'layout'    => self::str($a, 'layout', $o['notice_layout']),
+            'image'     => self::str($a, 'image', $o['notice_image']),
+            'color'     => self::str($a, 'color', $o['notice_color']),
+            'url'       => self::str($a, 'url', $o['notice_url']),
+            'new_tab'   => self::flag($a, 'newTab', $o['notice_new_tab']),
+            'pre_title' => self::str($a, 'preTitle', $o['notice_pre_title']),
+            'title'     => self::str($a, 'title', $o['notice_title']),
+            'content'   => self::str($a, 'content', $o['notice_content']),
+        ]), $a, 'notice');
+    }
+
+    public static function render_news($a): string
+    {
+        $a = is_array($a) ? $a : [];
+        $o = WPD_Settings::get();
+        return self::wrap(WPD_Renderer::news_html($o, [
+            'title'    => self::str($a, 'title', $o['news_title']),
+            'category' => self::num($a, 'category', $o['news_category']),
+            'count'    => self::num($a, 'count', $o['news_count']),
+            'layout'   => self::str($a, 'layout', $o['news_layout']),
+            'more'     => self::str($a, 'more', $o['news_more']),
+        ]), $a, 'news');
+    }
+
+    public static function render_contacts($a): string
+    {
+        $a = is_array($a) ? $a : [];
+        $o = WPD_Settings::get();
+        $args = [];
+        foreach (['title' => 'contacts_title', 'address' => 'contact_address', 'city' => 'contact_city', 'phone' => 'contact_phone',
+                  'email' => 'contact_email', 'map' => 'contact_map', 'page' => 'contact_page', 'code' => 'contact_code'] as $key => $opt) {
+            $args[$key] = self::str($a, $key, (string) $o[$opt]);
+        }
+        return self::wrap(WPD_Renderer::contacts_html($o, $args), $a, 'contacts');
     }
 }

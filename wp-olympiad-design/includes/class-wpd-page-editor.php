@@ -34,20 +34,32 @@ class WPD_Page_Editor
     public static function blocks(): array
     {
         return [
+            'slider'    => 'Слайдер',
             'hero'      => 'Главный блок',
+            'buttons'   => 'Кнопки-ссылки',
             'countdown' => 'Обратный отсчёт',
+            'notice'    => 'Объявление',
             'content'   => 'Текст страницы',
+            'cards'     => 'Карточки',
             'stats'     => 'Статистика',
+            'news'      => 'Новости',
             'docs'      => 'Документы',
             'faq'       => 'Частые вопросы',
+            'contacts'  => 'Контакты',
         ];
     }
+
+    /**
+     * Компоненты 1.5.0. Пока страница не сохранила их видимость явно, они скрыты:
+     * иначе после обновления плагина на уже оформленных страницах внезапно появились бы новые блоки.
+     */
+    const OPT_IN = ['slider', 'buttons', 'notice', 'cards', 'news', 'contacts'];
 
     public static function defaults(): array
     {
         return [
             'order'      => array_keys(self::blocks()),
-            'hidden'     => [],
+            'hidden'     => self::OPT_IN,
             'hero'       => [
                 'title'       => '',
                 'badge'       => '',
@@ -94,14 +106,30 @@ class WPD_Page_Editor
                 $order[] = $key;
             }
         }
-        foreach (array_keys($blocks) as $key) {
-            if (!in_array($key, $order, true)) {
-                $order[] = $key;
+        // Блоки, которых нет в сохранённом порядке, встают на место по умолчанию — после ближайшего предыдущего
+        // известного блока. Компоненты из OPT_IN при этом скрыты.
+        $missing = [];
+        $keys    = array_keys($blocks);
+        foreach ($keys as $pos => $key) {
+            if (in_array($key, $order, true)) {
+                continue;
             }
+            $missing[] = $key;
+            $after = -1;
+            for ($k = $pos - 1; $k >= 0; $k--) {
+                $found = array_search($keys[$k], $order, true);
+                if ($found !== false) {
+                    $after = $found;
+                    break;
+                }
+            }
+            array_splice($order, $after + 1, 0, [$key]);
         }
         $out['order'] = $order;
 
-        $out['hidden'] = array_values(array_intersect($order, array_map('strval', (array) ($raw['hidden'] ?? []))));
+        $hidden = array_map('strval', array_filter((array) ($raw['hidden'] ?? []), 'is_scalar'));
+        $hidden = array_merge($hidden, array_intersect($missing, self::OPT_IN));
+        $out['hidden'] = array_values(array_intersect($order, $hidden));
 
         $hero = is_array($raw['hero'] ?? null) ? $raw['hero'] : [];
         foreach ($d['hero'] as $key => $default) {
@@ -290,7 +318,16 @@ class WPD_Page_Editor
             'stats'     => '',
             'docs'      => '',
             'faq'       => '',
+            'slider'    => count($o['slides']) ? count($o['slides']) . ' сл. из общих настроек' : 'нет слайдов в общих настройках',
+            'buttons'   => 'из общих настроек',
+            'cards'     => 'из общих настроек',
+            'notice'    => $o['notice_title'] !== '' || $o['notice_image'] !== '' || $o['notice_content'] !== ''
+                ? 'из общих настроек' : 'не заполнено в общих настройках',
+            'news'      => 'последние записи',
+            'contacts'  => $o['contact_address'] !== '' || $o['contact_phone'] !== '' || $o['contact_email'] !== ''
+                ? 'из общих настроек' : 'не заполнены в общих настройках',
         ];
+
 
         echo '<div class="wpd-pe" data-wpd-pe>';
 

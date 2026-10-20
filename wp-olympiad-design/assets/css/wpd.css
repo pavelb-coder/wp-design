@@ -511,3 +511,568 @@
 .wpd-page.wpd-page--block.alignfull {
     max-width: none;
 }
+
+/* ---------------------------------------------------------------
+ * 1.5.0: слайдер, кнопки-ссылки, карточки, объявление, новости, контакты
+ * ------------------------------------------------------------- */
+.wpd-page .wpd-slider,
+.wpd-page .wpd-buttons,
+.wpd-page .wpd-cards,
+.wpd-page .wpd-notice,
+.wpd-page .wpd-news,
+.wpd-page .wpd-contacts {
+    margin-top: 40px;
+}
+
+.wpd-page > .wpd-slider:first-child,
+.wpd-page > .wpd-buttons:first-child {
+    margin-top: 24px;
+}
+
+/* Слайдер */
+.wpd-page .wpd-slider {
+    position: relative;
+    border-radius: var(--wpd-radius);
+    overflow: hidden;
+    background: var(--wpd-dark);
+}
+
+.wpd-page .wpd-slider__track {
+    display: flex;
+    position: relative;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+}
+
+.wpd-page .wpd-slider__track::-webkit-scrollbar {
+    display: none;
+}
+
+.wpd-page .wpd-slider__track:focus-visible {
+    outline: 3px solid var(--wpd-accent);
+    outline-offset: -3px;
+}
+
+.wpd-page .wpd-slide {
+    position: relative;
+    flex: 0 0 100%;
+    min-height: var(--wpd-slider-h, 420px);
+    scroll-snap-align: start;
+    background: linear-gradient(135deg, var(--wpd-dark), var(--wpd-primary));
+    color: #fff;
+}
+
+.wpd-page .wpd-slide__link {
+    display: block;
+    position: absolute;
+    inset: 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.wpd-page .wpd-slide__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+}
+
+.wpd-page .wpd-slide__caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 72px 56px 48px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0));
+}
+
+.wpd-page .wpd-slide--noimg .wpd-slide__caption {
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: none;
+}
+
+.wpd-page .wpd-slide__title {
+    margin: 0 0 8px;
+    max-width: 760px;
+    font-size: clamp(24px, 3.4vw, 40px);
+    font-weight: 800;
+    line-height: 1.15;
+    color: #fff;
+}
+
+.wpd-page .wpd-slide__text {
+    margin: 0;
+    max-width: 680px;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.wpd-page .wpd-slider__arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    margin-top: -22px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--wpd-dark);
+    font-size: 30px;
+    line-height: 40px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.wpd-page .wpd-slider__arrow:hover,
+.wpd-page .wpd-slider__arrow:focus-visible {
+    background: #fff;
+    outline: 3px solid var(--wpd-accent);
+    outline-offset: 2px;
+}
+
+.wpd-page .wpd-slider__arrow--prev {
+    left: 16px;
+}
+
+.wpd-page .wpd-slider__arrow--next {
+    right: 16px;
+}
+
+.wpd-page .wpd-slider__arrow[hidden],
+.wpd-page .wpd-slider__dots[hidden] {
+    display: none;
+}
+
+.wpd-page .wpd-slider__dots {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 16px;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.wpd-page .wpd-slider__dot {
+    width: 12px;
+    height: 12px;
+    padding: 0;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+}
+
+.wpd-page .wpd-slider__dot[aria-current="true"] {
+    background: #fff;
+}
+
+/* Кнопки-ссылки */
+.wpd-page .wpd-buttons__grid {
+    display: grid;
+    /* На узких экранах — не меньше двух колонок */
+    grid-template-columns: repeat(auto-fit, minmax(min(140px, calc(50% - 6px)), 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.wpd-page .wpd-qbtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 100%;
+    min-height: 116px;
+    padding: 18px 12px;
+    border-radius: var(--wpd-radius);
+    background: #fff;
+    color: var(--wpd-text);
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.wpd-page a.wpd-qbtn:hover,
+.wpd-page a.wpd-qbtn:focus-visible {
+    color: var(--wpd-primary);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.wpd-page .wpd-qbtn__icon.dashicons {
+    width: 44px;
+    height: 44px;
+    font-size: 44px;
+    color: var(--wpd-primary);
+}
+
+.wpd-page .wpd-qbtn--small .wpd-qbtn__text {
+    font-size: 13px;
+}
+
+/* Карточки */
+.wpd-page .wpd-cards__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.wpd-page .wpd-card {
+    --wpd-card: var(--wpd-primary);
+    border-radius: var(--wpd-radius);
+    background: var(--wpd-card);
+    color: #fff;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wpd-page .wpd-card:not(.has-color):nth-child(3n+2) {
+    --wpd-card: var(--wpd-accent);
+}
+
+.wpd-page .wpd-card:not(.has-color):nth-child(3n+3) {
+    --wpd-card: var(--wpd-dark);
+}
+
+.wpd-page .wpd-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+
+.wpd-page .wpd-card__link {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    padding: 22px;
+    color: #fff;
+    text-decoration: none;
+}
+
+.wpd-page .wpd-card__title {
+    font-size: 21px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.wpd-page .wpd-card__img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: calc(var(--wpd-radius) * 0.6);
+}
+
+.wpd-page .wpd-card__text {
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.wpd-page .wpd-card__more {
+    margin-top: auto;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+/* Объявление */
+.wpd-page .wpd-notice {
+    --wpd-notice-bg: color-mix(in srgb, var(--wpd-primary) 8%, #fff);
+    display: grid;
+    border-radius: var(--wpd-radius);
+    overflow: hidden;
+    background: var(--wpd-notice-bg);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.wpd-page .wpd-notice--image-text {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.wpd-page .wpd-notice__media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 220px;
+    object-fit: cover;
+}
+
+.wpd-page .wpd-notice--image .wpd-notice__media img {
+    min-height: 0;
+    height: auto;
+}
+
+.wpd-page .wpd-notice__body {
+    padding: 32px 40px;
+    border-left: 6px solid var(--wpd-accent);
+}
+
+.wpd-page .wpd-notice--image-text .wpd-notice__body {
+    border-left: 0;
+}
+
+.wpd-page .wpd-notice__pre {
+    margin: 0 0 6px;
+    color: var(--wpd-accent);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.wpd-page .wpd-notice__title {
+    margin: 0 0 12px;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--wpd-text);
+}
+
+.wpd-page .wpd-notice__title a {
+    color: var(--wpd-primary);
+    text-decoration: none;
+}
+
+.wpd-page .wpd-notice__title a:hover {
+    text-decoration: underline;
+}
+
+.wpd-page .wpd-notice__content > :last-child {
+    margin-bottom: 0;
+}
+
+/* Новости */
+.wpd-page .wpd-news {
+    position: relative;
+}
+
+.wpd-page .wpd-news__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 24px;
+}
+
+.wpd-page .wpd-news__more {
+    color: var(--wpd-primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.wpd-page .wpd-news__track {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.wpd-page .wpd-news--carousel .wpd-news__track {
+    display: flex;
+    position: relative;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding-bottom: 8px;
+}
+
+.wpd-page .wpd-news--carousel .wpd-news__item {
+    flex: 0 0 calc((100% - 32px) / 3);
+    scroll-snap-align: start;
+}
+
+/* Стрелки карусели новостей — в строке заголовка, справа, чтобы не закрывать карточки */
+.wpd-page .wpd-news--carousel[data-wpd-ready] .wpd-news__head {
+    padding-right: 96px;
+}
+
+.wpd-page .wpd-news--carousel .wpd-slider__arrow {
+    top: 0;
+    width: 38px;
+    height: 38px;
+    margin-top: 0;
+    font-size: 26px;
+    line-height: 34px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+}
+
+.wpd-page .wpd-news--carousel .wpd-slider__arrow--prev {
+    left: auto;
+    right: 46px;
+}
+
+.wpd-page .wpd-news--carousel .wpd-slider__arrow--next {
+    right: 0;
+}
+
+.wpd-page .wpd-news__item {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--wpd-radius);
+    background: #fff;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.wpd-page .wpd-news__media img,
+.wpd-page .wpd-news__ph {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+}
+
+.wpd-page .wpd-news__ph {
+    background: linear-gradient(135deg, var(--wpd-primary), var(--wpd-dark));
+}
+
+.wpd-page .wpd-news__body {
+    padding: 16px 20px 20px;
+}
+
+.wpd-page .wpd-news__date {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.wpd-page .wpd-news__title {
+    margin: 4px 0 8px;
+    font-size: 18px;
+    line-height: 1.3;
+}
+
+.wpd-page .wpd-news__title a {
+    color: var(--wpd-text);
+    text-decoration: none;
+}
+
+.wpd-page .wpd-news__title a:hover {
+    color: var(--wpd-primary);
+}
+
+.wpd-page .wpd-news__excerpt {
+    margin: 0;
+    color: #4b5563;
+    font-size: 15px;
+}
+
+/* Контакты */
+.wpd-page .wpd-contacts__box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px 32px;
+    padding: 28px 32px;
+    border-radius: var(--wpd-radius);
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.wpd-page .wpd-contacts__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px 32px;
+    flex: 1 1 480px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.wpd-page .wpd-contacts__list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.wpd-page .wpd-contacts__icon.dashicons {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+    color: var(--wpd-primary);
+}
+
+.wpd-page .wpd-contacts__list a {
+    color: var(--wpd-text);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--wpd-primary) 40%, transparent);
+}
+
+.wpd-page .wpd-contacts__list a:hover {
+    color: var(--wpd-primary);
+}
+
+@media (max-width: 782px) {
+    .wpd-page .wpd-notice--image-text {
+        grid-template-columns: 1fr;
+    }
+
+    .wpd-page .wpd-news--carousel .wpd-news__item {
+        flex-basis: 80%;
+    }
+
+    .wpd-page .wpd-slide__caption {
+        padding: 56px 24px 40px;
+    }
+}
+
+@media (max-width: 600px) {
+    .wpd-page .wpd-slider--hide-mobile {
+        display: none;
+    }
+
+    .wpd-page .wpd-slider--no-mobile-headings .wpd-slide__title,
+    .wpd-page .wpd-slider--no-mobile-texts .wpd-slide__text {
+        display: none;
+    }
+
+    .wpd-page .wpd-slide {
+        min-height: min(var(--wpd-slider-h, 420px), 320px);
+    }
+
+    .wpd-page .wpd-slider .wpd-slider__arrow {
+        display: none;
+    }
+
+    .wpd-page .wpd-notice__body {
+        padding: 24px;
+    }
+}
+
+@media print {
+    .wpd-page .wpd-slider__arrow,
+    .wpd-page .wpd-slider__dots {
+        display: none !important;
+    }
+
+    .wpd-page .wpd-slider__track,
+    .wpd-page .wpd-news--carousel .wpd-news__track {
+        display: block;
+        overflow: visible;
+    }
+
+    .wpd-page .wpd-card,
+    .wpd-page .wpd-news__item,
+    .wpd-page .wpd-notice {
+        break-inside: avoid;
+        box-shadow: none;
+    }
+}
