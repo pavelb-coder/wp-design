@@ -48,6 +48,26 @@ class WPD_Settings
     }
 
     /**
+     * Группы страницы настроек: «Страница» (оформление всего сайта) и «Блоки» (содержимое блоков).
+     * Каждый раздел входит ровно в одну группу.
+     */
+    public static function groups(): array
+    {
+        return [
+            'page' => [
+                'title'    => 'Страница',
+                'desc'     => 'Цвета, шрифт и поведение оформленных страниц. Действуют на все блоки плагина.',
+                'sections' => ['colors', 'behavior'],
+            ],
+            'blocks' => [
+                'title'    => 'Блоки',
+                'desc'     => 'Содержимое и возможности блоков: главный блок, таймер, статистика, документы и FAQ.',
+                'sections' => ['hero', 'features', 'stats', 'docs', 'faq'],
+            ],
+        ];
+    }
+
+    /**
      * Описание всех полей. Это единственный источник правды для дефолтов, санитизации и формы.
      */
     public static function field_map(): array
@@ -335,7 +355,18 @@ class WPD_Settings
             <form method="post" action="options.php">
                 <?php
                 settings_fields(self::GROUP);
-                do_settings_sections(self::PAGE);
+                foreach (self::groups() as $group) {
+                    echo '<div class="postbox wpd-group"><h2 class="hndle"><span>' . esc_html($group['title']) . '</span></h2>';
+                    echo '<div class="inside"><p class="description">' . esc_html($group['desc']) . '</p>';
+                    foreach ($group['sections'] as $section) {
+                        $title = self::sections()[$section];
+                        echo '<h3 class="wpd-group__section">' . esc_html($title) . '</h3>';
+                        echo '<table class="form-table" role="presentation">';
+                        do_settings_fields(self::PAGE, 'wpd_' . $section);
+                        echo '</table>';
+                    }
+                    echo '</div></div>';
+                }
                 submit_button('Сохранить');
                 ?>
             </form>

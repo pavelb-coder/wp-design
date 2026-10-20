@@ -69,13 +69,18 @@ t "docs: javascript link absent"     "$(hasnot f_designed_custom.html 'javascrip
 t "empty stats hidden on page"       "$(hasnot f_designed_custom.html 'wpd-stats')"
 t "empty faq hidden on page"         "$(hasnot f_designed_custom.html 'wpd-faq')"
 
-# Страница настроек в админке: 19 полей и кнопка сохранения
+# Страница настроек в админке: 26 полей, группы «Страница» и «Блоки», кнопка сохранения
 rm -f cj.txt
 curl -s -c cj.txt -b cj.txt -o /dev/null --max-time 60 -d "log=admin&pwd=password&wp-submit=Log+In&redirect_to=/wp-admin/&testcookie=1" $B/wp-login.php
 curl -s -c cj.txt -b cj.txt --max-time 60 "$B/wp-admin/options-general.php?page=wpd-settings" -o settings.html
 t "admin settings page opens"        "$(has settings.html 'Дизайн олимпиады')"
 t "26 settings fields rendered"      "$([ "$(grep -o 'name="wpd_settings\[' settings.html | wc -l)" = "26" ] && echo 1 || echo 0)"
 for sec in 'Цвета и шрифт' 'Главный блок' 'Возможности' 'Статистика' 'Документы' 'Частые вопросы' 'Поведение'; do t "section: $sec" "$(has settings.html "$sec")"; done
+t "settings: group 'Страница' card" "$(has settings.html 'wpd-group"><h2 class="hndle"><span>Страница')"
+t "settings: group 'Блоки' card"    "$(has settings.html 'wpd-group"><h2 class="hndle"><span>Блоки')"
+t "settings: two group cards"       "$([ "$(grep -o 'class="postbox wpd-group"' settings.html | wc -l)" = "2" ] && echo 1 || echo 0)"
+t "settings: colors in page group"  "$(python3 -c "import re,sys;h=open('settings.html',encoding='utf-8').read();g=h.split('<span>Страница</span>',1)[1].split('<span>Блоки</span>',1)[0];print(1 if 'Цвета и шрифт' in g and 'Поведение' in g and 'Главный блок' not in g else 0)")"
+t "settings: hero in blocks group"  "$(python3 -c "import re,sys;h=open('settings.html',encoding='utf-8').read();g=h.split('<span>Блоки</span>',1)[1];print(1 if 'Главный блок' in g and 'Частые вопросы' in g and 'Цвета и шрифт' not in g else 0)")"
 t "shortcode help on page"           "$(has settings.html '\[wpd_page\]')"
 
 # --- 1.2.0: JS, таймер, поиск FAQ, варианты блока, анимация статистики ---
