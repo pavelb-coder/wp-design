@@ -562,8 +562,6 @@ with sync_playwright() as p:
     check("registration block: settings link in sidebar", insp.locator("a[href*='page=wpd-registration']").count() >= 1 or page.locator("a[href*='page=wpd-registration']").count() >= 1)
     content = page.evaluate("() => wp.data.select('core/editor').getEditedPostContent()")
     check("registration block: serialized dynamic", '<!-- wp:wpd/registration {"title":"Заявка на участие"} /-->' in content and "<!-- wp:wpd/cabinet /-->" in content, content[:300])
-    if cv.locator(".wpd-page--reg").count():
-        cv.locator(".wpd-page--reg").first.screenshot(path=os.path.join(SHOTS, "editor-registration.png"))
 
     # 2.0.0: конструктор полей — «Варианты» только у списка и выбора одного варианта
     save(page)

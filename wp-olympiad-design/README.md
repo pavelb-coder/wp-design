@@ -270,6 +270,14 @@
   (Инструменты). При удалении плагина заявки и настройки регистрации удаляются, аккаунты участников остаются
   с ролью «Подписчик».
 
+### Скриншоты
+
+![Форма регистрации](../tests/playground/screenshots/front-registration.png)
+![Ошибки заполнения: сообщение у каждого поля, введённые значения сохранены](../tests/playground/screenshots/front-registration-errors.png)
+![Личный кабинет участника после отправки заявки](../tests/playground/screenshots/front-cabinet.png)
+![Список «Участники»: номера, статусы, счётчик новых, экспорт в CSV](../tests/playground/screenshots/admin-participants.png)
+![Конструктор полей формы](../tests/playground/screenshots/settings-registration-fields.png)
+
 ### Для разработчиков
 
 - Тип записи `wpd_application` (не публичный), мета-поля `_wpd_number`, `_wpd_status`, `_wpd_email`, `_wpd_fields`, `_wpd_user`;
