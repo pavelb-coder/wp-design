@@ -17,7 +17,7 @@ def helper(q):
 helper("cleanup=1")
 pages = helper("setup=1")
 helper("opt=" + urllib.parse.quote(json.dumps({"limit": 150, "privacy_url": "https://example.com/privacy",
-                                                "intro": "Заполните заявку — после отправки откроется личный кабинет, ссылка для входа придёт на e-mail."})))
+                                                "intro": "Заполните заявку — после отправки откроется личный кабинет, войти можно по e-mail и паролю."})))
 FORM, CAB = pages["form"], pages["cabinet"]
 
 with sync_playwright() as p:
@@ -49,6 +49,8 @@ with sync_playwright() as p:
     page.select_option("#wpd-reg-grade", "10")
     page.fill("#wpd-reg-school", "Лицей № 7")
     page.fill("#wpd-reg-city", "Красноярск")
+    page.fill("#wpd-reg-pass", "Mariya-2026")   # 2.1.0: пароль задаётся в форме
+    page.fill("#wpd-reg-pass2", "Mariya-2026")
     page.check("input[name=wpd_consent]")
     page.click(".wpd-reg__form button[type=submit]")
     page.wait_for_url("**wpd_reg=done**", timeout=120000)
@@ -76,6 +78,8 @@ with sync_playwright() as p:
         gp.select_option("#wpd-reg-grade", str(9 + i % 3))
         gp.fill("#wpd-reg-school", ["Гимназия № 2", "СОШ № 10", "Лицей № 1"][i])
         gp.fill("#wpd-reg-city", ["Ачинск", "Канск", "Норильск"][i])
+        gp.fill("#wpd-reg-pass", f"Olymp-2026-{i}")
+        gp.fill("#wpd-reg-pass2", f"Olymp-2026-{i}")
         gp.check("input[name=wpd_consent]")
         gp.click(".wpd-reg__form button[type=submit]")
         gp.wait_for_url("**wpd_reg=done**", timeout=120000)

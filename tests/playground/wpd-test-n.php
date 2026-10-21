@@ -56,7 +56,7 @@ wp_set_current_user(0);
 
 /* ---------- Настройки ---------- */
 $map = WPD_Registration::field_map();
-check('settings: 31 fields', count($map) === 31, (string) count($map));
+check('settings: 33 fields (2.1.0: password, password_min)', count($map) === 33, (string) count($map));
 check('settings: 3 tabs', array_keys(WPD_Registration::tabs()) === ['form', 'fields', 'mail']);
 $secs = [];
 foreach (WPD_Registration::tabs() as $t) { $secs = array_merge($secs, $t['sections']); }
@@ -329,7 +329,7 @@ check('form: name autocomplete and required', (bool) preg_match('/<input type="t
 check('form: email type', has($h, 'type="email" id="wpd-reg-email"'));
 check('form: tel with autocomplete', has($h, 'type="tel" id="wpd-reg-phone" name="wpd_reg[phone]" value="" autocomplete="tel"'));
 check('form: select with empty option', has($h, '<select id="wpd-reg-grade" name="wpd_reg[grade]" required><option value="">— выберите —</option><option value="5">5</option>'));
-check('form: required stars', substr_count($h, '<span class="wpd-reg__req" aria-hidden="true">*</span>') === 8);
+check('form: required stars (6 fields, 2 passwords, consent, note)', substr_count($h, '<span class="wpd-reg__req" aria-hidden="true">*</span>') === 10);
 check('form: consent with privacy link', has($h, 'name="wpd_consent" value="1" required') && has($h, '152-ФЗ') && has($h, 'href="https://example.com/privacy" target="_blank" rel="noopener"'));
 check('form: submit button', has($h, '<button type="submit" class="wpd-btn">Отправить заявку</button>'));
 check('form: login link for guests', has($h, 'class="wpd-reg__login"') && has($h, 'wp-login.php?redirect_to=' . rawurlencode(get_permalink($pg))));
@@ -547,7 +547,7 @@ wp_set_current_user(0);
 $help = (function () { ob_start(); $m = new ReflectionMethod('WPD_Settings', 'render_help'); $m->setAccessible(true); $m->invoke(null); return ob_get_clean(); })();
 check('help: registration section', has($help, '<h2>Регистрация участников</h2>') && has($help, '[wpd_cabinet]'));
 check('human date: russian months', WPD_Registration::human_date(1893456000, new DateTimeZone('Europe/Moscow')) === '1 января 2030, 03:00' && WPD_Registration::human_date(1909000000, new DateTimeZone('UTC')) === '29 июня 2030, 21:46', WPD_Registration::human_date(1909000000, new DateTimeZone('UTC')));
-check('version 2.0.0', WPD_VERSION === '2.0.0');
+check('version >= 2.0.0', version_compare(WPD_VERSION, '2.0.0', '>='));
 
 /* ---------- CSS ---------- */
 $css = file_get_contents(WPD_DIR . 'assets/css/wpd.css');

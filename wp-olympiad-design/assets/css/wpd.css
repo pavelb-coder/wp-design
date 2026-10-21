@@ -1628,6 +1628,7 @@
 .wpd-page .wpd-reg input[type="tel"],
 .wpd-page .wpd-reg input[type="number"],
 .wpd-page .wpd-reg input[type="date"],
+.wpd-page .wpd-reg input[type="password"],
 .wpd-page .wpd-reg select,
 .wpd-page .wpd-reg textarea,
 .wpd-page .wpd-cabinet input[type="text"],
@@ -1934,6 +1935,35 @@
 
 @media print {
     .wpd-page .wpd-reg__form {
+        display: none;
+    }
+}
+
+/* 2.1.0: пароль при регистрации и смена пароля в кабинете */
+.wpd-page .wpd-reg__pass {
+    margin-top: 18px;
+}
+
+.wpd-page .wpd-reg__check[hidden] {
+    display: none;
+}
+
+.wpd-page .wpd-reg__showpass {
+    margin: 10px 0 0;
+    font-size: 0.95em;
+}
+
+.wpd-page .wpd-cabinet__subtitle {
+    margin: 0 0 14px;
+    font-size: 1.15em;
+}
+
+.wpd-page .wpd-cabinet__pass .wpd-reg__field[aria-hidden="true"] {
+    visibility: hidden;
+}
+
+@media (max-width: 820px) {
+    .wpd-page .wpd-cabinet__pass .wpd-reg__field[aria-hidden="true"] {
         display: none;
     }
 }

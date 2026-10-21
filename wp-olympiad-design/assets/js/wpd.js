@@ -284,8 +284,39 @@
         }
     }
 
+    /* «Показать пароль» в форме регистрации и в личном кабинете (2.1.0) */
+    function initShowPassword(toggle) {
+        var form = toggle.closest ? toggle.closest('form') : null;
+        var box = toggle.querySelector('input[type="checkbox"]');
+        if (!form || !box) {
+            return;
+        }
+        toggle.hidden = false;
+        box.addEventListener('change', function () {
+            var fields = form.querySelectorAll('input[data-wpd-pass]');
+            for (var i = 0; i < fields.length; i++) {
+                fields[i].type = box.checked ? 'text' : 'password';
+            }
+        });
+        // Перед отправкой поля снова скрываются: браузер не сохранит пароль как обычный текст
+        form.addEventListener('submit', function () {
+            if (box.checked) {
+                box.checked = false;
+                var fields = form.querySelectorAll('input[data-wpd-pass]');
+                for (var i = 0; i < fields.length; i++) {
+                    fields[i].type = 'password';
+                }
+            }
+        });
+    }
+
     function init() {
         initPrintFaq();
+
+        var passToggles = document.querySelectorAll('[data-wpd-showpass]');
+        for (var p = 0; p < passToggles.length; p++) {
+            initShowPassword(passToggles[p]);
+        }
 
         var countdowns = document.querySelectorAll('.wpd-countdown');
         for (var i = 0; i < countdowns.length; i++) {

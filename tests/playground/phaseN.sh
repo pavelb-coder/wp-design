@@ -28,7 +28,8 @@ OUTF=n_post.html
 send() { local jar=$1 url=$2; shift 2; curl -s -c "$jar" -b "$jar" --max-time 120 -o "$OUTF" -w "%{redirect_url}" "$@" "$url"; }
 VALID=(--data-urlencode "wpd_reg_action=register" --data-urlencode "wpd_hp=" --data-urlencode "wpd_consent=1"
   --data-urlencode "wpd_reg[name]=Иванов Иван Иванович" --data-urlencode "wpd_reg[phone]=+7 900 123-45-67"
-  --data-urlencode "wpd_reg[grade]=9" --data-urlencode "wpd_reg[school]=Лицей № 1" --data-urlencode "wpd_reg[city]=Красноярск")
+  --data-urlencode "wpd_reg[grade]=9" --data-urlencode "wpd_reg[school]=Лицей № 1" --data-urlencode "wpd_reg[city]=Красноярск"
+  --data-urlencode "wpd_pass=Olymp2026pass" --data-urlencode "wpd_pass2=Olymp2026pass")
 
 # ---------- Гость открывает форму ----------
 g cjG.txt "$FORM" -o n_form.html
@@ -82,10 +83,10 @@ t "valid: account with role participant" "$(js "$U" "1 if d and d['roles']==['wp
 t "valid: application linked to user"    "$([ "$(js "$APPS" "d[0]['user']")" = "$(js "$U" "d['id']")" ] && echo 1 || echo 0)"
 t "valid: logged in (auth cookie)"       "$(grep -q 'wordpress_logged_in' cjG.txt && echo 1 || echo 0)"
 MAILS=$(H "mails=1")
-t "mails: 3 sent"                        "$(js "$MAILS" "1 if len(d)==3 else len(d)")"
+t "mails: 2 sent (own password — no set-password mail, 2.1.0)" "$(js "$MAILS" "1 if len(d)==2 else len(d)")"
 t "mails: participant confirmation"      "$(js "$MAILS" "1 if any(m['to']=='ivan@n-test.ru' and m['subject']=='Заявка OL-0001 принята' and 'Лицей № 1' in m['message'] for m in d) else 0")"
 t "mails: organizer notice"              "$(js "$MAILS" "1 if any(m['to']=='$ADMIN_MAIL' and m['subject'].startswith('Новая заявка OL-0001') for m in d) else 0")"
-t "mails: WordPress set-password mail"   "$(js "$MAILS" "1 if any(m['to']=='ivan@n-test.ru' and 'wp-login.php?login=' in m['message'] or ('action=rp' in m['message'] and m['to']=='ivan@n-test.ru') for m in d) else 0")"
+t "mails: no WordPress set-password mail" "$(js "$MAILS" "0 if any('action=rp' in m['message'] for m in d) else 1")"
 URL=$(echo "$LOC" | sed 's/#.*//')
 g cjG.txt "$URL" -o n_cab.html
 t "cabinet: success notice"              "$(has n_cab.html 'Заявка OL-0001 принята')"

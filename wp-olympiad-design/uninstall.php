@@ -26,4 +26,5 @@ foreach (get_users(['role' => 'wpd_participant', 'fields' => 'ID']) as $wpd_uid)
     $wpd_user = new WP_User((int) $wpd_uid);
     $wpd_user->set_role('subscriber');
 }
+delete_metadata('user', 0, 'wpd_own_password', '', true); // 2.1.0: отметка «пароль задан при регистрации»
 remove_role('wpd_participant');

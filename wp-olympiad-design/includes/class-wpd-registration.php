@@ -112,7 +112,7 @@ class WPD_Registration
      */
     public static function field_map(): array
     {
-        $vars = '{name}, {email}, {number}, {status}, {fields}, {cabinet}, {site}';
+        $vars = '{name}, {email}, {login}, {login_info}, {number}, {status}, {fields}, {cabinet}, {site}';
         return [
             // Приём заявок
             'enabled'    => ['label' => 'Приём заявок открыт', 'type' => 'checkbox', 'section' => 'reg_main', 'default' => 1,
@@ -128,7 +128,11 @@ class WPD_Registration
                              'desc' => '0 — без ограничения. Отклонённые заявки места не занимают.'],
             'show_left'  => ['label' => 'Показывать, сколько мест осталось', 'type' => 'checkbox', 'section' => 'reg_main', 'default' => 1],
             'accounts'   => ['label' => 'Создавать аккаунт участника', 'type' => 'checkbox', 'section' => 'reg_main', 'default' => 1,
-                             'desc' => 'Участник получает письмо со ссылкой для установки пароля, входит в личный кабинет и видит статус заявки. Админка и верхняя панель WordPress участникам недоступны.'],
+                             'desc' => 'Участник входит в личный кабинет по e-mail (или логину) и паролю и видит статус заявки. Админка и верхняя панель WordPress участникам недоступны.'],
+            'password'   => ['label' => 'Участник задаёт пароль при регистрации', 'type' => 'checkbox', 'section' => 'reg_main', 'default' => 1,
+                             'desc' => 'В форме появляются поля «Пароль» и «Повторите пароль». Без флажка участник получает письмо WordPress со ссылкой для установки пароля. Пароль не отправляется в письмах и не виден организатору.'],
+            'password_min' => ['label' => 'Минимальная длина пароля', 'type' => 'number', 'section' => 'reg_main', 'default' => 8, 'min' => 6, 'max' => 64,
+                             'desc' => 'Пароль должен содержать буквы и цифры и не совпадать с e-mail.'],
             'autologin'  => ['label' => 'Входить сразу после регистрации', 'type' => 'checkbox', 'section' => 'reg_main', 'default' => 1],
             'allow_edit' => ['label' => 'Участник может изменить заявку', 'type' => 'checkbox', 'section' => 'reg_main', 'default' => 1,
                              'desc' => 'В личном кабинете, пока заявка в статусе «Новая» и приём не закрыт.'],
@@ -169,7 +173,7 @@ class WPD_Registration
             'mail_user'  => ['label' => 'Письмо участнику о приёме заявки', 'type' => 'checkbox', 'section' => 'reg_mail', 'default' => 1],
             'mail_user_subject' => ['label' => 'Тема', 'type' => 'text', 'section' => 'reg_mail', 'default' => 'Заявка {number} принята'],
             'mail_user_body' => ['label' => 'Текст', 'type' => 'textarea', 'section' => 'reg_mail',
-                             'default' => "Здравствуйте, {name}!\n\nВаша заявка {number} на участие в олимпиаде принята. Статус: {status}.\n\n{fields}\n\nЛичный кабинет: {cabinet}\n\n{site}",
+                             'default' => "Здравствуйте, {name}!\n\nВаша заявка {number} на участие в олимпиаде принята. Статус: {status}.\n\n{fields}\n\nЛичный кабинет: {cabinet}\n{login_info}\n\n{site}",
                              'desc' => 'Подстановки: ' . $vars . '.'],
             'mail_status' => ['label' => 'Письмо участнику при смене статуса', 'type' => 'checkbox', 'section' => 'reg_mail', 'default' => 1,
                              'desc' => 'При смене статуса в «Участниках» письмо можно не отправлять — флажок есть рядом со статусом.'],
@@ -915,6 +919,40 @@ class WPD_Registration
      * Защита от спама
      * ------------------------------------------------------------- */
 
+    /** Длина и состав пароля: '' — подходит, иначе текст ошибки. */
+    public static function password_error(string $pass, string $email = '', ?int $min = null): string
+    {
+        $min = $min ?? (int) self::get()['password_min'];
+        if ($pass === '') {
+            return 'Придумайте пароль.';
+        }
+        if (mb_strlen($pass) < $min) {
+            return 'Пароль должен быть не короче ' . $min . ' ' . self::plural($min, 'символа', 'символов', 'символов') . '.';
+        }
+        if (mb_strlen($pass) > 128) {
+            return 'Пароль должен быть не длиннее 128 символов.';
+        }
+        if (strpos($pass, '\\') !== false) {
+            return 'Пароль не может содержать символ «\\».'; // как в профиле WordPress
+        }
+        if (!preg_match('/\p{L}/u', $pass) || !preg_match('/\d/', $pass)) {
+            return 'Пароль должен содержать буквы и цифры.';
+        }
+        $email = strtolower(trim($email));
+        $lower = mb_strtolower($pass);
+        if ($email !== '' && ($lower === $email || $lower === (string) strstr($email, '@', true))) {
+            return 'Пароль не должен совпадать с e-mail.';
+        }
+        return '';
+    }
+
+    /** Участник задаёт пароль в форме: аккаунты и пароль включены, посетитель не вошёл. */
+    public static function wants_password(?array $r = null): bool
+    {
+        $r = $r ?? self::get();
+        return $r['accounts'] && $r['password'] && !is_user_logged_in();
+    }
+
     public static function form_token(?int $time = null): string
     {
         $time = $time ?? time();
@@ -965,6 +1003,8 @@ class WPD_Registration
             self::process_register();
         } elseif ($action === 'edit') {
             self::process_edit();
+        } elseif ($action === 'password') {
+            self::process_password();
         }
     }
 
@@ -979,7 +1019,7 @@ class WPD_Registration
     private static function current_url(): string
     {
         $url = is_singular() ? (string) get_permalink(get_queried_object_id()) : home_url(add_query_arg([]));
-        return remove_query_arg(['wpd_reg', 't', 'wpd_edit'], $url);
+        return remove_query_arg(['wpd_reg', 't', 'wpd_edit', 'wpd_pass'], $url);
     }
 
     public static function process_register(): void
@@ -1021,6 +1061,17 @@ class WPD_Registration
             $values['email'] = strtolower($user->user_email);
             unset($errors['email']);
         }
+        $pass = '';
+        if (self::wants_password($r)) {
+            $pass = self::posted_password('wpd_pass');
+            $pass2 = self::posted_password('wpd_pass2');
+            $perr = self::password_error(wp_unslash($pass), (string) $values['email'], (int) $r['password_min']);
+            if ($perr !== '') {
+                $errors['_pass'] = $perr;
+            } elseif ($pass !== $pass2) {
+                $errors['_pass2'] = 'Пароли не совпадают.';
+            }
+        }
         if (!$consent) {
             $errors['_consent'] = 'Нужно согласие на обработку персональных данных.';
         }
@@ -1043,7 +1094,7 @@ class WPD_Registration
             if ($logged) {
                 $uid = (int) $user->ID;
             } else {
-                $created = self::create_user($values);
+                $created = self::create_user($values, $pass);
                 if (is_wp_error($created)) {
                     self::$state['values'] = $values;
                     self::$state['errors']['_form'] = 'Не удалось создать аккаунт: ' . $created->get_error_message();
@@ -1070,7 +1121,9 @@ class WPD_Registration
             self::send_mail($app, 'admin');
         }
         if ($new_user) {
-            wp_new_user_notification($uid, null, 'user'); // письмо WordPress со ссылкой для установки пароля
+            if ($pass === '') {
+                wp_new_user_notification($uid, null, 'user'); // письмо WordPress со ссылкой для установки пароля
+            }
             if ($r['autologin']) {
                 wp_set_current_user($uid);
                 wp_set_auth_cookie($uid, true);
@@ -1085,7 +1138,8 @@ class WPD_Registration
         exit;
     }
 
-    private static function create_user(array $values)
+    /** Аккаунт участника. Пароль из формы или случайный (тогда участник задаёт его по ссылке из письма). */
+    private static function create_user(array $values, string $pass = '')
     {
         $base = sanitize_user((string) strstr($values['email'], '@', true), true);
         $base = $base !== '' ? substr($base, 0, 50) : 'participant';
@@ -1097,13 +1151,14 @@ class WPD_Registration
         return wp_insert_user([
             'user_login'   => $login,
             'user_email'   => $values['email'],
-            'user_pass'    => wp_generate_password(24),
+            'user_pass'    => $pass !== '' ? $pass : wp_generate_password(24),
             'display_name' => $values['name'],
             'nickname'     => $values['name'],
             'last_name'    => $parts[0] ?? '',
             'first_name'   => $parts[1] ?? '',
             'role'         => self::ROLE,
             'show_admin_bar_front' => 'false',
+            'meta_input'   => ['wpd_own_password' => $pass !== '' ? 1 : 0],
         ]);
     }
 
@@ -1219,6 +1274,77 @@ class WPD_Registration
         exit;
     }
 
+    /** Смена пароля в личном кабинете (консоль участнику недоступна). */
+    public static function process_password(): void
+    {
+        $user = wp_get_current_user();
+        self::$state = ['form' => 'password', 'values' => [], 'errors' => [], 'notice' => ''];
+        if (!$user->exists() || !self::is_participant($user)) {
+            return;
+        }
+        $nonce = isset($_POST['_wpd_nonce']) && is_string($_POST['_wpd_nonce']) ? sanitize_text_field(wp_unslash($_POST['_wpd_nonce'])) : '';
+        if (!wp_verify_nonce($nonce, 'wpd_reg_pass')) {
+            self::$state['errors']['_form'] = 'Сессия устарела. Обновите страницу и попробуйте ещё раз.';
+            return;
+        }
+        $cur = self::posted_password('wpd_pass_current');
+        $pass = self::posted_password('wpd_pass');
+        $pass2 = self::posted_password('wpd_pass2');
+        $errors = [];
+        if ($cur === '' || !wp_check_password($cur, $user->user_pass, $user->ID)) {
+            $errors['_cur'] = 'Неверный текущий пароль.';
+        }
+        $perr = self::password_error(wp_unslash($pass), (string) $user->user_email);
+        if ($perr !== '') {
+            $errors['_pass'] = $perr;
+        } elseif ($pass !== $pass2) {
+            $errors['_pass2'] = 'Пароли не совпадают.';
+        } elseif (!isset($errors['_cur']) && $pass === $cur) {
+            $errors['_pass'] = 'Новый пароль совпадает с текущим.';
+        }
+        if ($errors) {
+            self::$state['errors'] = $errors;
+            return;
+        }
+        // wp_update_user заново выставляет cookie входа и отправляет письмо WordPress о смене пароля
+        wp_update_user(['ID' => $user->ID, 'user_pass' => $pass]);
+        update_user_meta($user->ID, 'wpd_own_password', 1);
+        wp_safe_redirect(add_query_arg('wpd_reg', 'pass_saved', remove_query_arg('wpd_pass', self::current_url())) . '#wpd-cabinet');
+        exit;
+    }
+
+    /**
+     * Пароль из POST как есть — в «слешированном» виде, без wp_unslash и очистки.
+     * Так же поступает ядро: wp-login.php (wp_signon) проверяет $_POST['pwd'] без wp_unslash, профиль и сброс пароля
+     * хешируют $_POST['pass1'] как есть. Иначе пароль с кавычкой не подошёл бы при входе. Поэтому же обратная косая черта запрещена.
+     * Длина, буквы и цифры проверяются по wp_unslash() от этого значения.
+     */
+    private static function posted_password(string $key): string
+    {
+        // phpcs:ignore WordPress.Security.NonceVerification, WordPress.Security.ValidatedSanitizedInput
+        return isset($_POST[$key]) && is_string($_POST[$key]) ? (string) $_POST[$key] : '';
+    }
+
+    /** Поле пароля в форме (значение никогда не выводится обратно). */
+    private static function password_html(string $id, string $name, string $label, string $error, string $autocomplete, string $hint = '', int $min = 0): string
+    {
+        $desc = trim(($hint !== '' ? 'wpd-reg-' . $id . '-hint' : '') . ($error !== '' ? ' wpd-reg-' . $id . '-err' : ''));
+        return '<div class="wpd-reg__field' . ($error !== '' ? ' wpd-reg__field--error' : '') . '">'
+            . '<label for="wpd-reg-' . esc_attr($id) . '">' . esc_html($label) . '<span class="wpd-reg__req" aria-hidden="true">*</span></label>'
+            . '<input type="password" id="wpd-reg-' . esc_attr($id) . '" name="' . esc_attr($name) . '" value="" autocomplete="' . esc_attr($autocomplete) . '"'
+            . ($min ? ' minlength="' . $min . '"' : '') . ' maxlength="128" required data-wpd-pass'
+            . ($error !== '' ? ' aria-invalid="true"' : '') . ($desc !== '' ? ' aria-describedby="' . esc_attr($desc) . '"' : '') . '>'
+            . ($hint !== '' ? '<p class="wpd-reg__hint" id="wpd-reg-' . esc_attr($id) . '-hint">' . esc_html($hint) . '</p>' : '')
+            . ($error !== '' ? '<p class="wpd-reg__error" id="wpd-reg-' . esc_attr($id) . '-err">' . esc_html($error) . '</p>' : '')
+            . '</div>';
+    }
+
+    /** «Показать пароль»: скрыт без JavaScript, wpd.js показывает его и переключает тип полей формы. */
+    private static function show_password_html(): string
+    {
+        return '<label class="wpd-reg__check wpd-reg__showpass" hidden data-wpd-showpass><input type="checkbox"> <span>Показать пароль</span></label>';
+    }
+
     /* ---------------------------------------------------------------
      * Письма
      * ------------------------------------------------------------- */
@@ -1240,9 +1366,19 @@ class WPD_Registration
     public static function mail_vars(WP_Post $app): array
     {
         $values = self::app_values($app);
+        $uid = (int) get_post_meta($app->ID, '_wpd_user', true);
+        $user = $uid ? get_userdata($uid) : null;
+        $login_info = '';
+        if ($user) {
+            $login_info = get_user_meta($uid, 'wpd_own_password', true)
+                ? 'Для входа используйте e-mail ' . $user->user_email . ' (или логин ' . $user->user_login . ') и пароль, который вы указали при регистрации.'
+                : 'Ссылку для установки пароля WordPress пришлёт отдельным письмом. Логин: ' . $user->user_login . '.';
+        }
         return [
             '{name}'    => $values['name'],
             '{email}'   => $values['email'],
+            '{login}'   => $user ? $user->user_login : '',
+            '{login_info}' => $login_info,
             '{number}'  => (string) get_post_meta($app->ID, '_wpd_number', true),
             '{status}'  => self::STATUSES[self::app_status($app)],
             '{fields}'  => self::fields_text($app),
@@ -1266,6 +1402,7 @@ class WPD_Registration
             $to = $vars['{email}'];
             $subject = strtr($kind === 'status' ? $r['mail_status_subject'] : $r['mail_user_subject'], $vars);
             $body = strtr($kind === 'status' ? $r['mail_status_body'] : $r['mail_user_body'], $vars);
+            $body = trim(preg_replace("/\n{3,}/", "\n\n", str_replace("\r", '', $body))); // пустая подстановка не оставляет дыру
             $headers = [];
         }
         if (!is_email($to)) {
@@ -1424,6 +1561,15 @@ class WPD_Registration
         }
         $html .= '</div>';
 
+        if (self::wants_password($r)) {
+            $min = (int) $r['password_min'];
+            $html .= '<div class="wpd-reg__grid wpd-reg__pass">'
+                . self::password_html('pass', 'wpd_pass', 'Пароль', $errors['_pass'] ?? '', 'new-password',
+                    'Не короче ' . $min . ' ' . self::plural($min, 'символа', 'символов', 'символов') . ', буквы и цифры. С e-mail и этим паролем вы войдёте в личный кабинет.', $min)
+                . self::password_html('pass2', 'wpd_pass2', 'Повторите пароль', $errors['_pass2'] ?? '', 'new-password', '', $min)
+                . '</div>' . self::show_password_html();
+        }
+
         // Ловушка для ботов: поле скрыто от людей и вспомогательных технологий
         $html .= '<div class="wpd-reg__hp" aria-hidden="true"><label for="wpd-reg-hp">Оставьте это поле пустым</label>'
             . '<input type="text" id="wpd-reg-hp" name="wpd_hp" value="" tabindex="-1" autocomplete="off"></div>';
@@ -1527,7 +1673,10 @@ class WPD_Registration
             $vars = self::mail_vars($done);
             $msg = strtr((string) $r['success'], ['{name}' => $vars['{name}'], '{email}' => $vars['{email}'], '{number}' => $vars['{number}']]);
             if (!is_user_logged_in()) {
-                $msg .= ' Ссылка для установки пароля отправлена на ' . $vars['{email}'] . '.';
+                $uid = (int) get_post_meta($done->ID, '_wpd_user', true);
+                $msg .= ($uid && get_user_meta($uid, 'wpd_own_password', true))
+                    ? ' Войдите с e-mail и паролем, которые вы указали при регистрации.'
+                    : ' Ссылка для установки пароля отправлена на ' . $vars['{email}'] . '.';
             }
             $html .= self::alert($msg, 'success');
         }
@@ -1545,7 +1694,38 @@ class WPD_Registration
 
         $user = wp_get_current_user();
         $app = self::user_application((int) $user->ID);
-        $logout = '<p class="wpd-cabinet__links">' . esc_html($user->display_name) . ' · <a href="' . esc_url(wp_logout_url($here)) . '">Выйти</a></p>';
+        $can_pass = self::is_participant($user);
+        $logout = '<p class="wpd-cabinet__links">' . esc_html($user->display_name)
+            . ($can_pass ? ' · <a href="' . esc_url(add_query_arg('wpd_pass', '1', remove_query_arg('wpd_edit', $here))) . '#wpd-cabinet">Сменить пароль</a>' : '')
+            . ' · <a href="' . esc_url(wp_logout_url($here)) . '">Выйти</a></p>';
+
+        // phpcs:ignore WordPress.Security.NonceVerification
+        if (isset($_GET['wpd_reg']) && $_GET['wpd_reg'] === 'pass_saved') {
+            $html .= self::alert('Пароль изменён.', 'success');
+        }
+
+        // Смена пароля
+        $pstate = (self::$state && self::$state['form'] === 'password') ? self::$state : null;
+        // phpcs:ignore WordPress.Security.NonceVerification
+        if ($can_pass && ((isset($_GET['wpd_pass']) && $_GET['wpd_pass'] === '1') || ($pstate && $pstate['errors']))) {
+            $perr = $pstate ? $pstate['errors'] : [];
+            $min = (int) $r['password_min'];
+            $html .= '<div class="wpd-cabinet__card"><h3 class="wpd-cabinet__subtitle">Смена пароля</h3>'
+                . '<form class="wpd-reg__form wpd-cabinet__pass" method="post" action="' . esc_url(remove_query_arg('wpd_pass', $here)) . '#wpd-cabinet">'
+                . '<input type="hidden" name="wpd_reg_action" value="password">' . wp_nonce_field('wpd_reg_pass', '_wpd_nonce', false, false)
+                . (isset($perr['_form']) ? self::alert($perr['_form'], 'error') : ($perr ? self::alert('Пароль не изменён — проверьте поля.', 'error') : ''))
+                . '<div class="wpd-reg__grid">'
+                . self::password_html('pass-current', 'wpd_pass_current', 'Текущий пароль', $perr['_cur'] ?? '', 'current-password')
+                . '<div class="wpd-reg__field" aria-hidden="true"></div>'
+                . self::password_html('pass', 'wpd_pass', 'Новый пароль', $perr['_pass'] ?? '', 'new-password',
+                    'Не короче ' . $min . ' ' . self::plural($min, 'символа', 'символов', 'символов') . ', буквы и цифры.', $min)
+                . self::password_html('pass2', 'wpd_pass2', 'Повторите новый пароль', $perr['_pass2'] ?? '', 'new-password', '', $min)
+                . '</div>' . self::show_password_html()
+                . '<p class="wpd-reg__submit"><button type="submit" class="wpd-btn">Сменить пароль</button> '
+                . '<a class="wpd-btn wpd-btn--ghost" href="' . esc_url(remove_query_arg('wpd_pass', $here)) . '#wpd-cabinet">Отмена</a></p></form></div>'
+                . $logout . '</section>';
+            return WPD_Renderer::wrap($html, 'wpd-page--reg');
+        }
         if (!$app) {
             $html .= self::alert('Заявки пока нет.', 'info')
                 . (self::form_url() && self::status($r)['open'] ? '<p><a class="wpd-btn" href="' . esc_url(self::form_url()) . '">Подать заявку</a></p>' : '')
