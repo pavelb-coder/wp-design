@@ -142,7 +142,7 @@ with sync_playwright() as p:
     wait_editor(page)
 
     types = page.evaluate("() => wp.blocks.getBlockTypes().filter(b => b.name.indexOf('wpd/') === 0).map(b => b.name).sort()")
-    check("editor: 13 blocks registered on client", types == sorted(["wpd/hero", "wpd/countdown", "wpd/stats", "wpd/docs", "wpd/faq", "wpd/slider", "wpd/buttons", "wpd/cards", "wpd/notice", "wpd/news", "wpd/contacts", "wpd/registration", "wpd/cabinet"]), types)
+    check("editor: 11 blocks registered on client", types == sorted(["wpd/hero", "wpd/countdown", "wpd/stats", "wpd/docs", "wpd/faq", "wpd/slider", "wpd/buttons", "wpd/cards", "wpd/notice", "wpd/news", "wpd/contacts"]), types)
     cat = page.evaluate("() => (wp.blocks.getCategories() || []).some(c => c.slug === 'wpd')")
     check("editor: category 'wpd' available", cat)
     pattern = page.evaluate("""() => {
@@ -520,66 +520,6 @@ with sync_playwright() as p:
     page.goto(f"{BASE}/?page_id={post_id}", timeout=120000)
     page.wait_for_load_state("networkidle")
     page.screenshot(path=os.path.join(SHOTS, "front-blocks.png"), full_page=True)
-
-    # 2.0.0: блоки «регистрация» и «личный кабинет» — предпросмотр с сервера, тексты в боковой панели
-    page.goto(BASE + "/wp-admin/post-new.php?post_type=page", timeout=180000)
-    wait_editor(page)
-    page.evaluate("() => wp.data.dispatch('core/editor').editPost({ title: 'Регистрация из браузера' })")
-    reg_ids = page.evaluate("""() => {
-        const blocks = [wp.blocks.createBlock('wpd/registration'), wp.blocks.createBlock('wpd/cabinet')];
-        wp.data.dispatch('core/block-editor').insertBlocks(blocks);
-        return blocks.map(b => b.clientId);
-    }""")
-    reg_id, cab_id = reg_ids
-    cv = canvas(page)
-    try:
-        cv.wait_for_selector(".wpd-reg__form", timeout=60000)
-    except Exception:
-        pass
-    check("registration block: server preview of the form (2.0.0)", cv.locator(".wpd-page--reg .wpd-reg__form").count() == 1)
-    check("registration block: preview fields disabled", cv.evaluate("() => { const f = document.querySelector('.wpd-reg__form'); const d = f && f.closest('[inert], .components-disabled'); return !!d; }"))
-    try:
-        cv.wait_for_selector(".wpd-cabinet", timeout=30000)
-    except Exception:
-        pass
-    check("cabinet block: server preview", cv.locator(".wpd-page--reg .wpd-cabinet").count() == 1)
-    select_block(page, reg_id)
-    page.evaluate("() => wp.data.dispatch('core/edit-post').openGeneralSidebar('edit-post/block')")
-    time.sleep(0.8)
-    insp = page.locator(".block-editor-block-inspector")
-    tf = insp.get_by_label("Заголовок", exact=True)
-    check("registration block: placeholder from settings", tf.count() == 1 and tf.first.get_attribute("placeholder") == "Регистрация участников", tf.first.get_attribute("placeholder") if tf.count() else None)
-    if tf.count():
-        tf.first.fill("Заявка на участие")
-        time.sleep(0.5)
-    check("registration block: title attribute set", attrs(page, reg_id).get("title") == "Заявка на участие", attrs(page, reg_id))
-    try:
-        cv.wait_for_function("() => [...document.querySelectorAll('.wpd-reg h2')].some(h => h.textContent.trim() === 'Заявка на участие')", timeout=30000)
-        ok = True
-    except Exception:
-        ok = False
-    check("registration block: preview re-rendered with new title", ok)
-    check("registration block: settings link in sidebar", insp.locator("a[href*='page=wpd-registration']").count() >= 1 or page.locator("a[href*='page=wpd-registration']").count() >= 1)
-    content = page.evaluate("() => wp.data.select('core/editor').getEditedPostContent()")
-    check("registration block: serialized dynamic", '<!-- wp:wpd/registration {"title":"Заявка на участие"} /-->' in content and "<!-- wp:wpd/cabinet /-->" in content, content[:300])
-
-    # 2.0.0: конструктор полей — «Варианты» только у списка и выбора одного варианта
-    save(page)
-    page.goto(BASE + "/wp-admin/admin.php?page=wpd-registration&tab=fields", timeout=180000)
-    page.wait_for_load_state("networkidle")
-    opt0 = page.locator("[data-wpd-reg-options][for='wpd_reg_f_0_options']")
-    check("builder: options hidden for phone field", opt0.count() == 1 and not opt0.is_visible())
-    page.select_option("#wpd_reg_f_0_type", "radio")
-    check("builder: options shown after switching to radio", opt0.is_visible())
-    page.select_option("#wpd_reg_f_0_type", "date")
-    check("builder: options hidden again for date", not opt0.is_visible())
-    page.locator("[data-wpd-rep-add]").first.click()
-    time.sleep(0.4)
-    rows = page.locator("[data-wpd-rep-list] > [data-wpd-rep-row]")
-    new_row = rows.nth(rows.count() - 1)
-    check("builder: new row added with hidden options", rows.count() == 5 and not new_row.locator("[data-wpd-reg-options]").is_visible(), rows.count())
-    new_row.locator("[data-wpd-reg-type]").select_option("select")
-    check("builder: new row options shown for list", new_row.locator("[data-wpd-reg-options]").is_visible())
 
     check("no JavaScript errors", not js_errors, js_errors[:5])
     browser.close()

@@ -167,37 +167,3 @@
     font-size: 32px;
     color: #2271b1;
 }
-
-/* 2.0.0 — страница «Регистрация» */
-.wpd-reg-howto {
-    max-width: 960px;
-    margin: 14px 0 0;
-    padding: 4px 16px;
-    background: #fff;
-    border: 1px solid #dcdcde;
-    border-left: 4px solid #2271b1;
-}
-
-.wpd-reg-state--open {
-    color: #00763a;
-    font-weight: 600;
-}
-
-.wpd-reg-state--closed {
-    color: #b32d2e;
-    font-weight: 600;
-}
-
-.wpd-reg-system {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0 0 10px;
-    padding: 6px 10px;
-    background: #f0f0f1;
-    border-radius: 4px;
-}
-
-.wpd-reg-settings [data-wpd-reg-options][hidden] {
-    display: none;
-}
