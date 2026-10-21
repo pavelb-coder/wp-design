@@ -1203,6 +1203,12 @@ class WPD_Settings
             </ol>
             <p>На уже оформленных страницах новые компоненты скрыты, пока вы не отметите их в панели «Блоки олимпиады».</p>
 
+            <h2>Регистрация участников</h2>
+            <p>Форма заявки — шорткод <code>[wpd_registration]</code> или блок «Олимпиада: регистрация», личный кабинет —
+                <code>[wpd_cabinet]</code> или блок «Олимпиада: личный кабинет». Поля формы, сроки приёма, лимит мест и письма —
+                в разделе <a href="<?php echo esc_url(admin_url('admin.php?page=wpd-registration')); ?>">«Регистрация»</a>,
+                заявки и экспорт в CSV — в разделе <a href="<?php echo esc_url(admin_url('edit.php?post_type=wpd_application')); ?>">«Участники»</a>.</p>
+
             <h2>Форматы списков</h2>
             <ul style="list-style:disc;margin-left:20px">
                 <li><strong>Статистика:</strong> одна карточка на строку, <code>число|подпись</code>.</li>
