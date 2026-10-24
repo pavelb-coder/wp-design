@@ -1563,3 +1563,719 @@
         padding: 20px;
     }
 }
+
+/* ===================================================================
+ * 2.3.0. Логотип в контактах (любой стиль)
+ * ================================================================= */
+.wpd-page .wpd-contacts__logo {
+    flex: 0 0 100%;
+    line-height: 0;
+}
+
+.wpd-page .wpd-contacts__logo a {
+    display: inline-block;
+    border: 0;
+}
+
+.wpd-page .wpd-contacts__logo-img {
+    display: block;
+    width: auto;
+    max-width: min(220px, 100%);
+    max-height: 80px;
+}
+
+/* ===================================================================
+ * 2.3.0. Главный блок «Мягкий градиент» (wpd-hero--soft)
+ * Прозрачный фон с размытыми цветными пятнами, крупный заголовок прописными,
+ * круглая иллюстрация с подсветкой. Работает и в классическом стиле оформления.
+ * ================================================================= */
+.wpd-page .wpd-hero--soft {
+    position: relative;
+    isolation: isolate;
+    overflow: visible;
+    padding: 40px 0 16px;
+    border-radius: 0;
+    background: transparent;
+    color: var(--wpd-text);
+}
+
+/* Цветные пятна за заголовком: розовое, фиолетовое и персиковое */
+.wpd-page .wpd-hero--soft::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: -4%;
+    left: 8%;
+    width: 74%;
+    height: 100%;
+    pointer-events: none;
+    background:
+        radial-gradient(closest-side at 32% 36%, rgba(255, 63, 188, 0.78), transparent),
+        radial-gradient(closest-side at 56% 62%, rgba(98, 72, 255, 0.85), transparent),
+        radial-gradient(closest-side at 80% 26%, rgba(255, 176, 128, 0.85), transparent);
+    filter: blur(30px);
+    opacity: 0.9;
+    animation: wpd-soft-glow 17s ease-in-out infinite alternate;
+}
+
+@keyframes wpd-soft-glow {
+    from { transform: translate(-10px, 6px) rotate(-3deg); }
+    to   { transform: translate(24px, -12px) rotate(3deg); }
+}
+
+/* Высота блока: компактный и высокий */
+.wpd-page .wpd-hero--soft.wpd-hero--height-compact {
+    padding-top: 20px;
+    padding-bottom: 8px;
+}
+
+.wpd-page .wpd-hero--soft.wpd-hero--height-tall {
+    padding-top: 72px;
+    padding-bottom: 40px;
+}
+
+/* Свой фон или изображение фоном — пятна не нужны, отступы как у обычного блока */
+.wpd-page .wpd-hero--soft.wpd-hero--custom-bg::before,
+.wpd-page .wpd-hero--soft.wpd-hero--img-background::before {
+    display: none;
+}
+
+.wpd-page .wpd-hero--soft.wpd-hero--custom-bg,
+.wpd-page .wpd-hero--soft.wpd-hero--img-background {
+    padding: 56px 48px;
+    border-radius: var(--wpd-radius);
+    overflow: hidden;
+}
+
+.wpd-page .wpd-hero--soft .wpd-hero__inner {
+    grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+    gap: 8px 24px;
+}
+
+.wpd-page .wpd-hero--soft .wpd-hero__title {
+    margin: 14px 0 18px;
+    font-family: var(--wpd-font-heading, "Unbounded", "Inter", var(--wpd-font));
+    font-size: clamp(30px, 4.4vw, 64px);
+    font-weight: 900;
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    color: #20212c;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+.wpd-page .wpd-hero--soft.wpd-hero--title-small .wpd-hero__title {
+    font-size: clamp(26px, 3.4vw, 48px);
+}
+
+.wpd-page .wpd-hero--soft.wpd-hero--title-large .wpd-hero__title {
+    font-size: clamp(34px, 5.2vw, 78px);
+}
+
+.wpd-page .wpd-hero--soft .wpd-hero__lead {
+    max-width: 640px;
+    font-size: clamp(16px, 1.4vw, 20px);
+    line-height: 1.4;
+    color: #6f7290;
+}
+
+/* Метка — «стеклянная» плашка с разрядкой */
+.wpd-page .wpd-hero--soft .wpd-badge {
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--wpd-accent);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    box-shadow: 0 8px 30px rgba(77, 64, 123, 0.08);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+}
+
+.wpd-page .wpd-hero--soft .wpd-btn.wpd-btn--ghost {
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--wpd-text);
+    box-shadow: inset 0 0 0 1px rgba(34, 35, 46, 0.14);
+}
+
+.wpd-page .wpd-hero--soft .wpd-btn.wpd-btn--ghost:hover,
+.wpd-page .wpd-hero--soft .wpd-btn.wpd-btn--ghost:focus {
+    background: #fff;
+    color: var(--wpd-primary);
+}
+
+/* Таймер в главном блоке — просто подпись и цифры, как на макете */
+.wpd-page .wpd-hero--soft .wpd-hero__countdown {
+    margin-top: 30px;
+}
+
+.wpd-page .wpd-hero--soft .wpd-hero__countdown .wpd-countdown {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.wpd-page .wpd-hero--soft .wpd-hero__countdown .wpd-countdown__label {
+    margin-bottom: 6px;
+    font-size: clamp(13px, 1.1vw, 16px);
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #414253;
+    opacity: 1;
+}
+
+.wpd-page .wpd-hero--soft .wpd-hero__countdown .wpd-countdown__value {
+    font-size: clamp(18px, 1.7vw, 24px);
+    font-weight: 700;
+    color: var(--wpd-primary);
+}
+
+/* Своё изображение сбоку — мягкая тень вместо рамки */
+.wpd-page .wpd-hero--soft .wpd-hero__media img {
+    box-shadow: 0 18px 40px rgba(74, 74, 219, 0.14);
+}
+
+/* Встроенная иллюстрация городов: плавает, с подсветкой и звёздочками */
+.wpd-page .wpd-hero__media--orb {
+    position: relative;
+    justify-self: end;
+    width: min(100%, 470px);
+    aspect-ratio: 1 / 1;
+    display: grid;
+    place-items: center;
+}
+
+.wpd-page .wpd-hero--img-left .wpd-hero__media--orb {
+    justify-self: start;
+}
+
+.wpd-page .wpd-hero .wpd-hero__media--orb .wpd-orb__img {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    object-fit: contain;
+    border-radius: 0;
+    box-shadow: none;
+    filter: drop-shadow(0 13px 14px rgba(74, 74, 219, 0.13));
+    animation: wpd-orb-float 7s ease-in-out infinite;
+}
+
+.wpd-page .wpd-orb__aura {
+    position: absolute;
+    z-index: -1;
+    inset: 19%;
+    border-radius: 50%;
+    background: #f7a5e5;
+    filter: blur(60px);
+    opacity: 0.55;
+}
+
+.wpd-page .wpd-orb__star {
+    position: absolute;
+    color: #fff;
+    font-size: 28px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 6px #f9baf2);
+    opacity: 0.86;
+    animation: wpd-orb-twinkle 5s ease-in-out infinite alternate;
+}
+
+.wpd-page .wpd-orb__star--1 {
+    top: 22%;
+    right: 12%;
+}
+
+.wpd-page .wpd-orb__star--2 {
+    bottom: 24%;
+    left: 6%;
+    font-size: 16px;
+    animation-delay: 1.6s;
+}
+
+@keyframes wpd-orb-float {
+    0%, 100% { transform: translateY(0) rotate(-0.6deg); }
+    50%      { transform: translateY(-9px) rotate(0.7deg); }
+}
+
+@keyframes wpd-orb-twinkle {
+    from { opacity: 0.2; transform: scale(0.6); }
+    to   { opacity: 0.92; transform: scale(1.15); }
+}
+
+@media (max-width: 820px) {
+    .wpd-page .wpd-hero--soft {
+        padding: 24px 0 8px;
+    }
+
+    .wpd-page .wpd-hero--soft.wpd-hero--custom-bg,
+    .wpd-page .wpd-hero--soft.wpd-hero--img-background {
+        padding: 32px 24px;
+    }
+
+    .wpd-page .wpd-hero--soft::before {
+        left: -6%;
+        width: 112%;
+    }
+
+    .wpd-page .wpd-hero--soft .wpd-hero__inner {
+        grid-template-columns: 1fr;
+    }
+
+    .wpd-page .wpd-hero--soft .wpd-hero__title {
+        font-size: clamp(26px, 7.4vw, 46px);
+    }
+
+    .wpd-page .wpd-hero__media--orb,
+    .wpd-page .wpd-hero--img-left .wpd-hero__media--orb {
+        justify-self: center;
+        width: min(88%, 400px);
+    }
+}
+
+/* ===================================================================
+ * 2.3.0. Стиль оформления «Мягкий градиент» (wpd-style-soft)
+ * Макет Кванториума: «стеклянные» карточки на светлом фоне, синие цифры,
+ * FAQ в две колонки, контакты на стеклянной панели. Цвета — из палитры
+ * (основной — цифры и акценты, акцентный — кнопки), скругления — от «Скругления углов».
+ * ================================================================= */
+.wpd-page.wpd-style-soft {
+    --wpd-soft-muted: #8b8ea9;
+    --wpd-soft-glass: rgba(255, 255, 255, 0.88);
+    --wpd-soft-line: #e9eafd;
+    position: relative;
+    isolation: isolate;
+}
+
+/* Заголовки разделов: крупные, плотные; черта — градиентная */
+.wpd-page.wpd-style-soft .wpd-h2 {
+    font-family: var(--wpd-font-heading, var(--wpd-font));
+    font-size: calc(clamp(28px, 3.4vw, 48px) * var(--wpd-h2-scale, 1));
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+}
+
+.wpd-page.wpd-style-soft .wpd-h2::after {
+    width: 64px;
+    background: linear-gradient(90deg, #ff6fc0, var(--wpd-accent));
+}
+
+/* Кнопки: мягкая цветная тень, при наведении — основной цвет */
+.wpd-page.wpd-style-soft .wpd-btn {
+    box-shadow: 0 12px 26px rgba(71, 61, 232, 0.16);
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.wpd-page.wpd-style-soft:not(.wpd-page--btn-outline) .wpd-btn:not(.wpd-btn--ghost):hover,
+.wpd-page.wpd-style-soft:not(.wpd-page--btn-outline) .wpd-btn:not(.wpd-btn--ghost):focus {
+    background: var(--wpd-primary);
+    filter: none;
+}
+
+/* Текст страницы — на стеклянной подложке */
+.wpd-page.wpd-style-soft .wpd-content {
+    background: var(--wpd-soft-glass);
+    box-shadow: 0 10px 40px rgba(115, 136, 214, 0.06);
+}
+
+/* Статистика: стеклянные карточки, синие цифры, светлая подпись, подсветка в углу */
+.wpd-page.wpd-style-soft .wpd-stats__grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, calc(50% - 8px)), 1fr));
+    gap: clamp(10px, 1.7vw, 24px);
+}
+
+.wpd-page.wpd-style-soft .wpd-stat {
+    position: relative;
+    overflow: hidden;
+    min-height: clamp(128px, 14vw, 186px);
+    padding: clamp(14px, 1.6vw, 24px);
+    border-top: 0;
+    border-radius: calc(var(--wpd-radius) * 0.5);
+    background: var(--wpd-soft-glass);
+    box-shadow: 0 9px 35px rgba(114, 121, 201, 0.05);
+}
+
+.wpd-page.wpd-style-soft .wpd-stat::after {
+    content: "";
+    position: absolute;
+    right: -35px;
+    bottom: -72px;
+    width: 130px;
+    height: 100px;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(185, 196, 255, 0.4), transparent 70%);
+    filter: blur(15px);
+}
+
+.wpd-page.wpd-style-soft .wpd-stat:nth-child(2n)::after {
+    background: radial-gradient(circle, rgba(255, 135, 208, 0.38), transparent 70%);
+}
+
+.wpd-page.wpd-style-soft .wpd-stat__num {
+    font-size: clamp(30px, 3.7vw, 54px);
+    font-weight: 850;
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+    color: var(--wpd-primary);
+}
+
+.wpd-page.wpd-style-soft .wpd-stat__label {
+    margin-top: 4px;
+    font-size: clamp(14px, 1.5vw, 21px);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: var(--wpd-soft-muted);
+}
+
+.wpd-page.wpd-style-soft .wpd-stat:hover {
+    box-shadow: 0 14px 36px rgba(114, 121, 201, 0.14);
+}
+
+/* Документы: светлые карточки с лавандовым переливом и стрелкой */
+.wpd-page.wpd-style-soft .wpd-doc {
+    position: relative;
+    overflow: hidden;
+    min-height: 88px;
+    border: 0;
+    border-radius: calc(var(--wpd-radius) * 0.5);
+    background: linear-gradient(135deg, #fff 0%, #fdfcff 70%, #e8e2ff 100%);
+    color: #7f82a0;
+    font-weight: 500;
+    font-size: 1.08em;
+    box-shadow: 0 9px 35px rgba(114, 121, 201, 0.05);
+}
+
+.wpd-page.wpd-style-soft .wpd-doc::after {
+    content: "\2197";
+    margin-left: auto;
+    font-size: 18px;
+    color: currentColor;
+}
+
+.wpd-page.wpd-style-soft .wpd-doc:hover,
+.wpd-page.wpd-style-soft .wpd-doc:focus {
+    color: var(--wpd-primary);
+    box-shadow: 0 14px 36px rgba(114, 121, 201, 0.14);
+}
+
+.wpd-page.wpd-style-soft .wpd-doc__icon {
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--wpd-primary) 10%, #fff);
+    color: var(--wpd-primary);
+}
+
+/* FAQ: заголовок слева, вопросы справа; открытый вопрос — основным цветом, «+» поворачивается в «×» */
+@media (min-width: 821px) {
+    .wpd-page.wpd-style-soft .wpd-faq {
+        display: grid;
+        grid-template-columns: minmax(0, 30%) minmax(0, 1fr);
+        column-gap: 5%;
+        align-items: start;
+    }
+
+    .wpd-page.wpd-style-soft .wpd-faq > .wpd-h2 {
+        grid-column: 1;
+        grid-row: 1 / span 3;
+    }
+
+    .wpd-page.wpd-style-soft .wpd-faq > :not(.wpd-h2) {
+        grid-column: 2;
+    }
+}
+
+.wpd-page.wpd-style-soft .wpd-faq__list {
+    gap: 8px;
+}
+
+.wpd-page.wpd-style-soft .wpd-faq__item {
+    border: 0;
+    border-radius: calc(var(--wpd-radius) * 0.75);
+    background: rgba(255, 255, 255, 0.93);
+    transition: box-shadow 0.25s ease;
+}
+
+.wpd-page.wpd-style-soft .wpd-faq__item[open] {
+    box-shadow: 0 11px 31px rgba(126, 127, 177, 0.12);
+}
+
+.wpd-page.wpd-style-soft .wpd-faq__q {
+    padding: 15px 52px 15px 18px;
+    font-size: clamp(15px, 1.3vw, 19px);
+    font-weight: 500;
+    line-height: 1.25;
+    color: #8f92ac;
+}
+
+.wpd-page.wpd-style-soft .wpd-faq__item[open] .wpd-faq__q {
+    font-weight: 600;
+    color: var(--wpd-primary);
+}
+
+.wpd-page.wpd-style-soft .wpd-faq__q::after,
+.wpd-page.wpd-style-soft .wpd-faq__item[open] .wpd-faq__q::after {
+    content: "+";
+    top: 50%;
+    right: 20px;
+    width: auto;
+    height: auto;
+    border: 0;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1;
+    color: #555767;
+    transform: translateY(-50%);
+}
+
+.wpd-page.wpd-style-soft .wpd-faq__item[open] .wpd-faq__q::after {
+    color: var(--wpd-primary);
+    transform: translateY(-50%) rotate(45deg);
+}
+
+.wpd-page.wpd-style-soft .wpd-faq__a {
+    padding: 0 18px 18px;
+    line-height: 1.5;
+    color: #777d98;
+}
+
+.wpd-page.wpd-style-soft .wpd-faq__search {
+    border: 1px solid var(--wpd-soft-line);
+    border-radius: calc(var(--wpd-radius) * 0.75);
+    background: rgba(255, 255, 255, 0.93);
+}
+
+/* Отдельный таймер — стеклянная плашка без цветной полосы */
+.wpd-page.wpd-style-soft .wpd-countdown {
+    border-left: 0;
+    border-radius: calc(var(--wpd-radius) * 0.75);
+    background: var(--wpd-soft-glass);
+    box-shadow: 0 10px 40px rgba(115, 136, 214, 0.08);
+}
+
+.wpd-page.wpd-style-soft .wpd-countdown__label {
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    font-size: 15px;
+    color: #414253;
+}
+
+.wpd-page.wpd-style-soft .wpd-countdown__value {
+    color: var(--wpd-primary);
+}
+
+/* Кнопки-ссылки: стеклянные плитки; ссылка — со стрелкой, при наведении — основной цвет */
+.wpd-page.wpd-style-soft .wpd-qbtn {
+    position: relative;
+    overflow: hidden;
+    align-items: flex-start;
+    justify-content: space-between;
+    min-height: clamp(116px, 12vw, 160px);
+    padding: clamp(14px, 1.5vw, 22px);
+    border-radius: calc(var(--wpd-radius) * 0.5);
+    background: linear-gradient(135deg, #fff 0%, #fdfcff 70%, #e8e2ff 100%);
+    color: #7f82a0;
+    font-weight: 500;
+    font-size: clamp(15px, 1.3vw, 19px);
+    text-align: left;
+    box-shadow: 0 9px 35px rgba(114, 121, 201, 0.05);
+}
+
+.wpd-page.wpd-style-soft .wpd-qbtn__icon.dashicons {
+    width: 32px;
+    height: 32px;
+    font-size: 32px;
+}
+
+.wpd-page.wpd-style-soft a.wpd-qbtn::after {
+    content: "\2197";
+    position: absolute;
+    top: clamp(14px, 1.5vw, 22px);
+    right: clamp(14px, 1.5vw, 22px);
+    font-size: 18px;
+    line-height: 1;
+}
+
+.wpd-page.wpd-style-soft a.wpd-qbtn:hover,
+.wpd-page.wpd-style-soft a.wpd-qbtn:focus-visible {
+    color: var(--wpd-primary);
+    box-shadow: 0 14px 36px rgba(114, 121, 201, 0.14);
+}
+
+/* Карточки без своего цвета — стеклянные; с цветом — как заданы */
+.wpd-page.wpd-style-soft .wpd-card {
+    position: relative;
+    border-radius: calc(var(--wpd-radius) * 0.5);
+}
+
+.wpd-page.wpd-style-soft .wpd-card:not(.has-color) {
+    background: var(--wpd-soft-glass);
+    box-shadow: 0 9px 35px rgba(114, 121, 201, 0.06);
+}
+
+.wpd-page.wpd-style-soft .wpd-card:not(.has-color)::after {
+    content: "";
+    position: absolute;
+    right: -20px;
+    bottom: -75px;
+    width: 190px;
+    height: 135px;
+    pointer-events: none;
+    background: radial-gradient(circle, #cbd6ff 5%, #f9deec 53%, transparent 71%);
+    filter: blur(30px);
+    opacity: 0.8;
+}
+
+.wpd-page.wpd-style-soft .wpd-card:not(.has-color) .wpd-card__link {
+    position: relative;
+    z-index: 1;
+    color: var(--wpd-text);
+}
+
+.wpd-page.wpd-style-soft .wpd-card:not(.has-color) .wpd-card__text {
+    color: var(--wpd-soft-muted);
+}
+
+.wpd-page.wpd-style-soft .wpd-card:not(.has-color) .wpd-card__more {
+    color: var(--wpd-primary);
+}
+
+/* Последняя карточка без своего цвета — сплошная основным цветом, как «Принять участие» на макете */
+.wpd-page.wpd-style-soft .wpd-card:not(.has-color):last-child:not(:first-child) {
+    background: var(--wpd-primary);
+}
+
+.wpd-page.wpd-style-soft .wpd-card:not(.has-color):last-child:not(:first-child)::after {
+    display: none;
+}
+
+.wpd-page.wpd-style-soft .wpd-card:not(.has-color):last-child:not(:first-child) .wpd-card__link,
+.wpd-page.wpd-style-soft .wpd-card:not(.has-color):last-child:not(:first-child) .wpd-card__more {
+    color: #fff;
+}
+
+.wpd-page.wpd-style-soft .wpd-card:not(.has-color):last-child:not(:first-child) .wpd-card__text {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+/* Объявление и новости — стеклянные панели */
+.wpd-page.wpd-style-soft .wpd-notice {
+    --wpd-notice-bg: rgba(255, 255, 255, 0.9);
+    border-radius: calc(var(--wpd-radius) * 0.75);
+    box-shadow: 0 10px 40px rgba(115, 136, 214, 0.08);
+}
+
+.wpd-page.wpd-style-soft .wpd-news__item {
+    border-radius: calc(var(--wpd-radius) * 0.75);
+    background: var(--wpd-soft-glass);
+    box-shadow: 0 9px 35px rgba(114, 121, 201, 0.06);
+}
+
+.wpd-page.wpd-style-soft .wpd-news__date {
+    color: var(--wpd-soft-muted);
+}
+
+/* Слайдер: мягкая тень, стеклянные стрелки */
+.wpd-page.wpd-style-soft .wpd-slider {
+    border-radius: calc(var(--wpd-radius) * 0.75);
+    box-shadow: 0 18px 50px rgba(74, 74, 219, 0.12);
+}
+
+.wpd-page.wpd-style-soft .wpd-slider__arrow {
+    background: rgba(255, 255, 255, 0.82);
+    color: var(--wpd-text);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+/* Контакты: стеклянная панель с голубой подсветкой, как подвал макета */
+.wpd-page.wpd-style-soft .wpd-contacts {
+    position: relative;
+}
+
+.wpd-page.wpd-style-soft .wpd-contacts::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: 5%;
+    right: -6%;
+    bottom: -12%;
+    left: 40%;
+    pointer-events: none;
+    background: radial-gradient(closest-side, rgba(130, 170, 255, 0.42), rgba(130, 170, 255, 0.12) 60%, transparent);
+    filter: blur(50px);
+}
+
+.wpd-page.wpd-style-soft .wpd-contacts__box {
+    align-items: flex-start;
+    padding: clamp(24px, 3.5vw, 54px);
+    border: 1px solid #e6e7f5;
+    border-radius: calc(var(--wpd-radius) * 1.45);
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 10px 40px rgba(115, 136, 214, 0.06);
+    color: #8f93ab;
+}
+
+.wpd-page.wpd-style-soft .wpd-contacts__list a {
+    color: var(--wpd-text);
+    border-bottom-color: var(--wpd-soft-line);
+}
+
+.wpd-page.wpd-style-soft .wpd-contacts__list .wpd-contacts__org {
+    color: var(--wpd-text);
+}
+
+/* Плавное появление разделов при прокрутке (класс добавляет скрипт; без JS всё видно сразу) */
+.wpd-page.wpd-style-soft.wpd-reveal-ready > .wpd-reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.75s ease, transform 0.75s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.wpd-page.wpd-style-soft.wpd-reveal-ready > .wpd-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+}
+
+@media (max-width: 820px) {
+    .wpd-page.wpd-style-soft .wpd-faq > .wpd-h2 {
+        margin-bottom: 20px;
+    }
+
+    .wpd-page.wpd-style-soft .wpd-contacts__box {
+        border-radius: calc(var(--wpd-radius) * 1.2);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wpd-page .wpd-hero--soft::before,
+    .wpd-page .wpd-hero .wpd-hero__media--orb .wpd-orb__img,
+    .wpd-page .wpd-orb__star {
+        animation: none !important;
+    }
+
+    .wpd-page.wpd-style-soft.wpd-reveal-ready > .wpd-reveal {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media print {
+    .wpd-page .wpd-hero--soft::before,
+    .wpd-page .wpd-orb__aura,
+    .wpd-page .wpd-orb__star,
+    .wpd-page.wpd-style-soft .wpd-contacts::before,
+    .wpd-page.wpd-style-soft .wpd-stat::after,
+    .wpd-page.wpd-style-soft .wpd-card::after {
+        display: none;
+    }
+
+    .wpd-page.wpd-style-soft.wpd-reveal-ready > .wpd-reveal {
+        opacity: 1;
+        transform: none;
+    }
+}

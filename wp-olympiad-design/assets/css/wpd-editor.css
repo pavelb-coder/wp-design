@@ -372,3 +372,27 @@
     text-decoration: underline;
     text-underline-offset: 3px;
 }
+
+/* 2.3.0: стиль «Мягкий градиент» — кнопка замены встроенной иллюстрации и пустое место под изображение */
+.wpd-page .wpd-ed-orb-replace {
+    position: absolute;
+    z-index: 3;
+    bottom: 8%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.wpd-page .wpd-ed-orb-replace .components-button {
+    background: rgba(255, 255, 255, 0.92);
+    color: #22232e;
+    box-shadow: 0 6px 20px rgba(77, 64, 123, 0.18);
+}
+
+.wpd-page .wpd-hero--soft .wpd-ed-media-empty {
+    border-color: rgba(80, 65, 255, 0.35);
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.wpd-page .wpd-hero--soft .wpd-ed-media-empty .components-button {
+    color: #22232e;
+}

@@ -26,7 +26,7 @@ $admin = 1;
 wp_set_current_user(0);
 
 /* ---------- В плагине больше нет регистрации ---------- */
-check('version 2.2.0', WPD_VERSION === '2.2.0');
+check('version 2.2.0 or later', version_compare(WPD_VERSION, '2.2.0', '>='));
 check('no registration classes', !class_exists('WPD_Registration', false) && !class_exists('WPD_Participants', false));
 check('registration files removed', !file_exists(WPD_DIR . 'includes/class-wpd-registration.php') && !file_exists(WPD_DIR . 'includes/class-wpd-participants.php') && !file_exists(WPD_DIR . 'assets/js/wpd-reg-blocks.js'));
 check('no shortcodes', !shortcode_exists('wpd_registration') && !shortcode_exists('wpd_cabinet'));
@@ -46,10 +46,10 @@ check('js: show-password code removed', !has($js, 'data-wpd-showpass') && !has($
 $help = (function () { ob_start(); $m = new ReflectionMethod('WPD_Settings', 'render_help'); $m->setAccessible(true); $m->invoke(null); return ob_get_clean(); })();
 check('help: no registration section', !has($help, 'Регистрация участников') && !has($help, 'wpd_registration'));
 $main = file_get_contents(WPD_DIR . 'wp-olympiad-design.php');
-check('plugin header: no registration in description', !has($main, 'регистрация участников') && has($main, 'Version:           2.2.0'));
+check('plugin header: no registration in description', !has($main, 'регистрация участников') && has($main, 'Version:           ' . WPD_VERSION));
 $readme = file_get_contents(WPD_DIR . 'README.md');
 check('readme: 2.2.0 note', has($readme, '## Регистрация участников убрана (2.2.0)'));
-check('cleanup already done on this site', WPD_Legacy_Cleanup::is_done() && get_option(WPD_Legacy_Cleanup::DONE_OPTION) === '2.2.0');
+check('cleanup already done on this site', WPD_Legacy_Cleanup::is_done() && in_array(get_option(WPD_Legacy_Cleanup::DONE_OPTION), ['2.2.0', WPD_VERSION], true));
 $p = get_post(wp_insert_post(['post_title' => 'P raw', 'post_type' => 'page', 'post_status' => 'publish', 'post_content' => '[wpd_registration]']));
 check('old shortcode left as plain text', trim(apply_filters('the_content', $p->post_content)) === '<p>[wpd_registration]</p>');
 wp_delete_post($p->ID, true);
@@ -136,7 +136,7 @@ check('maybe_run: waits while locked', get_post($a2) !== null && !WPD_Legacy_Cle
 delete_transient(WPD_Legacy_Cleanup::LOCK);
 WPD_Legacy_Cleanup::maybe_run();
 check('lock not matched by transient cleanup', strpos(WPD_Legacy_Cleanup::LOCK, 'wpd_reg_') !== 0);
-check('maybe_run: runs and marks done', get_post($a2) === null && get_option(WPD_Legacy_Cleanup::DONE_OPTION) === '2.2.0' && get_transient(WPD_Legacy_Cleanup::LOCK) === false);
+check('maybe_run: runs and marks done', get_post($a2) === null && get_option(WPD_Legacy_Cleanup::DONE_OPTION) === WPD_VERSION && get_transient(WPD_Legacy_Cleanup::LOCK) === false);
 $a3 = wp_insert_post(['post_title' => 'Заявка после', 'post_type' => 'wpd_application', 'post_status' => 'publish']);
 WPD_Legacy_Cleanup::maybe_run();
 check('maybe_run: no-op once done', get_post($a3) !== null);

@@ -25,7 +25,11 @@ class WPD_Renderer
     const FAQ_SEARCH_MIN = 4;
 
     /** Варианты главного блока. */
-    const HERO_STYLES = ['dark', 'gradient', 'light'];
+    const HERO_STYLES = ['dark', 'gradient', 'light', 'soft'];
+
+    /** Встроенные изображения стиля «Мягкий градиент» (2.3.0), пути от папки плагина. */
+    const ORB_IMAGE  = 'assets/img/cities-orb.webp';
+    const LOGO_IMAGE = 'assets/img/kvantorium-logo.webp';
 
     public static function init(): void
     {
@@ -229,7 +233,19 @@ class WPD_Renderer
         $twidth   = max(0, min(1200, (int) $a['text_width']));
         $on       = function (string $v): bool { return $v !== '' && $v !== '0'; };
 
+        // 2.3.0: «Мягкий градиент» без своего изображения — встроенная круглая иллюстрация городов справа (или слева)
+        $orb = false;
+        if ($image === '' && $style === 'soft' && !empty($o['hero_soft_orb'])) {
+            $orb      = true;
+            $image    = esc_url(WPD_URL . self::ORB_IMAGE);
+            $position = $position === 'left' ? 'left' : 'right';
+            $a['image_alt'] = $a['image_alt'] !== '' ? $a['image_alt'] : 'Иллюстрация: Лондон и Красноярск';
+        }
+
         $classes = ['wpd-hero', 'wpd-hero--' . $style];
+        if ($orb) {
+            $classes[] = 'wpd-hero--orb';
+        }
         $vars    = '';
         if ($image !== '') {
             $classes[] = 'wpd-hero--img-' . $position;
@@ -255,7 +271,7 @@ class WPD_Renderer
             }
         }
         // 1.9.0: изображение сбоку — подгонка и рамка; скрытие на телефоне
-        if ($image !== '' && $position !== 'background') {
+        if ($image !== '' && $position !== 'background' && !$orb) {
             if ($fit !== 'cover') {
                 $classes[] = 'wpd-hero--fit-' . $fit;
             }
@@ -338,7 +354,15 @@ class WPD_Renderer
 
         $html .= '</div>';
 
-        if ($image !== '' && $position !== 'background') {
+        if ($orb) {
+            // Иллюстрация с подсветкой и звёздочками; анимация отключается при «уменьшить движение»
+            $html .= '<div class="wpd-hero__media wpd-hero__media--orb">'
+                . '<span class="wpd-orb__aura" aria-hidden="true"></span>'
+                . '<img class="wpd-orb__img" src="' . $image . '" alt="' . esc_attr($a['image_alt']) . '" width="1024" height="1020">'
+                . '<span class="wpd-orb__star wpd-orb__star--1" aria-hidden="true">&#10022;</span>'
+                . '<span class="wpd-orb__star wpd-orb__star--2" aria-hidden="true">&#10022;</span>'
+                . '</div>';
+        } elseif ($image !== '' && $position !== 'background') {
             $html .= '<div class="wpd-hero__media"><img src="' . $image . '" alt="' . esc_attr($a['image_alt']) . '" loading="lazy"></div>';
         }
 
@@ -923,6 +947,18 @@ class WPD_Renderer
             $list .= '<li class="wpd-contacts__phone">' . $icon('phone') . $phone . '</li>';
         }
 
+        // Логотип (2.3.0): встроенный «Кванториум Красноярск» или свой; со ссылкой организации
+        $logo = self::contact_logo_url($o);
+        $logo_html = '';
+        if ($logo !== '') {
+            $alt = $v['org'] !== '' ? $v['org'] : ($o['contact_logo'] === 'custom' ? 'Логотип' : 'Кванториум Красноярск');
+            $logo_html = '<img class="wpd-contacts__logo-img" src="' . esc_url($logo) . '" alt="' . esc_attr($alt) . '" loading="lazy">';
+            if ($v['org_url'] !== '' && esc_url($v['org_url']) !== '') {
+                $logo_html = '<a class="wpd-contacts__logo-link"' . self::link_attrs($v['org_url'], self::is_external($v['org_url'])) . '>' . $logo_html . '</a>';
+            }
+            $logo_html = '<div class="wpd-contacts__logo">' . $logo_html . '</div>';
+        }
+
         $button = '';
         $target = $v['page'] !== '' ? $v['page'] : ($v['email'] !== '' ? 'mailto:' . $v['email'] : '');
         if ($target !== '' && esc_url($target) !== '') {
@@ -931,7 +967,25 @@ class WPD_Renderer
 
         return '<section class="wpd-contacts">'
             . ($v['title'] !== '' ? '<h2 class="wpd-h2">' . esc_html($v['title']) . '</h2>' : '')
-            . '<div class="wpd-contacts__box"><ul class="wpd-contacts__list">' . $list . '</ul>' . $button . '</div></section>';
+            . '<div class="wpd-contacts__box' . ($logo_html !== '' ? ' wpd-contacts__box--logo' : '') . '">' . $logo_html
+            . '<ul class="wpd-contacts__list">' . $list . '</ul>' . $button . '</div></section>';
+    }
+
+    /**
+     * Адрес логотипа в контактах по настройке contact_logo. Пусто — без логотипа.
+     */
+    public static function contact_logo_url(array $o): string
+    {
+        switch ((string) $o['contact_logo']) {
+            case 'builtin':
+                return WPD_URL . self::LOGO_IMAGE;
+            case 'custom':
+                return (string) $o['contact_logo_url'];
+            case 'none':
+                return '';
+            default: // auto
+                return $o['design_style'] === 'soft' ? WPD_URL . self::LOGO_IMAGE : '';
+        }
     }
 
     /* ---------------------------------------------------------------
@@ -1043,8 +1097,12 @@ class WPD_Renderer
         if (!is_singular() || !self::is_design_enabled(get_queried_object_id())) {
             return $classes;
         }
-        if (WPD_Settings::get()['hide_title']) {
+        $o = WPD_Settings::get();
+        if ($o['hide_title']) {
             $classes[] = 'wpd-has-design';
+        }
+        if ($o['design_style'] === 'soft') {
+            $classes[] = 'wpd-soft-page'; // фон страницы — цвет «Фон страницы» (2.3.0)
         }
         return $classes;
     }
@@ -1138,6 +1196,11 @@ class WPD_Renderer
         wp_register_style('wpd-design', WPD_URL . 'assets/css/wpd.css', $deps, WPD_VERSION);
         wp_register_script('wpd-design', WPD_URL . 'assets/js/wpd.js', [], WPD_VERSION, true);
         $css = trim(str_replace('<', '', (string) $o['custom_css']));
+        // 2.3.0: у оформленных страниц в стиле «Мягкий градиент» фон всей страницы — цвет «Фон страницы»
+        $bg = (string) sanitize_hex_color((string) $o['bg']);
+        if ($o['design_style'] === 'soft' && $bg !== '') {
+            $css = 'body.wpd-soft-page{background-color:' . $bg . ';}' . ($css !== '' ? "\n" . $css : '');
+        }
         if ($css !== '') {
             wp_add_inline_style('wpd-design', $css);
         }

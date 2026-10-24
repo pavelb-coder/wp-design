@@ -265,7 +265,9 @@ class WPD_Blocks
             'vars'        => WPD_Settings::style_vars($o),
             // Модификаторы вида из вкладки «Оформление» (1.8.0) — те же классы, что на сайте
             'pageClass'   => implode(' ', WPD_Settings::page_classes($o)),
-            'heroStyles'  => ['dark' => 'Тёмный', 'gradient' => 'Градиент основного цвета', 'light' => 'Светлый'],
+            'heroStyles'  => WPD_Settings::hero_styles(),
+            // 2.3.0: встроенная иллюстрация для предпросмотра стиля «Мягкий градиент» без изображения
+            'softOrb'     => !empty($o['hero_soft_orb']) ? WPD_URL . WPD_Renderer::ORB_IMAGE : '',
             'heroOptions' => [
                 'imagePosition' => WPD_Settings::field_map()['hero_image_position']['options'],
                 'height'        => WPD_Settings::field_map()['hero_height']['options'],

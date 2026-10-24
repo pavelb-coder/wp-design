@@ -32,7 +32,7 @@ check('version >= 1.5.0', version_compare(WPD_VERSION, '1.5.0', '>='));
 
 /* 1. Поля и вкладки */
 $map = WPD_Settings::field_map();
-check('112 fields', count($map) === 112, (string) count($map));
+check('116 fields', count($map) === 116, (string) count($map));
 foreach (['slider', 'buttons', 'cards', 'notice', 'news', 'contacts'] as $tab) {
     check("tab $tab exists", isset(WPD_Settings::tabs()[$tab]));
 }

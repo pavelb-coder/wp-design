@@ -389,7 +389,7 @@ class WPD_Page_Editor
     private static function hero_panel(WP_Post $post, array $h, array $o): void
     {
         $image_url = $h['image_id'] ? (string) wp_get_attachment_image_url($h['image_id'], 'medium') : '';
-        $styles    = ['' => 'Как в общих настройках', 'dark' => 'Тёмный', 'gradient' => 'Градиент основного цвета', 'light' => 'Светлый'];
+        $styles    = ['' => 'Как в общих настройках'] + WPD_Settings::hero_styles();
         $global_style = $styles[$o['hero_style']] ?? 'Тёмный';
         $styles[''] .= ': ' . $global_style;
 

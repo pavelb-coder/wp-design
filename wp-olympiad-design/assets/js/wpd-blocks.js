@@ -215,7 +215,10 @@
         var iconOptions = [{ value: '', label: 'Без иконки' }].concat(Object.keys(icons).map(function (k) { return { value: k, label: icons[k] }; }));
 
         var cls = ['wpd-hero', 'wpd-hero--' + variant];
+        // 2.3.0: «Мягкий градиент» без изображения — встроенная иллюстрация городов, как на сайте
+        var orb = !a.imageUrl && variant === 'soft' && !!data.softOrb;
         if (a.imageUrl) { cls.push('wpd-hero--img-' + position); }
+        if (orb) { cls.push('wpd-hero--orb', 'wpd-hero--img-' + (position === 'left' ? 'left' : 'right')); }
         if (height !== 'normal') { cls.push('wpd-hero--height-' + height); }
         if (align !== 'left') { cls.push('wpd-hero--align-' + align); }
         if (tsize !== 'normal') { cls.push('wpd-hero--title-' + tsize); }
@@ -442,7 +445,12 @@
                         ),
                         (a.imageUrl && !isBgImage)
                             ? el('div', { className: 'wpd-hero__media' }, el('img', { src: a.imageUrl, alt: a.imageAlt || '' }))
-                            : ((sel && !a.imageUrl) ? el('div', { className: 'wpd-hero__media wpd-ed-media-empty' }, mediaButton) : null)
+                            : (orb
+                                ? el('div', { className: 'wpd-hero__media wpd-hero__media--orb' },
+                                    el('span', { className: 'wpd-orb__aura', 'aria-hidden': 'true' }),
+                                    el('img', { className: 'wpd-orb__img', src: data.softOrb, alt: '' }),
+                                    sel ? el('div', { className: 'wpd-ed-orb-replace' }, mediaButton) : null)
+                                : ((sel && !a.imageUrl) ? el('div', { className: 'wpd-hero__media wpd-ed-media-empty' }, mediaButton) : null))
                     )
                 )
             )

@@ -29,7 +29,7 @@ get "/wp-admin/admin.php?page=wpd-settings&tab=buttons" h_buttons.html
 t "buttons tab: 4 demo rows"             "$([ "$(grep -oE 'name="wpd_settings\[buttons\]\[[0-9]+\]\[text\]"' h_buttons.html | sort -u | wc -l | tr -d ' ')" = "4" ] && echo 1 || echo 0)"
 t "buttons tab: icon select with preview" "$(has h_buttons.html 'data-wpd-icon')"
 get "/wp-admin/admin.php?page=wpd-settings&tab=design" h_design.html
-t "design tab: 7 palette options"        "$([ "$(grep -oE 'name="wpd_settings\[palette\]"' h_design.html | wc -l | tr -d ' ')" = "7" ] && echo 1 || echo 0)"
+t "design tab: 8 palette options"        "$([ "$(grep -oE 'name="wpd_settings\[palette\]"' h_design.html | wc -l | tr -d ' ')" = "8" ] && echo 1 || echo 0)"
 t "design tab: custom palette checked"   "$(grep -qE 'name="wpd_settings\[palette\]" value="custom"[^>]*checked' h_design.html && echo 1 || echo 0)"
 get "/wp-admin/admin.php?page=wpd-settings&tab=news" h_news.html
 t "news tab: category dropdown"          "$(has h_news.html "name='wpd_settings\[news_category\]'")"

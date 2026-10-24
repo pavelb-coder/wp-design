@@ -122,6 +122,14 @@
         }
     });
 
+    /* Стиль оформления (2.3.0): сразу показываем палитру, которую подставит сохранение */
+    $(document).on('change', '#wpd_design_style', function () {
+        var target = $(this).val() === 'soft' ? 'soft' : ($('.wpd-palettes input[value="soft"]').is(':checked') ? 'olympiad' : '');
+        if (target) {
+            $('.wpd-palettes input[value="' + target + '"]').prop('checked', true).trigger('change');
+        }
+    });
+
     $(function () {
         initColors(document);
         $('[data-wpd-rep]').each(function () {

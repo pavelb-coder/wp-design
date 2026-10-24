@@ -42,11 +42,11 @@ curl -s --max-time 300 -o p_front1.html "$B/"
 S=$(H "state=1")
 t "request 1: batches of 200, not finished" "$(js "$S" "1 if d['apps'] in (250, 50) and d['done']=='' and d['role'] and d['opt'] else str(d)")"
 N=1
-while [ "$(js "$(H state=1)" "d['done']")" != "2.2.0" ] && [ $N -lt 6 ]; do curl -s --max-time 300 -o /dev/null "$B/"; N=$((N+1)); done
+while [ -z "$(js "$(H state=1)" "d['done']")" ] && [ $N -lt 6 ]; do curl -s --max-time 300 -o /dev/null "$B/"; N=$((N+1)); done
 S=$(H "state=1")
 t "finished within 3 site requests"      "$([ $N -le 3 ] && echo 1 || echo 0)"
 t "everything removed"                   "$(js "$S" "1 if d['apps']==0 and d['users']==0 and not d['role'] and not d['opt'] and d['trans']==0 else str(d)")"
-t "marked done (2.2.0)"       "$(js "$S" "1 if d['done']=='2.2.0' else str(d)")"
+t "marked done with plugin version"       "$(js "$S" "1 if __import__('re').match(r'^2\.\d+\.\d+$', str(d['done'])) else str(d)")"
 t "pages with old shortcode recorded"    "$(js "$S" "1 if d['pages']==[$PID] else str(d)")"
 t "site pages still work during cleanup" "$(grep -qi '<html' p_front1.html && echo 1 || echo 0)"
 rm -f cjPU.txt; curl -s -c cjPU.txt -b cjPU.txt -o /dev/null "$B/wp-login.php"

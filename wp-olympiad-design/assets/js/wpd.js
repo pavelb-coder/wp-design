@@ -284,8 +284,44 @@
         }
     }
 
+    /* Стиль «Мягкий градиент» (2.3.0): разделы плавно появляются при прокрутке.
+       Главный блок виден сразу; без IntersectionObserver и при «уменьшить движение» эффекта нет. */
+    function initReveal(root) {
+        if (reduceMotion || !('IntersectionObserver' in window)) {
+            return;
+        }
+        var items = [];
+        for (var i = 0; i < root.children.length; i++) {
+            var child = root.children[i];
+            if (!child.classList.contains('wpd-hero')) {
+                child.classList.add('wpd-reveal');
+                items.push(child);
+            }
+        }
+        if (!items.length) {
+            return;
+        }
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { rootMargin: '0px 0px -38px 0px', threshold: 0.08 });
+        items.forEach(function (item) {
+            observer.observe(item);
+        });
+        root.classList.add('wpd-reveal-ready');
+    }
+
     function init() {
         initPrintFaq();
+
+        var softPages = document.querySelectorAll('.wpd-page.wpd-style-soft:not(.wpd-page--editor)');
+        for (var r = 0; r < softPages.length; r++) {
+            initReveal(softPages[r]);
+        }
 
         var countdowns = document.querySelectorAll('.wpd-countdown');
         for (var i = 0; i < countdowns.length; i++) {
