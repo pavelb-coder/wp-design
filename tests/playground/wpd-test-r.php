@@ -70,7 +70,7 @@ check('groups: nine groups in order', array_keys($groups) === ['page', 'hero', '
 $page_keys = WPD_Page_Editor::group_keys('page');
 check('page group: style, palette, colours, fonts', !array_diff(['design_style', 'palette', 'primary', 'accent', 'dark', 'text', 'bg', 'radius', 'google_fonts'], $page_keys));
 check('page group: look and behavior fields', !array_diff(['heading_underline', 'card_hover', 'hide_title'], $page_keys), implode(',', $page_keys));
-check('page group: 29 fields', count($page_keys) === 29, (string) count($page_keys));
+check('page group: 30 fields (2.5.0: + docs_icon_size)', count($page_keys) === 30, (string) count($page_keys));
 check('page group: no custom_css (own CSS field instead)', !in_array('custom_css', $page_keys, true));
 $hero_keys = WPD_Page_Editor::group_keys('hero');
 check('hero group: no texts, image url or style (panel fields)', !array_intersect(['hero_title', 'hero_text', 'badge', 'hero_button_text', 'hero_button_url', 'hero_image_url', 'hero_style'], $hero_keys));

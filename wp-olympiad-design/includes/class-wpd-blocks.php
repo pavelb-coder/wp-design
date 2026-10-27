@@ -58,6 +58,7 @@ class WPD_Blocks
             'pageClass' => implode(' ', WPD_Settings::page_classes($o)),
             'softOrb'   => !empty($o['hero_soft_orb']) ? WPD_URL . WPD_Renderer::ORB_IMAGE : '',
             'palette'   => [$o['primary'], $o['accent'], $o['dark'], $o['text'], $o['bg']],
+            'iconSizes' => self::icon_sizes_data($o),
         ]) . ');', 'before');
     }
 
@@ -110,6 +111,8 @@ class WPD_Blocks
                     'padding'       => ['type' => 'integer', 'default' => (int) $o['hero_padding']],
                     'verticalAlign' => ['type' => 'string', 'default' => (string) $o['hero_valign']],
                     'textWidth'     => ['type' => 'integer', 'default' => (int) $o['hero_text_width']],
+                    // 2.5.0
+                    'buttonIconSize' => ['type' => 'integer', 'default' => (int) $o['hero_button_icon_size']],
                 ],
                 'render'      => [__CLASS__, 'render_hero'],
             ],
@@ -148,6 +151,7 @@ class WPD_Blocks
                 'attributes'  => [
                     'title' => ['type' => 'string', 'default' => (string) $o['docs_title']],
                     'items' => ['type' => 'array', 'default' => WPD_Settings::docs_items($o['docs'])],
+                    'iconSize' => ['type' => 'integer', 'default' => (int) $o['docs_icon_size']],
                 ],
                 'render'      => [__CLASS__, 'render_docs'],
             ],
@@ -186,6 +190,7 @@ class WPD_Blocks
                 'keywords'    => ['кнопки', 'ссылки', 'иконки', 'меню'],
                 'attributes'  => [
                     'items' => ['type' => 'array', 'default' => array_values((array) $o['buttons'])],
+                    'iconSize' => ['type' => 'integer', 'default' => (int) $o['buttons_icon_size']],
                 ],
                 'render'      => [__CLASS__, 'render_buttons'],
             ],
@@ -247,6 +252,7 @@ class WPD_Blocks
                     'map'     => ['type' => 'string', 'default' => (string) $o['contact_map']],
                     'page'    => ['type' => 'string', 'default' => (string) $o['contact_page']],
                     'code'    => ['type' => 'string', 'default' => (string) $o['contact_code']],
+                    'iconSize' => ['type' => 'integer', 'default' => (int) $o['contacts_icon_size']],
                 ],
                 'render'      => [__CLASS__, 'render_contacts'],
             ],
@@ -322,6 +328,8 @@ class WPD_Blocks
             'countdownTz' => WPD_Settings::countdown_tz_label($o),
             'countdownTzName' => WPD_Settings::field_map()['countdown_tz']['options'][$o['countdown_tz']] ?? '',
             'icons'       => WPD_Settings::icons(),
+            // 2.5.0: размеры иконок — CSS-переменная, границы и размер по умолчанию для атрибутов блоков
+            'iconSizes'   => self::icon_sizes_data(),
             // Список рубрик нужен только редактору; на сайте лишний запрос не делаем
             'categories'  => is_admin() ? self::categories() : [],
             'noticeLayouts' => WPD_Settings::field_map()['notice_layout']['options'],
@@ -416,7 +424,7 @@ class WPD_Blocks
     /**
      * Обёртка блока: .wpd-page с модификатором и пользовательским CSS-классом из редактора.
      */
-    private static function wrap(string $inner, array $a, string $slug): string
+    private static function wrap(string $inner, array $a, string $slug, ?array $o = null): string
     {
         if ($inner === '') {
             return '';
@@ -432,13 +440,40 @@ class WPD_Blocks
                 $classes[] = $class;
             }
         }
-        return WPD_Renderer::wrap($inner, implode(' ', $classes));
+        return WPD_Renderer::wrap($inner, implode(' ', $classes), $o);
+    }
+
+    /**
+     * Размер иконок из атрибута блока (2.5.0): положительное значение заменяет настройку, 0 или отсутствие —
+     * размер из общих настроек (или своих для страницы).
+     */
+    public static function with_icon_size(array $o, array $a, string $attr, string $key): array
+    {
+        if (array_key_exists($attr, $a) && is_numeric($a[$attr]) && (int) $a[$attr] > 0) {
+            $o[$key] = (int) $a[$attr];
+        }
+        return $o;
+    }
+
+    /** Данные о размерах иконок для редактора: ключ блока → атрибут, переменная, границы, значение настроек. */
+    public static function icon_sizes_data(?array $o = null): array
+    {
+        $o   = $o ?? WPD_Settings::get();
+        $map = ['buttons' => ['iconSize', 'buttons_icon_size'], 'contacts' => ['iconSize', 'contacts_icon_size'],
+                'hero' => ['buttonIconSize', 'hero_button_icon_size'], 'docs' => ['iconSize', 'docs_icon_size']];
+        $out = [];
+        foreach ($map as $slug => $pair) {
+            $d = WPD_Settings::ICON_SIZES[$pair[1]];
+            $out[$slug] = ['attr' => $pair[0], 'var' => $d['var'], 'min' => $d['min'], 'max' => $d['max'],
+                           'default' => $d['default'], 'setting' => (int) $o[$pair[1]]];
+        }
+        return $out;
     }
 
     public static function render_hero($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
+        $o = self::with_icon_size(WPD_Settings::get(), $a, 'buttonIconSize', 'hero_button_icon_size');
         return self::wrap(WPD_Renderer::hero_html($o, [
             'title'       => self::str($a, 'title', $o['hero_title']),
             'lead'        => self::str($a, 'lead', $o['hero_text']),
@@ -472,7 +507,7 @@ class WPD_Blocks
             'padding'         => self::num($a, 'padding', $o['hero_padding']),
             'valign'          => self::str($a, 'verticalAlign', $o['hero_valign']),
             'text_width'      => self::num($a, 'textWidth', $o['hero_text_width']),
-        ]), $a, 'hero');
+        ]), $a, 'hero', $o);
     }
 
     public static function render_countdown($a): string
@@ -502,9 +537,9 @@ class WPD_Blocks
     public static function render_docs($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
+        $o = self::with_icon_size(WPD_Settings::get(), $a, 'iconSize', 'docs_icon_size');
         $items = self::items($a, WPD_Settings::docs_items($o['docs']));
-        return self::wrap(WPD_Renderer::docs_html($o, $items, self::str($a, 'title', $o['docs_title'])), $a, 'docs');
+        return self::wrap(WPD_Renderer::docs_html($o, $items, self::str($a, 'title', $o['docs_title'])), $a, 'docs', $o);
     }
 
     public static function render_faq($a): string
@@ -547,8 +582,8 @@ class WPD_Blocks
     public static function render_buttons($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
-        return self::wrap(WPD_Renderer::buttons_html($o, self::items($a, (array) $o['buttons'])), $a, 'buttons');
+        $o = self::with_icon_size(WPD_Settings::get(), $a, 'iconSize', 'buttons_icon_size');
+        return self::wrap(WPD_Renderer::buttons_html($o, self::items($a, (array) $o['buttons'])), $a, 'buttons', $o);
     }
 
     public static function render_cards($a): string
@@ -590,7 +625,7 @@ class WPD_Blocks
     public static function render_contacts($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
+        $o = self::with_icon_size(WPD_Settings::get(), $a, 'iconSize', 'contacts_icon_size');
         $args = [];
         foreach (['title' => 'contacts_title', 'org' => 'contact_org', 'address' => 'contact_address', 'city' => 'contact_city',
                   'phone' => 'contact_phone', 'email' => 'contact_email', 'map' => 'contact_map', 'page' => 'contact_page',
@@ -598,6 +633,6 @@ class WPD_Blocks
             $args[$key] = self::str($a, $key, (string) $o[$opt]);
         }
         $args['org_url'] = self::str($a, 'orgUrl', (string) $o['contact_org_url']);
-        return self::wrap(WPD_Renderer::contacts_html($o, $args), $a, 'contacts');
+        return self::wrap(WPD_Renderer::contacts_html($o, $args), $a, 'contacts', $o);
     }
 }

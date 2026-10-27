@@ -246,8 +246,10 @@
             if (el.closest('.wpd-pe')) {
                 continue;
             }
-            if (el.getAttribute('style') !== lastPreview.style) {
-                el.setAttribute('style', lastPreview.style);
+            // 2.5.0: своё значение блока (размер иконок) из data-wpd-style сильнее оформления страницы
+            var style = lastPreview.style + (el.getAttribute('data-wpd-style') || '');
+            if (el.getAttribute('style') !== style) {
+                el.setAttribute('style', style);
             }
             var keep = el.className.split(/\s+/).filter(function (c) {
                 return c && !MANAGED.test(c);

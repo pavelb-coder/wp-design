@@ -201,12 +201,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
+    /* 2.5.0: размер задаётся в настройках (--wpd-icon-doc), подпись PDF/WEB масштабируется вместе с ним */
+    width: var(--wpd-icon-doc, 44px);
+    height: var(--wpd-icon-doc, 44px);
+    border-radius: calc(var(--wpd-icon-doc, 44px) * 0.23);
     background: var(--wpd-primary);
     color: #fff;
-    font-size: 12px;
+    font-size: calc(var(--wpd-icon-doc, 44px) * 0.27);
     font-weight: 700;
     letter-spacing: 0.04em;
 }
@@ -748,9 +749,9 @@
 }
 
 .wpd-page .wpd-qbtn__icon.dashicons {
-    width: 44px;
-    height: 44px;
-    font-size: 44px;
+    width: var(--wpd-icon-qbtn, 44px);
+    height: var(--wpd-icon-qbtn, 44px);
+    font-size: var(--wpd-icon-qbtn, 44px);
     color: var(--wpd-primary);
 }
 
@@ -1036,9 +1037,9 @@
 
 .wpd-page .wpd-contacts__icon.dashicons {
     flex: 0 0 auto;
-    width: 24px;
-    height: 24px;
-    font-size: 24px;
+    width: var(--wpd-icon-contacts, 24px);
+    height: var(--wpd-icon-contacts, 24px);
+    font-size: var(--wpd-icon-contacts, 24px);
     color: var(--wpd-primary);
 }
 
@@ -1420,9 +1421,9 @@
 
 /* Иконка на кнопке */
 .wpd-page .wpd-btn__icon {
-    width: 20px;
-    height: 20px;
-    font-size: 20px;
+    width: var(--wpd-icon-btn, 20px);
+    height: var(--wpd-icon-btn, 20px);
+    font-size: var(--wpd-icon-btn, 20px);
     line-height: 1;
 }
 
@@ -1964,7 +1965,7 @@
 }
 
 .wpd-page.wpd-style-soft .wpd-doc__icon {
-    border-radius: 12px;
+    border-radius: calc(var(--wpd-icon-doc, 44px) * 0.27);
     background: color-mix(in srgb, var(--wpd-primary) 10%, #fff);
     color: var(--wpd-primary);
 }
@@ -2086,9 +2087,9 @@
 }
 
 .wpd-page.wpd-style-soft .wpd-qbtn__icon.dashicons {
-    width: 32px;
-    height: 32px;
-    font-size: 32px;
+    width: var(--wpd-icon-qbtn, 32px);
+    height: var(--wpd-icon-qbtn, 32px);
+    font-size: var(--wpd-icon-qbtn, 32px);
 }
 
 .wpd-page.wpd-style-soft a.wpd-qbtn::after {

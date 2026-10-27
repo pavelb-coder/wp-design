@@ -244,6 +244,9 @@ class WPD_Settings
             'hero_button2_new_tab' => ['label' => 'Вторая кнопка в новой вкладке', 'type' => 'checkbox', 'section' => 'hero', 'default' => 0],
             'hero_button2_icon'    => ['label' => 'Иконка второй кнопки', 'type' => 'select', 'section' => 'hero', 'default' => '',
                                        'options' => ['' => 'Без иконки'] + self::icons()],
+            // 2.5.0: размеры иконок (0 — как в стиле оформления)
+            'hero_button_icon_size' => ['label' => 'Размер иконок на кнопках, px', 'type' => 'number', 'section' => 'hero', 'default' => 0, 'min' => 0, 'max' => 48,
+                                        'desc' => '0 — по умолчанию (20 px). От 12 до 48.'],
             'hero_countdown'       => ['label' => 'Таймер внутри главного блока', 'type' => 'checkbox', 'section' => 'hero', 'default' => 0,
                                        'desc' => 'Обратный отсчёт с вкладки «Таймер и эффекты» под кнопками. Отдельный таймер под главным блоком тогда не выводится.'],
             'hero_image_url'   => ['label' => 'Изображение главного блока (URL)', 'type' => 'url', 'section' => 'hero_image', 'default' => '',
@@ -325,6 +328,8 @@ class WPD_Settings
             'docs_title' => ['label' => 'Заголовок блока документов', 'type' => 'text', 'section' => 'docs', 'default' => 'Документы'],
             'docs'       => ['label' => 'Документы', 'type' => 'textarea', 'section' => 'docs', 'default' => '',
                              'desc' => 'Каждая строка: название|ссылка (PDF или страница). Пустое поле — блок не выводится.'],
+            'docs_icon_size' => ['label' => 'Размер значков документов, px', 'type' => 'number', 'section' => 'docs', 'default' => 0, 'min' => 0, 'max' => 96,
+                                 'desc' => '0 — по умолчанию (44 px). Квадратный значок с подписью PDF или WEB, подпись меняется вместе с ним. От 24 до 96.'],
 
             // FAQ
             'faq_title' => ['label' => 'Заголовок блока FAQ', 'type' => 'text', 'section' => 'faq', 'default' => 'Часто задаваемые вопросы'],
@@ -380,6 +385,8 @@ class WPD_Settings
                               'small'   => ['label' => 'Мелкий текст (для длинных подписей)', 'type' => 'checkbox'],
                           ],
                           'desc' => 'Плитки с иконками для быстрых переходов: положение, регистрация, расписание и т. п. Кнопка без ссылки выводится как подпись.'],
+            'buttons_icon_size' => ['label' => 'Размер иконок, px', 'type' => 'number', 'section' => 'buttons', 'default' => 0, 'min' => 0, 'max' => 96,
+                                    'desc' => '0 — по умолчанию: 44 px, в стиле «Мягкий градиент» — 32 px. От 16 до 96.'],
 
             // Карточки
             'cards_title' => ['label' => 'Заголовок блока карточек', 'type' => 'text', 'section' => 'cards', 'default' => '',
@@ -446,6 +453,8 @@ class WPD_Settings
                                   'desc' => 'Выводится вверху блока контактов, со ссылкой организации, если она задана.'],
             'contact_logo_url' => ['label' => 'Свой логотип (URL)', 'type' => 'url', 'section' => 'contacts', 'default' => '',
                                   'desc' => 'Для варианта «Свой». Лучше PNG, WebP или SVG с прозрачным фоном.'],
+            'contacts_icon_size' => ['label' => 'Размер иконок, px', 'type' => 'number', 'section' => 'contacts', 'default' => 0, 'min' => 0, 'max' => 64,
+                                     'desc' => '0 — по умолчанию (24 px). Иконки адреса, телефона, e-mail и организации. От 12 до 64.'],
         ];
     }
 
@@ -471,6 +480,27 @@ class WPD_Settings
 
     /** Поля цветов в порядке значений палитры. */
     const PALETTE_KEYS = ['primary', 'accent', 'dark', 'text', 'bg'];
+
+    /**
+     * Размеры иконок (2.5.0): поле настроек → CSS-переменная, границы и размер по умолчанию (px).
+     * 0 в поле — размер по умолчанию из CSS (у «Мягкого градиента» для плиток он свой).
+     */
+    const ICON_SIZES = [
+        'buttons_icon_size'     => ['var' => '--wpd-icon-qbtn', 'min' => 16, 'max' => 96, 'default' => 44, 'label' => 'Кнопки-ссылки'],
+        'contacts_icon_size'    => ['var' => '--wpd-icon-contacts', 'min' => 12, 'max' => 64, 'default' => 24, 'label' => 'Контакты'],
+        'hero_button_icon_size' => ['var' => '--wpd-icon-btn', 'min' => 12, 'max' => 48, 'default' => 20, 'label' => 'Кнопки главного блока'],
+        'docs_icon_size'        => ['var' => '--wpd-icon-doc', 'min' => 24, 'max' => 96, 'default' => 44, 'label' => 'Значки документов'],
+    ];
+
+    /** Размер иконки в px для CSS-переменной: '' для 0 и неверных значений, иначе в пределах min…max. */
+    public static function icon_size_css(string $key, $value): string
+    {
+        if (!isset(self::ICON_SIZES[$key]) || !is_numeric($value) || (int) $value <= 0) {
+            return '';
+        }
+        $d = self::ICON_SIZES[$key];
+        return max($d['min'], min($d['max'], (int) $value)) . 'px';
+    }
 
     /**
      * Стили главного блока: ключ — модификатор wpd-hero--<ключ>.
@@ -854,6 +884,13 @@ class WPD_Settings
         }
         if ((int) $o['border_width'] !== 1) {
             $vars['--wpd-border'] = max(0, min(4, (int) $o['border_width'])) . 'px';
+        }
+        // 2.5.0: размеры иконок
+        foreach (self::ICON_SIZES as $key => $d) {
+            $px = self::icon_size_css($key, $o[$key] ?? 0);
+            if ($px !== '') {
+                $vars[$d['var']] = $px;
+            }
         }
         return $vars;
     }
@@ -1307,6 +1344,12 @@ class WPD_Settings
                     скрытие на телефоне, описание (alt), свой цвет фона, цвета метки, заголовка и текста, высота, минимальная высота,
                     внутренний отступ, вертикальное выравнивание, выравнивание и ширина текста, размер заголовка.
                     В блоке «Олимпиада: главный блок» всё это задаётся отдельно для страницы в боковой панели.</li>
+                <li><strong>Размер иконок</strong> (2.5.0): плиток «Кнопки-ссылки» (вкладка «Кнопки-ссылки», по умолчанию 44 px,
+                    в «Мягком градиенте» — 32 px), контактов (вкладка «Контакты», 24 px), иконок на кнопках главного блока
+                    (вкладка «Главный блок», 20 px) и значков документов PDF/WEB (вкладка «Документы», 44 px). 0 — размер по умолчанию.
+                    Для одной страницы размер меняется в панели «Блоки олимпиады» (группы «Кнопки-ссылки», «Контакты», «Главный блок»,
+                    значки документов — в «Оформлении страницы»), для отдельного блока «Олимпиада: …» — в его боковой панели
+                    (поле «Размер иконок»; 0 — как в настройках). Размер блока важнее размера страницы, размер страницы — общего.</li>
             </ul>
 
             <h2>Шорткоды</h2>

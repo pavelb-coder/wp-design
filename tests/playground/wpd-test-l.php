@@ -64,7 +64,7 @@ check('look fields follow font, in order', in_order($keys, array_merge(['font'],
 check('11 new hero fields on hero tab', count(array_filter($hero_new, function ($k) use ($map, $hero_tab) { return in_array($map[$k]['section'] ?? '', $hero_tab, true); })) === 11);
 check('hero order: buttons, image, style', in_order($keys, ['hero_button_url', 'hero_button_new_tab', 'hero_button2_text', 'hero_button2_url',
     'hero_button2_new_tab', 'hero_image_url', 'hero_image_alt', 'hero_image_position', 'hero_overlay', 'hero_style', 'hero_bg', 'hero_height', 'hero_align', 'hero_title_size']));
-check('116 fields total (2.3.0)', count($map) === 116);
+check('120 fields total (2.5.0)', count($map) === 120);
 $d = WPD_Settings::get();
 check('defaults keep the old look', $d['font_heading'] === '' && $d['font_size'] === 16 && $d['heading_color'] === '' && $d['content_width'] === 1200 && $d['block_gap'] === 40
     && $d['button_shape'] === 'rounded' && $d['button_style'] === 'fill' && $d['card_shadow'] === 'light' && $d['heading_underline'] === 1 && $d['card_hover'] === 1);

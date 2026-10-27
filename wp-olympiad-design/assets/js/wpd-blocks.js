@@ -72,12 +72,62 @@
         return m ? m[3] + '.' + m[2] + '.' + m[1] + ', ' + m[4] + ':' + m[5] + (data.countdownTz ? ' ' + data.countdownTz : '') : '';
     }
 
-    /* Корневой контейнер с CSS-переменными из общих настроек */
-    function Wrapper(slug, className) {
+    /*
+     * Размер иконок из атрибута блока (2.5.0): CSS-переменная только для своего значения.
+     * 0 и значение, совпадающее со значением по умолчанию атрибута (оно не сохраняется в разметку блока),
+     * означают «как в настройках» — тогда действует переменная страницы или общих настроек из data.vars.
+     */
+    function iconVars(slug, a) {
+        var d = data.iconSizes && data.iconSizes[slug];
+        if (!d || !a) {
+            return {};
+        }
+        var v = parseInt(a[d.attr], 10);
+        var def = data.blocks['wpd/' + slug] && data.blocks['wpd/' + slug].attributes[d.attr]
+            ? parseInt(data.blocks['wpd/' + slug].attributes[d.attr]['default'], 10) : 0;
+        if (!(v > 0) || v === def) {
+            return {};
+        }
+        var out = {};
+        out[d['var']] = Math.max(d.min, Math.min(d.max, v)) + 'px';
+        return out;
+    }
+
+    /* Поле «Размер иконок» в боковой панели блока */
+    function IconSizeControl(slug, a, set, label) {
+        var d = data.iconSizes && data.iconSizes[slug];
+        if (!d) {
+            return null;
+        }
+        var current = d.setting > 0 ? d.setting : d['default'];
+        return el(c.RangeControl, {
+            label: label || 'Размер иконок, px',
+            className: 'wpd-ed-icon-size',
+            value: parseInt(a[d.attr], 10) || 0,
+            min: 0, max: d.max, step: 1,
+            help: '0 — как в настройках (' + current + ' px). От ' + d.min + ' до ' + d.max + ' px.',
+            onChange: function (v) { var o = {}; o[d.attr] = typeof v === 'number' ? v : 0; set(o); }
+        });
+    }
+
+    /*
+     * Корневой контейнер с CSS-переменными из общих настроек. Второй аргумент — className или
+     * { className, attributes } (для блоков со своим размером иконок).
+     */
+    function Wrapper(slug, opts) {
+        var className = opts && typeof opts === 'object' ? opts.className : opts;
+        var own = opts && typeof opts === 'object' ? iconVars(slug, opts.attributes) : {};
+        var ownStyle = Object.keys(own).map(function (k) { return k + ':' + own[k] + ';'; }).join('');
+        var style = Object.assign({}, data.vars, own);
         var cls = 'wpd-page wpd-page--block wpd-page--editor wpd-page--' + slug + (data.pageClass ? ' ' + data.pageClass : '');
+        var base = { className: cls, style: style };
+        if (ownStyle) {
+            // Предпросмотр своего оформления страницы (wpd-admin.js) заменяет style контейнера и добавляет это значение
+            base['data-wpd-style'] = ownStyle;
+        }
         var props = be.useBlockProps
-            ? be.useBlockProps({ className: cls, style: data.vars })
-            : { className: cls + (className ? ' ' + className : ''), style: data.vars };
+            ? be.useBlockProps(base)
+            : Object.assign({}, base, { className: cls + (className ? ' ' + className : '') });
         var children = Array.prototype.slice.call(arguments, 2);
         return el.apply(null, ['div', props].concat(children));
     }
@@ -373,6 +423,7 @@
                         label: 'Иконка второй кнопки', value: icons[a.button2Icon] ? a.button2Icon : '', options: iconOptions,
                         onChange: function (v) { set({ button2Icon: v }); }
                     }),
+                    IconSizeControl('hero', a, set, 'Размер иконок на кнопках, px'),
                     el(Toggle, {
                         label: 'Таймер под кнопками', checked: !!a.showCountdown,
                         help: 'Даты и подписи — из общих настроек, вкладка «Таймер и эффекты».',
@@ -421,7 +472,7 @@
                 ),
                 ResetPanel('wpd/hero', set)
             ),
-            Wrapper('hero', props.className,
+            Wrapper('hero', { className: props.className, attributes: a },
                 el('section', { className: cls.join(' '), style: style },
                     el('div', { className: 'wpd-hero__inner' },
                         el('div', { className: 'wpd-hero__text' },
@@ -565,8 +616,13 @@
         var setItems = function (v) { set({ items: v }); };
 
         return el(Fragment, null,
-            el(be.InspectorControls, null, ResetPanel('wpd/docs', set)),
-            Wrapper('docs', props.className,
+            el(be.InspectorControls, null,
+                el(c.PanelBody, { title: 'Значки' },
+                    IconSizeControl('docs', a, set, 'Размер значков, px')
+                ),
+                ResetPanel('wpd/docs', set)
+            ),
+            Wrapper('docs', { className: props.className, attributes: a },
                 el('section', { className: 'wpd-docs' },
                     el('h2', { className: 'wpd-h2' },
                         el(Plain, { value: a.title, single: true, placeholder: 'Заголовок блока', onChange: function (v) { set({ title: v }); } })
@@ -787,11 +843,12 @@
         return el(Fragment, null,
             el(be.InspectorControls, null,
                 el(c.PanelBody, { title: 'Кнопки-ссылки' },
-                    el('p', null, 'Текст правится прямо на плитке. Иконка, ссылка и размер текста — под плиткой, когда блок выделен. Кнопка без ссылки выводится как подпись.')
+                    el('p', null, 'Текст правится прямо на плитке. Иконка, ссылка и размер текста — под плиткой, когда блок выделен. Кнопка без ссылки выводится как подпись.'),
+                    IconSizeControl('buttons', a, set)
                 ),
                 ResetPanel('wpd/buttons', set)
             ),
-            Wrapper('buttons', props.className,
+            Wrapper('buttons', { className: props.className, attributes: a },
                 el('nav', { className: 'wpd-buttons' },
                     items.length ? el('ul', { className: 'wpd-buttons__grid' }, items.map(function (it, i) {
                         return el('li', { key: i },
@@ -1021,9 +1078,12 @@
                         onChange: function (v) { set({ page: v }); }
                     })
                 ),
+                el(c.PanelBody, { title: 'Иконки' },
+                    IconSizeControl('contacts', a, set)
+                ),
                 ResetPanel('wpd/contacts', set)
             ),
-            Wrapper('contacts', props.className,
+            Wrapper('contacts', { className: props.className, attributes: a },
                 el('section', { className: 'wpd-contacts' },
                     (sel || a.title) ? el('h2', { className: 'wpd-h2' },
                         el(Plain, { value: a.title, single: true, placeholder: 'Заголовок блока', onChange: function (v) { set({ title: v }); } })

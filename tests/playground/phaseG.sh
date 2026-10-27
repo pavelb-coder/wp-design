@@ -25,7 +25,7 @@ t "page: 13 tabs"                       "$([ "$(grep -oE 'class="nav-tab( nav-ta
 t "page: design tab active by default" "$(python3 -c "import re,sys;s=open('g_design.html',encoding='utf-8').read();print(1 if re.search(r'tab=design\"\s*class=\"nav-tab nav-tab-active\"',s) else 0)")"
 t "page: hidden _tab=design"           "$(has g_design.html 'name="wpd_settings\[_tab\]" value="design"')"
 
-declare -A EXPECT=([design]=30 [hero]=33 [features]=12 [stats]=1 [docs]=2 [faq]=2 [slider]=8 [buttons]=1 [cards]=2 [notice]=8 [news]=5 [contacts]=12 [help]=0)
+declare -A EXPECT=([design]=30 [hero]=34 [features]=12 [stats]=1 [docs]=3 [faq]=2 [slider]=8 [buttons]=2 [cards]=2 [notice]=8 [news]=5 [contacts]=13 [help]=0)
 for tab in design hero features stats docs faq slider buttons cards notice news contacts help; do
   get "/wp-admin/admin.php?page=wpd-settings&tab=$tab" "g_$tab.html"
   t "tab $tab: ${EXPECT[$tab]} fields"  "$([ "$(fields g_$tab.html)" = "${EXPECT[$tab]}" ] && echo 1 || echo 0)"
