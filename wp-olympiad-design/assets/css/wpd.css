@@ -2279,3 +2279,64 @@
         transform: none;
     }
 }
+
+/* ---------------------------------------------------------------
+ * 2.4.0: вид отдельных блоков оформленной страницы (панель «Блоки олимпиады» → кнопка «Вид»)
+ * ------------------------------------------------------------- */
+
+.wpd-page > .wpd-b--mt {
+    margin-top: var(--wpd-b-mt) !important;
+}
+
+.wpd-page > .wpd-b--mb {
+    margin-bottom: var(--wpd-b-mb) !important;
+}
+
+.wpd-page > .wpd-b--bg {
+    padding: clamp(20px, 3vw, 36px);
+    border-radius: var(--wpd-radius);
+    background: var(--wpd-b-bg) !important;
+}
+
+.wpd-page > .wpd-b--bg-dark {
+    --wpd-heading: #fff;
+    --wpd-text: #e5e7eb;
+    color: #e5e7eb;
+}
+
+.wpd-page > .wpd-b--bg-dark .wpd-h2,
+.wpd-page > .wpd-b--bg-dark h2,
+.wpd-page > .wpd-b--bg-dark h3 {
+    color: #fff;
+}
+
+.wpd-page > .wpd-b--w-narrow {
+    max-width: 760px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+.wpd-page > .wpd-b--w-full {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    border-radius: 0;
+}
+
+.wpd-page > .wpd-b--w-full.wpd-b--bg {
+    padding-left: max(20px, calc(50vw - var(--wpd-width, 1200px) / 2 + 20px));
+    padding-right: max(20px, calc(50vw - var(--wpd-width, 1200px) / 2 + 20px));
+}
+
+@media (max-width: 782px) {
+    .wpd-page > .wpd-b--hide-mobile {
+        display: none !important;
+    }
+}
+
+@media (min-width: 783px) {
+    .wpd-page > .wpd-b--hide-desktop {
+        display: none !important;
+    }
+}

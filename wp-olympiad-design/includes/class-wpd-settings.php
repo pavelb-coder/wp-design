@@ -37,6 +37,19 @@ class WPD_Settings
     /** Кеш настроек на время запроса. Сбрасывается при изменении опции. */
     private static $cache = null;
 
+    /**
+     * Страница, для которой выводится оформление (2.4.0): её переопределения из панели «Блоки олимпиады»
+     * подмешиваются в get(). 0 — только общие настройки.
+     */
+    private static $page = 0;
+
+    /** Кеш настроек с переопределениями страниц: [ID записи => настройки]. */
+    private static $page_cache = [];
+
+    /** Префиксы имени и id полей формы: на странице настроек — wpd_settings[...], в панели страницы — свои. */
+    private static $name_base = self::OPTION;
+    private static $id_base   = 'wpd_';
+
     public static function init(): void
     {
         add_action('admin_menu', [__CLASS__, 'add_menu']);
@@ -49,11 +62,38 @@ class WPD_Settings
         add_action('add_option_' . self::OPTION, [__CLASS__, 'flush_cache']);
         add_action('update_option_' . self::OPTION, [__CLASS__, 'flush_cache']);
         add_action('delete_option_' . self::OPTION, [__CLASS__, 'flush_cache']);
+        // 2.4.0: изменились настройки страницы — сбрасываем её кеш
+        foreach (['added_post_meta', 'updated_post_meta', 'deleted_post_meta'] as $hook) {
+            add_action($hook, [__CLASS__, 'flush_page_cache'], 10, 3);
+        }
     }
 
     public static function flush_cache(): void
     {
-        self::$cache = null;
+        self::$cache      = null;
+        self::$page_cache = [];
+    }
+
+    /** Сброс кеша страницы при изменении её мета-поля _wpd_page. */
+    public static function flush_page_cache($meta_ids = null, $object_id = 0, $meta_key = ''): void
+    {
+        if ($meta_key === '' || $meta_key === WPD_Page_Editor::META) {
+            self::$page_cache = [];
+        }
+    }
+
+    /**
+     * Страница, для которой get() возвращает настройки с её переопределениями (2.4.0). 0 — общие настройки.
+     * Ставится на сайте для открытой записи и при предпросмотре блоков в редакторе этой записи.
+     */
+    public static function set_page(int $post_id): void
+    {
+        self::$page = max(0, $post_id);
+    }
+
+    public static function current_page(): int
+    {
+        return self::$page;
     }
 
     /**
@@ -563,9 +603,25 @@ class WPD_Settings
     }
 
     /**
-     * Текущие настройки с подстановкой дефолтов.
+     * Текущие настройки с подстановкой дефолтов. Если задана страница (set_page), в них подмешаны
+     * её переопределения из панели «Блоки олимпиады» (2.4.0).
      */
     public static function get(): array
+    {
+        $global = self::get_global();
+        if (!self::$page || !class_exists('WPD_Page_Editor')) {
+            return $global;
+        }
+        if (!isset(self::$page_cache[self::$page])) {
+            self::$page_cache[self::$page] = WPD_Page_Editor::apply($global, self::$page);
+        }
+        return self::$page_cache[self::$page];
+    }
+
+    /**
+     * Только общие настройки, без переопределений страницы.
+     */
+    public static function get_global(): array
     {
         if (self::$cache !== null) {
             return self::$cache;
@@ -594,7 +650,7 @@ class WPD_Settings
         // иначе сохранение «Статистики» сбросило бы цвета и снятые флажки других вкладок.
         $tab      = isset($input['_tab']) && is_string($input['_tab']) ? $input['_tab'] : '';
         $sections = isset(self::tabs()[$tab]) ? self::tabs()[$tab]['sections'] : null;
-        $current  = $sections !== null ? self::get() : [];
+        $current  = $sections !== null ? self::get_global() : [];
 
         foreach (self::field_map() as $key => $field) {
             if ($sections !== null && !in_array($field['section'], $sections, true)) {
@@ -620,78 +676,7 @@ class WPD_Settings
                 continue;
             }
 
-            $raw = is_scalar($raw) ? (string) $raw : '';
-
-            switch ($field['type']) {
-                case 'color':
-                    $value = sanitize_hex_color($raw);
-                    $out[$key] = $value ? $value : $field['default'];
-                    break;
-
-                case 'number':
-                    $out[$key] = min($field['max'], max($field['min'], (int) $raw));
-                    break;
-
-                case 'url':
-                    $out[$key] = esc_url_raw(trim($raw));
-                    break;
-
-                case 'select':
-                    $out[$key] = array_key_exists($raw, $field['options']) ? $raw : $field['default'];
-                    break;
-
-                case 'datetime':
-                    $out[$key] = self::normalize_datetime($raw);
-                    break;
-
-                case 'color_opt':
-                    $out[$key] = (string) sanitize_hex_color(trim($raw));
-                    break;
-
-                case 'image':
-                    $out[$key] = esc_url_raw(trim($raw));
-                    break;
-
-                case 'email':
-                    $out[$key] = sanitize_email($raw);
-                    break;
-
-                case 'html':
-                    $out[$key] = trim(wp_kses_post($raw));
-                    break;
-
-                case 'category':
-                    $id = absint($raw);
-                    $out[$key] = ($id && term_exists($id, 'category')) ? $id : 0;
-                    break;
-
-                case 'palette':
-                    $out[$key] = ($raw === 'custom' || isset(self::palettes()[$raw])) ? $raw : 'custom';
-                    break;
-
-                case 'font':
-                    $value = trim((string) preg_replace('/[^A-Za-z0-9 ,\'"\-]/', '', $raw));
-                    $out[$key] = $value !== '' || !empty($field['allow_empty']) ? $value : $field['default'];
-                    break;
-
-                case 'fonts':
-                    $out[$key] = implode("\n", self::google_font_lines($raw));
-                    break;
-
-                case 'css':
-                    // Без «<», чтобы CSS не мог закрыть тег <style>; длина ограничена
-                    $out[$key] = trim(substr(str_replace('<', '', wp_check_invalid_utf8($raw)), 0, 20000));
-                    break;
-
-                case 'textarea':
-                    $out[$key] = ($key === 'faq')
-                        ? wp_kses($raw, self::allowed_html())
-                        : sanitize_textarea_field($raw);
-                    break;
-
-                default:
-                    $out[$key] = sanitize_text_field($raw);
-            }
+            $out[$key] = self::sanitize_value($key, $raw);
         }
 
         // Дата окончания должна быть позже даты начала, иначе второй таймер не показывается
@@ -706,7 +691,7 @@ class WPD_Settings
         // Смена стиля оформления (2.3.0): палитра и стиль главного блока подстраиваются под новый стиль.
         // Только при переключении — сохранение без смены стиля не трогает выбранные отдельно значения.
         if ($sections === null || in_array('colors', $sections, true)) {
-            $before = (string) ($sections !== null ? $current['design_style'] : self::get()['design_style']);
+            $before = (string) ($sections !== null ? $current['design_style'] : self::get_global()['design_style']);
             if ($out['design_style'] === 'soft' && $before !== 'soft') {
                 $out['palette']    = 'soft';
                 $out['hero_style'] = 'soft';
@@ -728,6 +713,92 @@ class WPD_Settings
         }
 
         return $out;
+    }
+
+
+    /**
+     * Очистка значения одного поля (кроме флажков и повторяющихся полей). Используется и общими настройками,
+     * и переопределениями страницы (2.4.0).
+     *
+     * @param mixed $raw
+     * @return mixed
+     */
+    public static function sanitize_value(string $key, $raw)
+    {
+        $field = self::field_map()[$key];
+        $raw   = is_scalar($raw) ? (string) $raw : '';
+        $v     = $field['default'];
+        switch ($field['type']) {
+            case 'color':
+                $value = sanitize_hex_color($raw);
+                $v = $value ? $value : $field['default'];
+                break;
+
+            case 'number':
+                $v = min($field['max'], max($field['min'], (int) $raw));
+                break;
+
+            case 'url':
+                $v = esc_url_raw(trim($raw));
+                break;
+
+            case 'select':
+                $v = array_key_exists($raw, $field['options']) ? $raw : $field['default'];
+                break;
+
+            case 'datetime':
+                $v = self::normalize_datetime($raw);
+                break;
+
+            case 'color_opt':
+                $v = (string) sanitize_hex_color(trim($raw));
+                break;
+
+            case 'image':
+                $v = esc_url_raw(trim($raw));
+                break;
+
+            case 'email':
+                $v = sanitize_email($raw);
+                break;
+
+            case 'html':
+                $v = trim(wp_kses_post($raw));
+                break;
+
+            case 'category':
+                $id = absint($raw);
+                $v = ($id && term_exists($id, 'category')) ? $id : 0;
+                break;
+
+            case 'palette':
+                $v = ($raw === 'custom' || isset(self::palettes()[$raw])) ? $raw : 'custom';
+                break;
+
+            case 'font':
+                $value = trim((string) preg_replace('/[^A-Za-z0-9 ,\'"\-]/', '', $raw));
+                $v = $value !== '' || !empty($field['allow_empty']) ? $value : $field['default'];
+                break;
+
+            case 'fonts':
+                $v = implode("\n", self::google_font_lines($raw));
+                break;
+
+            case 'css':
+                // Без «<», чтобы CSS не мог закрыть тег <style>; длина ограничена
+                $v = trim(substr(str_replace('<', '', wp_check_invalid_utf8($raw)), 0, 20000));
+                break;
+
+            case 'textarea':
+                $v = ($key === 'faq')
+                    ? wp_kses($raw, self::allowed_html())
+                    : sanitize_textarea_field($raw);
+                break;
+
+            default:
+                $v = sanitize_text_field($raw);
+        }
+        return $v;
     }
 
     /**
@@ -1200,7 +1271,16 @@ class WPD_Settings
                 <li><strong>Панель «Блоки олимпиады»</strong> в редакторе страницы (блочный и классический редактор).
                     Включите «Оформление в стиле олимпиады» в боковой панели, затем меняйте порядок блоков, скрывайте ненужные
                     и задавайте для страницы свой главный блок, статистику, документы и FAQ.
-                    В блочном редакторе панель находится в области <em>Meta Boxes</em> внизу экрана.</li>
+                    В блочном редакторе панель находится в области <em>Meta Boxes</em> внизу экрана.
+                    С 2.4.0 там же — <strong>своё оформление страницы</strong>: у любой группы (оформление страницы, главный блок,
+                    таймер и эффекты, слайдер, кнопки-ссылки, карточки, объявление, новости, контакты) можно включить
+                    «Своё для этой страницы»; <strong>вид каждого блока</strong> (кнопка с кисточкой: фон, отступы, ширина, скрытие
+                    на телефоне или компьютере); <strong>свой CSS страницы</strong>; <strong>инструменты</strong>: копирование настроек
+                    с другой страницы, сброс к общим настройкам, экспорт и импорт в JSON.</li>
+                <li><strong>Боковая колонка «Оформление олимпиады»</strong> в блочном редакторе (2.4.0, раздел на вкладке
+                    «Страница» или «Запись» правой колонки): включение оформления, стиль главного блока, своё оформление страницы — стиль,
+                    палитра, цвета, шрифт заголовков, размеры, кнопки, тени. Изменения сразу видны в блоках на холсте
+                    и сохраняются вместе с записью.</li>
                 <li><strong>Блоки редактора</strong> в категории «Олимпиада»: главный блок, обратный отсчёт, статистика, документы, FAQ,
                     слайдер, кнопки-ссылки, карточки, объявление, новости, контакты.
                     Текст правится прямо на странице. Готовый шаблон — «Паттерны → Олимпиада → Страница олимпиады».</li>
@@ -1274,7 +1354,7 @@ class WPD_Settings
      */
     private static function render_palette(string $name, string $value): void
     {
-        echo '<fieldset class="wpd-palettes"><legend class="screen-reader-text">Палитра</legend>';
+        printf('<fieldset class="wpd-palettes" data-id-base="%s"><legend class="screen-reader-text">Палитра</legend>', esc_attr(self::$id_base));
         $all = self::palettes() + ['custom' => ['title' => 'Свои цвета', 'colors' => []]];
         foreach ($all as $id => $palette) {
             $swatches = '';
@@ -1332,7 +1412,7 @@ class WPD_Settings
             esc_attr($key),
             (int) $field['max'],
             count($rows),
-            esc_attr(self::OPTION)
+            esc_attr(self::$name_base)
         );
         foreach (array_values($rows) as $i => $row) {
             echo self::repeater_row($key, $field, (string) $i, is_array($row) ? $row : []); // phpcs:ignore WordPress.Security.EscapeOutput
@@ -1349,7 +1429,7 @@ class WPD_Settings
 
     private static function repeater_row(string $key, array $field, string $i, array $row): string
     {
-        $base  = self::OPTION . '[' . $key . '][' . $i . ']';
+        $base  = self::$name_base . '[' . $key . '][' . $i . ']';
         $html  = '<div class="wpd-rep__row" data-wpd-rep-row>';
         $html .= '<div class="wpd-rep__head"><strong class="wpd-rep__title">' . esc_html($field['item']) . ' <span data-wpd-rep-num>'
             . ($i === '__i__' ? '' : esc_html((string) ((int) $i + 1))) . '</span></strong>'
@@ -1362,7 +1442,7 @@ class WPD_Settings
         foreach ($field['fields'] as $sub => $def) {
             $name  = $base . '[' . $sub . ']';
             $value = isset($row[$sub]) && is_scalar($row[$sub]) ? (string) $row[$sub] : '';
-            $id    = 'wpd_' . $key . '_' . $i . '_' . $sub;
+            $id    = self::$id_base . $key . '_' . $i . '_' . $sub;
             $label = esc_html($def['label']);
 
             switch ($def['type']) {
@@ -1402,13 +1482,32 @@ class WPD_Settings
         return $html . '</div></div>';
     }
 
+    /**
+     * Поле настроек с другим префиксом имени и id (2.4.0: переопределения в панели страницы).
+     *
+     * @param mixed $value
+     */
+    public static function render_field_as(string $key, $value, string $name_base, string $id_base): void
+    {
+        $saved_name = self::$name_base;
+        $saved_id   = self::$id_base;
+        self::$name_base = $name_base;
+        self::$id_base   = $id_base;
+        try {
+            self::render_field(['key' => $key, 'value' => $value]);
+        } finally {
+            self::$name_base = $saved_name;
+            self::$id_base   = $saved_id;
+        }
+    }
+
     public static function render_field(array $args): void
     {
         $key    = $args['key'];
         $field  = self::field_map()[$key];
-        $value  = self::get()[$key];
-        $id     = 'wpd_' . $key;
-        $name   = self::OPTION . '[' . $key . ']';
+        $value  = array_key_exists('value', $args) ? $args['value'] : self::get_global()[$key];
+        $id     = self::$id_base . $key;
+        $name   = self::$name_base . '[' . $key . ']';
 
         switch ($field['type']) {
             case 'color':
@@ -1475,6 +1574,12 @@ class WPD_Settings
                 break;
 
             case 'html':
+                if (self::$name_base !== self::OPTION) {
+                    // В панели страницы (2.4.0) — обычное поле: визуальный редактор внутри мета-бокса блочного редактора ненадёжен
+                    printf('<textarea id="%1$s" name="%2$s" rows="5" class="large-text">%3$s</textarea>',
+                        esc_attr($id), esc_attr($name), esc_textarea((string) $value));
+                    break;
+                }
                 wp_editor((string) $value, 'wpd' . str_replace('_', '', $key), [
                     'textarea_name' => $name,
                     'textarea_rows' => 6,

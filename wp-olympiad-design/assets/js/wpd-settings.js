@@ -102,31 +102,48 @@
             .attr('class', 'dashicons dashicons-' + $(this).val());
     });
 
-    /* Палитры: выбор подставляет цвета в поля, правка цвета вручную переключает на «Свои цвета» */
+    /* Палитры: выбор подставляет цвета в поля, правка цвета вручную переключает на «Свои цвета».
+       Префикс id полей берётся из data-id-base палитры: «wpd_» на странице настроек, «wpd_pe_ov_» в панели страницы (2.4.0). */
     var applying = false;
+    var COLOR_KEYS = /^(.*)(primary|accent|dark|text|bg)$/;
+
+    function idBase($el, fallback) {
+        return $el.closest('.wpd-palettes').attr('data-id-base') || fallback || 'wpd_';
+    }
+
+    function palettesFor(base) {
+        return $('.wpd-palettes').filter(function () {
+            return ($(this).attr('data-id-base') || 'wpd_') === base;
+        });
+    }
+
     $(document).on('change', '.wpd-palettes input[type="radio"]', function () {
         var colors = {};
+        var base = idBase($(this));
         try {
             colors = JSON.parse($(this).attr('data-colors') || '{}');
         } catch (e) { /* ничего */ }
         applying = true;
         $.each(colors, function (key, value) {
-            $('#wpd_' + key).val(value).trigger('change');
+            $('#' + base + key).val(value).trigger('change');
         });
         applying = false;
     });
 
-    $(document).on('input change', '#wpd_primary, #wpd_accent, #wpd_dark, #wpd_text, #wpd_bg', function () {
-        if (!applying) {
-            $('.wpd-palettes input[value="custom"]').prop('checked', true);
+    $(document).on('input change', 'input[type="color"]', function () {
+        var m = COLOR_KEYS.exec(this.id || '');
+        if (!applying && m) {
+            palettesFor(m[1]).find('input[value="custom"]').prop('checked', true);
         }
     });
 
     /* Стиль оформления (2.3.0): сразу показываем палитру, которую подставит сохранение */
-    $(document).on('change', '#wpd_design_style', function () {
-        var target = $(this).val() === 'soft' ? 'soft' : ($('.wpd-palettes input[value="soft"]').is(':checked') ? 'olympiad' : '');
+    $(document).on('change', 'select[id$="design_style"]', function () {
+        var base = this.id.slice(0, -'design_style'.length);
+        var $pal = palettesFor(base);
+        var target = $(this).val() === 'soft' ? 'soft' : ($pal.find('input[value="soft"]').is(':checked') ? 'olympiad' : '');
         if (target) {
-            $('.wpd-palettes input[value="' + target + '"]').prop('checked', true).trigger('change');
+            $pal.find('input[value="' + target + '"]').prop('checked', true).trigger('change');
         }
     });
 

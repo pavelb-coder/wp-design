@@ -46,6 +46,8 @@ class WPD_Renderer
         }
 
         add_action('init', [__CLASS__, 'register_assets']);
+        // 2.4.0: на странице записи действуют её переопределения из панели «Блоки олимпиады»
+        add_action('wp', [__CLASS__, 'set_page_context']);
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue']);
         add_filter('the_content', [__CLASS__, 'filter_content'], 20);
         add_filter('body_class', [__CLASS__, 'body_class']);
@@ -132,12 +134,12 @@ class WPD_Renderer
     /**
      * Корневой контейнер со CSS-переменными из настроек.
      */
-    public static function wrap(string $inner, string $extra_class = ''): string
+    public static function wrap(string $inner, string $extra_class = '', ?array $o = null): string
     {
         // Страховка: если CSS не подключён заранее (шорткод в виджете, шаблоне), подключаем здесь.
         self::enqueue_assets();
 
-        $o = WPD_Settings::get();
+        $o = $o ?? WPD_Settings::get();
         $vars = WPD_Settings::style_attr($o);
 
         // Модификаторы вида (1.8.0): форма и вид кнопок, тени, черта под заголовками, подъём карточек
@@ -1012,51 +1014,122 @@ class WPD_Renderer
      */
     public static function page_html(int $post_id, string $content): string
     {
-        $o = WPD_Settings::get();
         $p = WPD_Page_Editor::get($post_id);
+        // 2.4.0: общие настройки с переопределениями страницы
+        $o = WPD_Page_Editor::apply_data(WPD_Settings::get_global(), $p);
 
         $inner = '';
         foreach ($p['order'] as $key) {
             if (in_array($key, $p['hidden'], true)) {
                 continue;
             }
+            $html = '';
             switch ($key) {
                 case 'hero':
-                    $inner .= self::hero_html($o, self::page_hero_args($post_id, $p['hero'], $o));
+                    $html = self::hero_html($o, self::page_hero_args($post_id, $p['hero'], $o));
                     break;
 
                 case 'countdown':
                     // Таймер уже внутри видимого главного блока (1.9.0) — второй раз не выводим
                     if (empty($o['hero_countdown']) || in_array('hero', $p['hidden'], true)) {
-                        $inner .= self::countdown_html($o);
+                        $html = self::countdown_html($o);
                     }
                     break;
 
                 case 'content':
                     if (trim($content) !== '') {
-                        $inner .= '<div class="wpd-content">' . $content . '</div>';
+                        $html = '<div class="wpd-content">' . $content . '</div>';
                     }
                     break;
 
                 case 'stats':
-                    $inner .= self::stats_html($o, $p['stats_mode'] === 'custom' ? $p['stats'] : null);
+                    $html = self::stats_html($o, $p['stats_mode'] === 'custom' ? $p['stats'] : null);
                     break;
 
                 case 'docs':
-                    $inner .= self::docs_html($o, $p['docs_mode'] === 'custom' ? $p['docs'] : null, $p['docs_title']);
+                    $html = self::docs_html($o, $p['docs_mode'] === 'custom' ? $p['docs'] : null, $p['docs_title']);
                     break;
 
                 case 'faq':
-                    $inner .= self::faq_html($o, $p['faq_mode'] === 'custom' ? $p['faq'] : null, $p['faq_title']);
+                    $html = self::faq_html($o, $p['faq_mode'] === 'custom' ? $p['faq'] : null, $p['faq_title']);
                     break;
 
                 default:
-                    // Компоненты 1.5.0: содержимое из общих настроек
-                    $inner .= self::part_html($key, $o);
+                    // Компоненты 1.5.0: содержимое из настроек (общих или своих для страницы)
+                    $html = self::part_html($key, $o);
             }
+            // Вид блока (2.4.0): фон, отступы, ширина, скрытие
+            $inner .= self::decorate_block($html, $p['bstyle'][$key] ?? [], $key);
         }
 
-        return self::wrap($inner);
+        return self::wrap($inner, '', $o);
+    }
+
+    /**
+     * Классы и CSS-переменные вида блока (2.4.0) добавляются к первому тегу его разметки.
+     */
+    public static function decorate_block(string $html, array $b, string $key): string
+    {
+        if ($html === '' || !$b) {
+            return $html;
+        }
+        $b       = array_merge(['bg' => '', 'mt' => '', 'mb' => '', 'width' => '', 'hide' => ''], $b);
+        $classes = ['wpd-b'];
+        $style   = '';
+        $bg      = (string) sanitize_hex_color((string) $b['bg']);
+        if ($bg !== '' && $key !== 'hero') {
+            $classes[] = 'wpd-b--bg';
+            $classes[] = self::is_light_color($bg) ? 'wpd-b--bg-light' : 'wpd-b--bg-dark';
+            $style    .= '--wpd-b-bg:' . $bg . ';';
+        }
+        foreach (['mt', 'mb'] as $side) {
+            if ((string) $b[$side] !== '' && is_numeric($b[$side])) {
+                $classes[] = 'wpd-b--' . $side;
+                $style    .= '--wpd-b-' . $side . ':' . max(0, min(200, (int) $b[$side])) . 'px;';
+            }
+        }
+        if (in_array($b['width'], ['narrow', 'full'], true)) {
+            $classes[] = 'wpd-b--w-' . $b['width'];
+        }
+        if (in_array($b['hide'], ['mobile', 'desktop'], true)) {
+            $classes[] = 'wpd-b--hide-' . $b['hide'];
+        }
+        if (count($classes) === 1 || !preg_match('/^(\s*)<([a-z][a-z0-9]*)\b([^>]*)>/i', $html, $m)) {
+            return $html;
+        }
+
+        $attrs = $m[3];
+        $class = esc_attr(implode(' ', $classes));
+        if (preg_match('/\sclass="([^"]*)"/', $attrs)) {
+            $attrs = preg_replace_callback('/\sclass="([^"]*)"/', function ($mm) use ($class) {
+                return ' class="' . trim($mm[1] . ' ' . $class) . '"';
+            }, $attrs, 1);
+        } else {
+            $attrs .= ' class="' . $class . '"';
+        }
+        if ($style !== '') {
+            $style = esc_attr($style);
+            if (preg_match('/\sstyle="([^"]*)"/', $attrs)) {
+                $attrs = preg_replace_callback('/\sstyle="([^"]*)"/', function ($mm) use ($style) {
+                    $old = rtrim(trim($mm[1]), ';');
+                    return ' style="' . ($old !== '' ? $old . ';' : '') . $style . '"';
+                }, $attrs, 1);
+            } else {
+                $attrs .= ' style="' . $style . '"';
+            }
+        }
+        return $m[1] . '<' . $m[2] . $attrs . '>' . substr($html, strlen($m[0]));
+    }
+
+    /**
+     * На странице записи get() возвращает настройки с её переопределениями (2.4.0): так их видят и оформление
+     * страницы, и блоки «Олимпиада: …», и шорткоды, и подключение стилей.
+     */
+    public static function set_page_context(): void
+    {
+        if (is_singular()) {
+            WPD_Settings::set_page((int) get_queried_object_id());
+        }
     }
 
     /**
@@ -1210,9 +1283,41 @@ class WPD_Renderer
     {
         if (self::page_needs_assets()) {
             self::enqueue_assets();
+            self::enqueue_page_assets();
             if (self::page_needs_icons()) {
                 self::enqueue_icons();
             }
+        }
+    }
+
+    /**
+     * Стили своего оформления страницы (2.4.0): фон страницы для «Мягкого градиента», шрифты Google и свой CSS страницы.
+     */
+    public static function enqueue_page_assets(): void
+    {
+        $post_id = WPD_Settings::current_page();
+        if (!$post_id) {
+            return;
+        }
+        $p   = WPD_Page_Editor::get($post_id);
+        $css = '';
+        if (isset($p['ov']['page'])) {
+            $o  = WPD_Settings::get();
+            $bg = (string) sanitize_hex_color((string) $o['bg']);
+            if ($o['design_style'] === 'soft' && $bg !== '') {
+                $css .= 'body.wpd-soft-page{background-color:' . $bg . ';}';
+            }
+            $fonts = WPD_Settings::google_fonts_url($o);
+            if ($fonts !== '' && $fonts !== WPD_Settings::google_fonts_url(WPD_Settings::get_global())) {
+                wp_enqueue_style('wpd-google-fonts-page', $fonts, [], null); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+            }
+        }
+        $page_css = trim(str_replace('<', '', $p['page_css']));
+        if ($page_css !== '') {
+            $css .= ($css !== '' ? "\n" : '') . $page_css;
+        }
+        if ($css !== '') {
+            wp_add_inline_style('wpd-design', $css);
         }
     }
 

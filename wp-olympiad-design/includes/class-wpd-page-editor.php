@@ -6,7 +6,10 @@ if (!defined('ABSPATH')) {
 /**
  * Панель «Блоки олимпиады» в редакторе записи: порядок и видимость блоков,
  * собственное содержимое главного блока, статистики, документов и FAQ для конкретной страницы.
- * Работает и в классическом, и в блочном редакторе (как обычный мета-бокс).
+ * С 2.4.0 — своё оформление страницы: любые группы общих настроек (цвета и вид, главный блок, таймер,
+ * компоненты), вид каждого блока (фон, отступы, ширина, скрытие), свой CSS, копирование, сброс,
+ * экспорт и импорт. Работает и в классическом, и в блочном редакторе (как обычный мета-бокс);
+ * в блочном редакторе основное оформление дублируется в боковой колонке «Оформление олимпиады».
  */
 class WPD_Page_Editor
 {
@@ -21,11 +24,172 @@ class WPD_Page_Editor
         'faq'   => ['q', 'a'],
     ];
 
+    /**
+     * Поля общих настроек, которые не переопределяются группами (2.4.0): у них уже есть своё поле в панели
+     * (заголовок, метка, текст, кнопка, изображение и стиль главного блока, списки) или они общие для сайта.
+     */
+    const OV_EXCLUDE = ['hero_title', 'hero_text', 'badge', 'hero_button_text', 'hero_button_url', 'hero_image_url', 'hero_style',
+        'custom_css', 'stats', 'docs', 'faq', 'docs_title', 'faq_title'];
+
+    /** Вид отдельного блока (2.4.0). */
+    const BLOCK_WIDTHS = ['' => 'Обычная', 'narrow' => 'Узкая (760 px)', 'full' => 'Во всю ширину экрана'];
+    const BLOCK_HIDE   = ['' => 'Везде', 'mobile' => 'Скрыть на телефоне', 'desktop' => 'Скрыть на компьютере'];
+
+    /** Мета-поле-отметка: правка панели в блочном редакторе делает запись «изменённой», чтобы кнопка сохранения стала активной. */
+    const REV_META = '_wpd_rev';
+
     public static function init(): void
     {
         add_action('add_meta_boxes', [__CLASS__, 'add_meta_box']);
         add_action('save_post', [__CLASS__, 'save'], 10, 2);
         add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue']);
+        add_action('enqueue_block_editor_assets', [__CLASS__, 'enqueue_sidebar']);
+        add_action('rest_api_init', [__CLASS__, 'register_rest']);
+        add_action('init', [__CLASS__, 'register_meta']);
+    }
+
+    /**
+     * Группы общих настроек, которые можно задать для страницы (2.4.0): секции настроек и отдельные поля.
+     */
+    public static function groups(): array
+    {
+        return [
+            'page'     => ['title' => 'Оформление страницы', 'sections' => ['colors', 'look', 'behavior'], 'extra' => ['google_fonts'],
+                           'desc' => 'Стиль оформления, палитра и цвета, шрифты, размеры, кнопки, тени, ширина и отступы, заголовок темы.'],
+            'hero'     => ['title' => 'Главный блок: кнопки, изображение, вид', 'sections' => ['hero', 'hero_image', 'hero_look'], 'extra' => [],
+                           'desc' => 'Вторая кнопка и иконки, таймер в блоке, положение, подгонка и рамка изображения, затемнение, цвета, высота, отступы, выравнивание, размер заголовка.'],
+            'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features'], 'extra' => [],
+                           'desc' => 'Свои даты, подписи и кнопка таймера, часовой пояс, поиск по FAQ, анимация чисел.'],
+            'slider'   => ['title' => 'Слайдер', 'sections' => ['slider'], 'extra' => [], 'desc' => 'Свои слайды, высота, автопрокрутка, стрелки и точки.'],
+            'buttons'  => ['title' => 'Кнопки-ссылки', 'sections' => ['buttons'], 'extra' => [], 'desc' => 'Свои плитки с иконками.'],
+            'cards'    => ['title' => 'Карточки', 'sections' => ['cards'], 'extra' => [], 'desc' => 'Свой заголовок и карточки.'],
+            'notice'   => ['title' => 'Объявление', 'sections' => ['notice'], 'extra' => [], 'desc' => 'Свой текст, изображение, цвет и ссылка.'],
+            'news'     => ['title' => 'Новости', 'sections' => ['news'], 'extra' => [], 'desc' => 'Своя рубрика, количество и вид.'],
+            'contacts' => ['title' => 'Контакты', 'sections' => ['contacts'], 'extra' => [], 'desc' => 'Свои адрес, телефон, e-mail, организация и логотип.'],
+        ];
+    }
+
+    /**
+     * Поля общих настроек в группе, в порядке страницы настроек.
+     */
+    public static function group_keys(string $group): array
+    {
+        static $cache = [];
+        if (isset($cache[$group])) {
+            return $cache[$group];
+        }
+        $groups = self::groups();
+        if (!isset($groups[$group])) {
+            return [];
+        }
+        $keys = [];
+        foreach (WPD_Settings::field_map() as $key => $field) {
+            if ((in_array($field['section'], $groups[$group]['sections'], true) || in_array($key, $groups[$group]['extra'], true))
+                && !in_array($key, self::OV_EXCLUDE, true)) {
+                $keys[] = $key;
+            }
+        }
+        $cache[$group] = $keys;
+        return $keys;
+    }
+
+    /**
+     * Общие настройки с переопределениями страницы (2.4.0).
+     */
+    public static function apply(array $global, int $post_id): array
+    {
+        return self::apply_data($global, self::get($post_id));
+    }
+
+    /** То же для уже прочитанных (или ещё не сохранённых — предпросмотр) настроек страницы. */
+    public static function apply_data(array $global, array $p): array
+    {
+        $o = $global;
+        foreach ((array) ($p['ov'] ?? []) as $vals) {
+            foreach ((array) $vals as $key => $value) {
+                if (array_key_exists($key, $o)) {
+                    $o[$key] = $value;
+                }
+            }
+        }
+        return $o;
+    }
+
+    /** Настройки для вывода страницы: общие + её переопределения. */
+    public static function options(int $post_id): array
+    {
+        return self::apply(WPD_Settings::get_global(), $post_id);
+    }
+
+    /**
+     * Вид отдельных блоков: фон, отступы сверху и снизу, ширина, скрытие на телефоне или компьютере.
+     * Сохраняются только блоки, у которых что-то задано.
+     */
+    public static function clean_bstyle(array $raw): array
+    {
+        $str = function ($v): string {
+            return is_scalar($v) ? trim((string) $v) : '';
+        };
+        $px = function ($v) use ($str): string {
+            $v = $str($v);
+            return ($v === '' || !is_numeric($v)) ? '' : (string) max(0, min(200, (int) $v));
+        };
+        $out = [];
+        foreach (array_keys(self::blocks()) as $key) {
+            $b = is_array($raw[$key] ?? null) ? $raw[$key] : [];
+            $width = $str($b['width'] ?? '');
+            $hide  = $str($b['hide'] ?? '');
+            $row = [
+                'bg'    => $key === 'hero' ? '' : (string) sanitize_hex_color($str($b['bg'] ?? '')),
+                'mt'    => $px($b['mt'] ?? ''),
+                'mb'    => $px($b['mb'] ?? ''),
+                'width' => isset(self::BLOCK_WIDTHS[$width]) ? $width : '',
+                'hide'  => isset(self::BLOCK_HIDE[$hide]) ? $hide : '',
+            ];
+            if (implode('', $row) !== '') {
+                $out[$key] = $row;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Сохранённые настройки страницы (формат мета-поля) → формат формы панели. Нужен для копирования и импорта:
+     * данные проходят ту же санитизацию, что и при сохранении панели.
+     */
+    public static function meta_to_input(array $meta): array
+    {
+        $m      = self::normalize($meta);
+        $global = WPD_Settings::get_global();
+        $input  = [
+            'order'      => $m['order'],
+            'show'       => [],
+            'hero'       => $m['hero'],
+            'stats_mode' => $m['stats_mode'],
+            'docs_mode'  => $m['docs_mode'],
+            'faq_mode'   => $m['faq_mode'],
+            'docs_title' => $m['docs_title'],
+            'faq_title'  => $m['faq_title'],
+            'stats'      => $m['stats'],
+            'docs'       => $m['docs'],
+            'faq'        => $m['faq'],
+            'ovg'        => [],
+            'ov'         => [],
+            'bstyle'     => $m['bstyle'],
+            'page_css'   => $m['page_css'],
+        ];
+        foreach ($m['order'] as $key) {
+            if (!in_array($key, $m['hidden'], true)) {
+                $input['show'][$key] = 1;
+            }
+        }
+        foreach ($m['ov'] as $group => $vals) {
+            $input['ovg'][$group] = 1;
+            foreach (self::group_keys($group) as $key) {
+                $input['ov'][$key] = array_key_exists($key, $vals) ? $vals[$key] : $global[$key];
+            }
+        }
+        return $input;
     }
 
     /**
@@ -77,6 +241,10 @@ class WPD_Page_Editor
             'faq_mode'   => 'global',
             'faq_title'  => '',
             'faq'        => [],
+            // 2.4.0
+            'ov'         => [],
+            'bstyle'     => [],
+            'page_css'   => '',
         ];
     }
 
@@ -151,14 +319,35 @@ class WPD_Page_Editor
             $out[$key] = isset($raw[$key]) && is_scalar($raw[$key]) ? (string) $raw[$key] : '';
         }
 
+        // 2.4.0: переопределения общих настроек по группам (только известные группы и поля), вид блоков, свой CSS
+        $ov = is_array($raw['ov'] ?? null) ? $raw['ov'] : [];
+        foreach (array_keys(self::groups()) as $group) {
+            if (!is_array($ov[$group] ?? null)) {
+                continue;
+            }
+            $vals = [];
+            foreach (self::group_keys($group) as $key) {
+                if (array_key_exists($key, $ov[$group])) {
+                    $vals[$key] = $ov[$group][$key];
+                }
+            }
+            $out['ov'][$group] = $vals;
+        }
+        $out['bstyle']   = self::clean_bstyle(is_array($raw['bstyle'] ?? null) ? $raw['bstyle'] : []);
+        $out['page_css'] = isset($raw['page_css']) && is_scalar($raw['page_css']) ? (string) $raw['page_css'] : '';
+
         return $out;
     }
 
     /**
      * Санитизация данных формы панели (уже без слешей).
-     * Формат: order[] — порядок, show[ключ] — видимость, hero[...], списки строк stats/docs/faq.
+     * Формат: order[] — порядок, show[ключ] — видимость, hero[...], списки строк stats/docs/faq;
+     * с 2.4.0 — ovg[группа] (флажок «Своё для этой страницы»), ov[поле] (значения полей групп), bstyle[блок][...], page_css.
+     *
+     * @param int  $post_id запись: нужна, чтобы понять, сменился ли стиль оформления страницы
+     * @param bool $switch  подстраивать палитру и стиль главного блока под сменившийся стиль оформления
      */
-    public static function sanitize($input): array
+    public static function sanitize($input, int $post_id = 0, bool $switch = true): array
     {
         $input = is_array($input) ? $input : [];
         $out   = self::defaults();
@@ -211,7 +400,75 @@ class WPD_Page_Editor
             }
         }
 
+        // 2.4.0: группы общих настроек со своими значениями. Включённая группа хранит все свои поля.
+        $ovg    = is_array($input['ovg'] ?? null) ? $input['ovg'] : [];
+        $ov     = is_array($input['ov'] ?? null) ? $input['ov'] : [];
+        $global = WPD_Settings::get_global();
+        $map    = WPD_Settings::field_map();
+        foreach (array_keys(self::groups()) as $group) {
+            if (empty($ovg[$group])) {
+                continue;
+            }
+            $vals = [];
+            foreach (self::group_keys($group) as $key) {
+                $type = $map[$key]['type'];
+                if ($type === 'checkbox') {
+                    $vals[$key] = empty($ov[$key]) ? 0 : 1;
+                } elseif ($type === 'repeater') {
+                    $vals[$key] = array_key_exists($key, $ov) ? WPD_Settings::sanitize_rows($ov[$key], $key) : $global[$key];
+                } else {
+                    $vals[$key] = array_key_exists($key, $ov) ? WPD_Settings::sanitize_value($key, $ov[$key]) : $global[$key];
+                }
+            }
+            $out['ov'][$group] = $vals;
+        }
+
+        if (isset($out['ov']['page'])) {
+            $pg = $out['ov']['page'];
+            // Смена стиля оформления страницы — как в общих настройках (2.3.0): палитра и стиль главного блока
+            // подстраиваются, только когда стиль действительно сменился.
+            if ($switch) {
+                $prev   = $post_id ? self::get($post_id) : self::defaults();
+                $before = (string) ($prev['ov']['page']['design_style'] ?? $global['design_style']);
+                $now    = (string) $pg['design_style'];
+                $hero   = $out['hero']['style'] !== '' ? $out['hero']['style'] : (string) $global['hero_style'];
+                if ($now === 'soft' && $before !== 'soft') {
+                    $pg['palette']        = 'soft';
+                    $out['hero']['style'] = 'soft';
+                } elseif ($now !== 'soft' && $before === 'soft') {
+                    if ($pg['palette'] === 'soft') {
+                        $pg['palette'] = 'olympiad';
+                    }
+                    if ($hero === 'soft') {
+                        $out['hero']['style'] = 'dark';
+                    }
+                }
+            }
+            // Готовая палитра задаёт цвета
+            $palettes = WPD_Settings::palettes();
+            if (isset($palettes[$pg['palette']])) {
+                foreach (WPD_Settings::PALETTE_KEYS as $i => $color_key) {
+                    $pg[$color_key] = $palettes[$pg['palette']]['colors'][$i];
+                }
+            }
+            $out['ov']['page'] = $pg;
+        }
+
+        $out['bstyle']   = self::clean_bstyle(is_array($input['bstyle'] ?? null) ? $input['bstyle'] : []);
+        $out['page_css'] = isset($input['page_css']) ? (string) WPD_Settings::sanitize_value('custom_css', $input['page_css']) : '';
+
         return $out;
+    }
+
+    /** Запись настроек страницы: значения по умолчанию не хранятся. */
+    public static function store(int $post_id, array $clean): void
+    {
+        if ($clean === self::defaults()) {
+            delete_post_meta($post_id, self::META);
+        } else {
+            // update_post_meta снимает слеши, поэтому данные передаются экранированными.
+            update_post_meta($post_id, self::META, wp_slash($clean));
+        }
     }
 
     /* ---------------------------------------------------------------
@@ -239,14 +496,173 @@ class WPD_Page_Editor
 
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- санитизация в self::sanitize()
         $raw   = isset($_POST['wpd_page']) ? wp_unslash($_POST['wpd_page']) : [];
-        $clean = self::sanitize($raw);
+        self::store($post_id, self::sanitize($raw, $post_id));
+    }
 
-        if ($clean === self::defaults()) {
-            delete_post_meta($post_id, self::META);
-        } else {
-            // update_post_meta снимает слеши, поэтому данные передаются экранированными.
-            update_post_meta($post_id, self::META, wp_slash($clean));
+    /* ---------------------------------------------------------------
+     * REST: предпросмотр, копирование, сброс, экспорт и импорт (2.4.0)
+     * ------------------------------------------------------------- */
+
+    public static function register_meta(): void
+    {
+        foreach (WPD_Renderer::post_types() as $type) {
+            register_post_meta($type, self::REV_META, [
+                'type'          => 'string',
+                'single'        => true,
+                'show_in_rest'  => true,
+                'auth_callback' => function ($allowed, $meta_key, $post_id) {
+                    return current_user_can('edit_post', (int) $post_id);
+                },
+            ]);
         }
+    }
+
+    public static function register_rest(): void
+    {
+        register_rest_route('wpd/v1', '/preview', [
+            'methods'             => 'POST',
+            'callback'            => [__CLASS__, 'rest_preview'],
+            'permission_callback' => function (WP_REST_Request $request) {
+                return self::can_edit((int) $request->get_param('post_id'));
+            },
+            'args'                => [
+                'post_id' => ['type' => 'integer', 'required' => true],
+                'form'    => ['type' => 'string', 'required' => true],
+            ],
+        ]);
+        $can = function (WP_REST_Request $request) {
+            return self::can_edit((int) $request['id']);
+        };
+        register_rest_route('wpd/v1', '/page/(?P<id>\d+)', [
+            ['methods' => 'GET', 'callback' => [__CLASS__, 'rest_export'], 'permission_callback' => $can],
+            ['methods' => 'POST', 'callback' => [__CLASS__, 'rest_import'], 'permission_callback' => $can],
+            ['methods' => 'DELETE', 'callback' => [__CLASS__, 'rest_reset'], 'permission_callback' => $can],
+        ]);
+    }
+
+    /** Запись подходящего типа, которую текущий пользователь может редактировать. */
+    public static function can_edit(int $post_id): bool
+    {
+        $post = $post_id ? get_post($post_id) : null;
+        return $post instanceof WP_Post
+            && in_array($post->post_type, WPD_Renderer::post_types(), true)
+            && current_user_can('edit_post', $post_id);
+    }
+
+    /**
+     * Предпросмотр в блочном редакторе: CSS-переменные и классы корневого контейнера для ещё не сохранённой формы панели.
+     */
+    public static function rest_preview(WP_REST_Request $request): array
+    {
+        $post_id = (int) $request->get_param('post_id');
+        $parsed  = [];
+        parse_str((string) $request->get_param('form'), $parsed);
+        $input = is_array($parsed['wpd_page'] ?? null) ? $parsed['wpd_page'] : [];
+        $clean = self::sanitize($input, $post_id);
+        $o     = self::apply_data(WPD_Settings::get_global(), $clean);
+
+        return [
+            'style'     => WPD_Settings::style_attr($o),
+            'classes'   => array_values(array_merge(['wpd-page'], WPD_Settings::page_classes($o))),
+            'vars'      => WPD_Settings::style_vars($o),
+            'soft'      => $o['design_style'] === 'soft',
+            'bg'        => (string) $o['bg'],
+            'heroStyle' => $clean['hero']['style'] !== '' ? $clean['hero']['style'] : (string) $o['hero_style'],
+        ];
+    }
+
+    /** Экспорт: сохранённые настройки страницы в JSON. */
+    public static function rest_export(WP_REST_Request $request): array
+    {
+        $id = (int) $request['id'];
+        return [
+            'plugin'  => 'wp-olympiad-design',
+            'version' => WPD_VERSION,
+            'title'   => get_the_title($id),
+            'enabled' => WPD_Renderer::is_design_enabled($id),
+            'data'    => self::get($id),
+        ];
+    }
+
+    /**
+     * Импорт JSON (data) или копирование с другой записи (from). Данные проходят санитизацию панели.
+     * Если в источнике оформление включено, оно включается и здесь (выключенное не выключает).
+     *
+     * @return array|WP_Error
+     */
+    public static function rest_import(WP_REST_Request $request)
+    {
+        $id      = (int) $request['id'];
+        $from    = (int) $request->get_param('from');
+        $enabled = false;
+
+        if ($from) {
+            if ($from === $id || !self::can_edit($from)) {
+                return new WP_Error('wpd_from', 'Нет доступа к странице-источнику.', ['status' => 403]);
+            }
+            $meta    = self::get($from);
+            $enabled = WPD_Renderer::is_design_enabled($from);
+        } else {
+            $data = $request->get_param('data');
+            if (is_string($data)) {
+                $data = json_decode($data, true);
+            }
+            if (!is_array($data)) {
+                return new WP_Error('wpd_json', 'Не удалось прочитать данные: вставьте JSON, полученный кнопкой «Экспорт».', ['status' => 400]);
+            }
+            if (isset($data['data']) && is_array($data['data'])) {
+                $enabled = !empty($data['enabled']);
+                $data    = $data['data'];
+            }
+            $known = array_intersect(array_keys($data), array_keys(self::defaults()));
+            if (!$known) {
+                return new WP_Error('wpd_json', 'В JSON нет настроек страницы.', ['status' => 400]);
+            }
+            $meta = $data;
+        }
+
+        self::store($id, self::sanitize(self::meta_to_input($meta), $id, false));
+        if ($enabled) {
+            update_post_meta($id, WPD_Renderer::META_KEY, 1);
+        }
+        return ['ok' => true, 'enabled' => WPD_Renderer::is_design_enabled($id), 'data' => self::get($id)];
+    }
+
+    /** Сброс: все настройки страницы удаляются, действуют общие. Оформление страницы не выключается. */
+    public static function rest_reset(WP_REST_Request $request): array
+    {
+        delete_post_meta((int) $request['id'], self::META);
+        return ['ok' => true];
+    }
+
+    /**
+     * Записи, с которых можно скопировать настройки: с сохранённой панелью или включённым оформлением.
+     */
+    public static function copy_sources(int $exclude): array
+    {
+        $ids = get_posts([
+            'post_type'      => WPD_Renderer::post_types(),
+            'post_status'    => ['publish', 'draft', 'pending', 'private', 'future'],
+            'posts_per_page' => 100,
+            'fields'         => 'ids',
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+            'post__not_in'   => [$exclude],
+            'no_found_rows'  => true,
+            'meta_query'     => [ // phpcs:ignore WordPress.DB.SlowDBQuery
+                'relation' => 'OR',
+                ['key' => self::META, 'compare' => 'EXISTS'],
+                ['key' => WPD_Renderer::META_KEY, 'value' => '1'],
+            ],
+        ]);
+        $out = [];
+        foreach ($ids as $id) {
+            if (current_user_can('edit_post', (int) $id)) {
+                $title = get_the_title((int) $id);
+                $out[(int) $id] = $title !== '' ? $title : '(без заголовка) #' . $id;
+            }
+        }
+        return $out;
     }
 
     /* ---------------------------------------------------------------
@@ -278,11 +694,22 @@ class WPD_Page_Editor
         }
 
         wp_enqueue_media();
-        wp_enqueue_style('wpd-admin', WPD_URL . 'assets/css/wpd-admin.css', [], WPD_VERSION);
-        wp_enqueue_script('wpd-admin', WPD_URL . 'assets/js/wpd-admin.js', ['jquery', 'jquery-ui-sortable'], WPD_VERSION, true);
+        // 2.4.0: поля групп общих настроек в панели — те же, что на странице настроек (повторяющиеся поля, палитры, цвета)
+        wp_enqueue_style('wp-color-picker');
+        wp_enqueue_style('wpd-settings', WPD_URL . 'assets/css/wpd-settings.css', ['wp-color-picker'], WPD_VERSION);
+        wp_enqueue_script('wpd-settings', WPD_URL . 'assets/js/wpd-settings.js', ['jquery', 'wp-color-picker'], WPD_VERSION, true);
+        wp_localize_script('wpd-settings', 'wpdSettings', [
+            'chooseImage' => 'Выбор изображения',
+            'use'         => 'Выбрать',
+            'remove'      => 'Удалить?',
+        ]);
+        wp_enqueue_style('wpd-admin', WPD_URL . 'assets/css/wpd-admin.css', ['wpd-settings'], WPD_VERSION);
+        wp_enqueue_script('wpd-admin', WPD_URL . 'assets/js/wpd-admin.js', ['jquery', 'jquery-ui-sortable', 'wp-api-fetch', 'wpd-settings'], WPD_VERSION, true);
 
-        $o = WPD_Settings::get();
+        $o = WPD_Settings::get_global();
+        $post_id = isset($_GET['post']) ? absint($_GET['post']) : (int) get_the_ID(); // phpcs:ignore WordPress.Security.NonceVerification
         wp_localize_script('wpd-admin', 'wpdPageEditor', [
+            'postId' => $post_id,
             'global' => [
                 'stats' => WPD_Settings::stats_items($o['stats']),
                 'docs'  => WPD_Settings::docs_items($o['docs']),
@@ -295,8 +722,36 @@ class WPD_Page_Editor
                 'chooseFile'  => 'Файл документа',
                 'use'         => 'Выбрать',
                 'remove'      => 'Удалить строку?',
+                // 2.4.0
+                'copyConfirm'   => 'Заменить все настройки этой страницы настройками выбранной? Несохранённые изменения пропадут, страница перезагрузится.',
+                'resetConfirm'  => 'Удалить все настройки этой страницы (порядок блоков, своё содержимое, своё оформление)? Будут действовать общие настройки. Страница перезагрузится.',
+                'importConfirm' => 'Заменить все настройки этой страницы импортированными? Несохранённые изменения пропадут, страница перезагрузится.',
+                'chooseSource'  => 'Выберите страницу.',
+                'emptyImport'   => 'Вставьте JSON, полученный кнопкой «Экспорт».',
+                'failed'        => 'Не получилось',
+                'copied'        => 'Скопировано',
             ],
         ]);
+    }
+
+    /**
+     * Боковая колонка «Оформление олимпиады» в блочном редакторе (2.4.0). Управляет теми же полями панели,
+     * поэтому сохраняется вместе с ней; изменения сразу видны в блоках «Олимпиада: …» на холсте.
+     */
+    public static function enqueue_sidebar(): void
+    {
+        $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+        if (!$screen || !in_array($screen->post_type, WPD_Renderer::post_types(), true)) {
+            return;
+        }
+        $editor_dep = wp_script_is('wp-editor', 'registered') ? 'wp-editor' : 'wp-edit-post';
+        wp_enqueue_script(
+            'wpd-sidebar',
+            WPD_URL . 'assets/js/wpd-sidebar.js',
+            ['jquery', 'wp-plugins', 'wp-edit-post', $editor_dep, 'wp-element', 'wp-components', 'wp-data'],
+            WPD_VERSION,
+            true
+        );
     }
 
     public static function meta_box_html(WP_Post $post): void
@@ -304,7 +759,9 @@ class WPD_Page_Editor
         wp_nonce_field(self::ACTION, self::NONCE);
 
         $p        = self::get($post->ID);
-        $o        = WPD_Settings::get();
+        $global   = WPD_Settings::get_global();
+        // Подсказки панели — с учётом своего оформления страницы (2.4.0)
+        $o        = self::apply_data($global, $p);
         $blocks   = self::blocks();
         $enabled  = WPD_Renderer::is_design_enabled($post->ID);
         $settings = WPD_Settings::url();
@@ -312,9 +769,11 @@ class WPD_Page_Editor
 
         $notes = [
             'hero'      => 'заголовок, текст, кнопка, изображение',
-            'countdown' => empty($o['countdown_enabled']) || $o['countdown_date'] === ''
-                ? 'выключен в общих настройках'
-                : ($o['countdown_end'] !== '' ? 'начало и окончание из общих настроек' : 'дата из общих настроек'),
+            'countdown' => isset($p['ov']['features'])
+                ? (empty($o['countdown_enabled']) || $o['countdown_date'] === '' ? 'выключен для этой страницы' : 'свои даты для этой страницы')
+                : (empty($o['countdown_enabled']) || $o['countdown_date'] === ''
+                    ? 'выключен в общих настройках'
+                    : ($o['countdown_end'] !== '' ? 'начало и окончание из общих настроек' : 'дата из общих настроек')),
             'content'   => 'то, что написано в редакторе',
             'stats'     => '',
             'docs'      => '',
@@ -330,7 +789,13 @@ class WPD_Page_Editor
         ];
 
 
-        echo '<div class="wpd-pe" data-wpd-pe>';
+        foreach (['slider', 'buttons', 'cards', 'notice', 'news', 'contacts'] as $part) {
+            if (isset($p['ov'][$part])) {
+                $notes[$part] = 'своё для этой страницы';
+            }
+        }
+
+        printf('<div class="wpd-pe" data-wpd-pe data-post-id="%d">', (int) $post->ID);
 
         printf(
             '<div class="wpd-pe__notice" data-wpd-off%s><p>Оформление для этой записи выключено. '
@@ -349,8 +814,9 @@ class WPD_Page_Editor
             . '<ul class="wpd-pe__order" data-wpd-sortable>';
         foreach ($p['order'] as $key) {
             $shown = !in_array($key, $p['hidden'], true);
+            $bs = $p['bstyle'][$key] ?? [];
             printf(
-                '<li class="wpd-pe__block%5$s" data-key="%1$s">'
+                '<li class="wpd-pe__block%5$s%6$s" data-key="%1$s">'
                 . '<span class="wpd-pe__handle dashicons dashicons-menu" aria-hidden="true" title="Перетащить"></span>'
                 . '<input type="hidden" name="wpd_page[order][]" value="%1$s">'
                 . '<label><input type="checkbox" name="wpd_page[show][%1$s]" value="1"%2$s> <strong>%3$s</strong></label>'
@@ -358,12 +824,16 @@ class WPD_Page_Editor
                 . '<span class="wpd-pe__move">'
                 . '<button type="button" class="button-link" data-wpd-move="-1" aria-label="Выше: %3$s"><span class="dashicons dashicons-arrow-up-alt2"></span></button>'
                 . '<button type="button" class="button-link" data-wpd-move="1" aria-label="Ниже: %3$s"><span class="dashicons dashicons-arrow-down-alt2"></span></button>'
-                . '</span></li>',
+                . '<button type="button" class="button-link wpd-pe__bs-btn" data-wpd-bs-toggle aria-expanded="false" aria-label="Вид блока: %3$s" title="Фон, отступы, ширина, показ">'
+                . '<span class="dashicons dashicons-admin-appearance"></span></button>'
+                . '</span>%7$s</li>',
                 esc_attr($key),
                 checked($shown, true, false),
                 esc_html($blocks[$key]),
                 esc_html($notes[$key]),
-                $shown ? '' : ' is-hidden'
+                $shown ? '' : ' is-hidden',
+                $bs ? ' has-bstyle' : '',
+                self::bstyle_html($key, $bs) // phpcs:ignore WordPress.Security.EscapeOutput -- экранировано внутри
             );
         }
         echo '</ul>';
@@ -373,6 +843,16 @@ class WPD_Page_Editor
         self::list_panel('stats', 'Статистика', $p, $o, WPD_Settings::url('stats'));
         self::list_panel('docs', 'Документы', $p, $o, WPD_Settings::url('docs'));
         self::list_panel('faq', 'Частые вопросы', $p, $o, WPD_Settings::url('faq'));
+
+        // 2.4.0: своё оформление страницы, вид блоков и свой CSS, инструменты
+        echo '<h3 class="wpd-pe__h">Своё оформление и параметры страницы</h3>'
+            . '<p class="description">Включите «Своё для этой страницы» у группы, чтобы её значения на этой странице отличались от общих настроек. '
+            . 'Поля заполнены текущими общими значениями. Выключенная группа берётся из общих настроек.</p>';
+        foreach (self::groups() as $group => $def) {
+            self::group_panel($group, $def, $p, $global);
+        }
+        self::css_panel($p);
+        self::tools_panel($post);
 
         // Шаблоны новых строк для JavaScript
         foreach (array_keys(self::LISTS) as $list) {
@@ -428,6 +908,152 @@ class WPD_Page_Editor
         echo '</select></td></tr>';
 
         echo '</tbody></table></div></details>';
+    }
+
+    /**
+     * Вид блока в списке порядка: фон, отступы, ширина, показ (2.4.0).
+     */
+    private static function bstyle_html(string $key, array $b): string
+    {
+        $b = array_merge(['bg' => '', 'mt' => '', 'mb' => '', 'width' => '', 'hide' => ''], $b);
+        $name = function (string $f) use ($key): string {
+            return esc_attr('wpd_page[bstyle][' . $key . '][' . $f . ']');
+        };
+        $id = function (string $f) use ($key): string {
+            return esc_attr('wpd_pe_bs_' . $key . '_' . $f);
+        };
+        $select = function (string $f, array $options) use ($b, $name, $id): string {
+            $html = '<select id="' . $id($f) . '" name="' . $name($f) . '">';
+            foreach ($options as $value => $label) {
+                $html .= '<option value="' . esc_attr($value) . '"' . selected($b[$f], $value, false) . '>' . esc_html($label) . '</option>';
+            }
+            return $html . '</select>';
+        };
+
+        $html = '<div class="wpd-pe__bs" data-wpd-bs hidden>';
+        if ($key !== 'hero') {
+            $html .= '<span class="wpd-pe__bs-f"><label for="' . $id('bg') . '">Фон блока</label>'
+                . '<input type="text" id="' . $id('bg') . '" name="' . $name('bg') . '" value="' . esc_attr($b['bg']) . '" class="wpd-color-opt" placeholder="#rrggbb" maxlength="7"></span>';
+        }
+        $html .= '<span class="wpd-pe__bs-f"><label for="' . $id('mt') . '">Отступ сверху, px</label>'
+            . '<input type="number" id="' . $id('mt') . '" name="' . $name('mt') . '" value="' . esc_attr($b['mt']) . '" min="0" max="200" class="small-text" placeholder="авто"></span>'
+            . '<span class="wpd-pe__bs-f"><label for="' . $id('mb') . '">Отступ снизу, px</label>'
+            . '<input type="number" id="' . $id('mb') . '" name="' . $name('mb') . '" value="' . esc_attr($b['mb']) . '" min="0" max="200" class="small-text" placeholder="авто"></span>'
+            . '<span class="wpd-pe__bs-f"><label for="' . $id('width') . '">Ширина</label>' . $select('width', self::BLOCK_WIDTHS) . '</span>'
+            . '<span class="wpd-pe__bs-f"><label for="' . $id('hide') . '">Показ</label>' . $select('hide', self::BLOCK_HIDE) . '</span>';
+        if ($key === 'hero') {
+            $html .= '<span class="wpd-pe__bs-note description">Цвет фона главного блока — в группе «Главный блок: кнопки, изображение, вид».</span>';
+        }
+        return $html . '</div>';
+    }
+
+    /**
+     * Группа общих настроек со своими значениями для страницы (2.4.0).
+     */
+    private static function group_panel(string $group, array $def, array $p, array $global): void
+    {
+        $on       = isset($p['ov'][$group]);
+        $vals     = $on ? $p['ov'][$group] : [];
+        $sections = WPD_Settings::sections();
+        $map      = WPD_Settings::field_map();
+        $tab      = $group === 'page' ? 'design' : $group;
+
+        printf(
+            '<details class="wpd-pe__panel wpd-pe__ovg%1$s" data-wpd-ovg-panel="%2$s"%3$s><summary>%4$s<span class="wpd-pe__badge" data-wpd-ovg-badge%5$s>своё</span></summary><div class="wpd-pe__body">',
+            $on ? ' is-on' : '',
+            esc_attr($group),
+            $on ? ' open' : '',
+            esc_html($def['title']),
+            $on ? '' : ' hidden'
+        );
+        printf(
+            '<p class="wpd-pe__ovg-switch"><label><input type="checkbox" name="wpd_page[ovg][%1$s]" value="1" data-wpd-ovg="%1$s"%2$s> <strong>Своё для этой страницы</strong></label></p>'
+            . '<p class="description">%3$s Выключено — значения из <a href="%4$s">общих настроек</a>.</p>',
+            esc_attr($group),
+            checked($on, true, false),
+            esc_html($def['desc']),
+            esc_url(WPD_Settings::url(isset(WPD_Settings::tabs()[$tab]) ? $tab : ''))
+        );
+
+        printf('<div class="wpd-pe__ovg-body" data-wpd-ovg-body="%s"%s>', esc_attr($group), $on ? '' : ' hidden');
+        $current_section = '';
+        $open_table      = false;
+        foreach (self::group_keys($group) as $key) {
+            $field = $map[$key];
+            if ($field['section'] !== $current_section && count($def['sections']) + count($def['extra']) > 1) {
+                if ($open_table) {
+                    echo '</tbody></table>';
+                    $open_table = false;
+                }
+                $current_section = $field['section'];
+                echo '<h4 class="wpd-pe__sub">' . esc_html($sections[$current_section] ?? '') . '</h4>';
+            }
+            if (!$open_table) {
+                echo '<table class="form-table wpd-pe__table wpd-pe__ovt" role="presentation"><tbody>';
+                $open_table = true;
+            }
+            $value = array_key_exists($key, $vals) ? $vals[$key] : $global[$key];
+            $wide  = in_array($field['type'], ['repeater', 'palette'], true);
+            if ($wide) {
+                echo '<tr class="wpd-pe__wide-row"><td colspan="2"><p class="wpd-pe__wide-label"><strong>' . esc_html($field['label']) . '</strong></p>';
+            } else {
+                printf('<tr><th scope="row"><label for="%s">%s</label></th><td>', esc_attr('wpd_pe_ov_' . $key), esc_html($field['label']));
+            }
+            WPD_Settings::render_field_as($key, $value, 'wpd_page[ov]', 'wpd_pe_ov_');
+            echo '</td></tr>';
+        }
+        if ($open_table) {
+            echo '</tbody></table>';
+        }
+        echo '</div></div></details>';
+    }
+
+    /** Свой CSS страницы и пояснение про вид блоков (2.4.0). */
+    private static function css_panel(array $p): void
+    {
+        $open = $p['page_css'] !== '' || $p['bstyle'];
+        printf('<details class="wpd-pe__panel"%s><summary>Вид блоков и свой CSS</summary><div class="wpd-pe__body">', $open ? ' open' : '');
+        echo '<p class="description">Фон, отступы, ширина и показ на телефоне или компьютере задаются у каждого блока кнопкой '
+            . '<span class="dashicons dashicons-admin-appearance" aria-hidden="true"></span> в списке «Блоки и порядок».</p>';
+        printf(
+            '<p><label for="wpd_pe_page_css"><strong>Свой CSS для этой страницы</strong></label><br>'
+            . '<textarea id="wpd_pe_page_css" name="wpd_page[page_css]" rows="6" class="large-text code" spellcheck="false" placeholder="%s">%s</textarea></p>'
+            . '<p class="description">Подключается только на этой странице, после общего «Своего CSS». Корневой контейнер блоков — <code>.wpd-page</code>.</p>',
+            esc_attr('.wpd-page .wpd-hero__title { letter-spacing: .02em; }'),
+            esc_textarea($p['page_css'])
+        );
+        echo '</div></details>';
+    }
+
+    /** Копирование с другой страницы, сброс, экспорт и импорт (2.4.0). */
+    private static function tools_panel(WP_Post $post): void
+    {
+        $sources = self::copy_sources((int) $post->ID);
+        echo '<details class="wpd-pe__panel wpd-pe__tools" data-wpd-tools><summary>Инструменты: копирование, сброс, экспорт и импорт</summary><div class="wpd-pe__body">';
+
+        echo '<p><label for="wpd_pe_copy_from"><strong>Скопировать настройки с другой страницы</strong></label><br>';
+        echo '<select id="wpd_pe_copy_from" data-wpd-copy-from><option value="">— выберите страницу —</option>';
+        foreach ($sources as $id => $title) {
+            printf('<option value="%d">%s</option>', (int) $id, esc_html($title));
+        }
+        echo '</select> <button type="button" class="button" data-wpd-copy-page' . ($sources ? '' : ' disabled') . '>Скопировать</button></p>';
+        echo '<p class="description">' . ($sources
+            ? 'Порядок блоков, своё содержимое, своё оформление, вид блоков и CSS заменят текущие настройки этой страницы.'
+            : 'Других страниц с настройками олимпиады пока нет.') . '</p>';
+
+        echo '<p><strong>Сбросить</strong><br><button type="button" class="button button-link-delete" data-wpd-reset-page>Сбросить к общим настройкам</button></p>'
+            . '<p class="description">Удаляет все настройки панели для этой страницы. Включённое оформление остаётся включённым.</p>';
+
+        echo '<p><strong>Экспорт</strong><br><button type="button" class="button" data-wpd-export>Получить JSON</button> '
+            . '<button type="button" class="button" data-wpd-export-copy hidden>Копировать</button> '
+            . '<button type="button" class="button" data-wpd-export-download hidden>Скачать файл</button></p>'
+            . '<textarea class="large-text code" rows="4" readonly data-wpd-export-out hidden aria-label="JSON настроек страницы"></textarea>'
+            . '<p class="description">Экспортируются сохранённые настройки — сначала сохраните запись.</p>';
+
+        echo '<p><label for="wpd_pe_import"><strong>Импорт</strong></label><br>'
+            . '<textarea id="wpd_pe_import" class="large-text code" rows="4" data-wpd-import-in placeholder="{&quot;plugin&quot;:&quot;wp-olympiad-design&quot;, …}"></textarea></p>'
+            . '<p><button type="button" class="button" data-wpd-import>Импортировать</button> <span class="wpd-pe__tools-msg" data-wpd-tools-msg role="status"></span></p>';
+        echo '</div></details>';
     }
 
     private static function text_row(string $name, string $label, string $value, string $placeholder, string $type = 'text'): void

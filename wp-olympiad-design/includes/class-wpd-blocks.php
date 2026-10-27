@@ -20,6 +20,45 @@ class WPD_Blocks
     {
         add_action('init', [__CLASS__, 'register'], 20);
         add_filter('block_categories_all', [__CLASS__, 'category']);
+        // 2.4.0: своё оформление страницы в предпросмотре блоков и на холсте редактора
+        add_filter('rest_request_before_callbacks', [__CLASS__, 'rest_page_context'], 10, 3);
+        add_action('enqueue_block_editor_assets', [__CLASS__, 'editor_page_data']);
+    }
+
+    /**
+     * Предпросмотр блока (ServerSideRender передаёт post_id записи): блок выводится с настройками этой страницы.
+     * Права на запись проверяет сам маршрут block-renderer.
+     *
+     * @param mixed $response
+     * @return mixed
+     */
+    public static function rest_page_context($response, $handler, $request)
+    {
+        if ($request instanceof WP_REST_Request
+            && strpos($request->get_route(), '/wp/v2/block-renderer/' . self::NS . '/') === 0
+            && (int) $request->get_param('post_id') > 0) {
+            WPD_Settings::set_page((int) $request->get_param('post_id'));
+        }
+        return $response;
+    }
+
+    /**
+     * Данные холста для редактируемой записи: CSS-переменные и классы с учётом её своего оформления.
+     */
+    public static function editor_page_data(): void
+    {
+        $post = get_post();
+        if (!$post instanceof WP_Post || !wp_script_is('wpd-blocks', 'registered')) {
+            return;
+        }
+        $o = WPD_Page_Editor::options((int) $post->ID);
+        wp_add_inline_script('wpd-blocks', 'window.wpdBlocks = Object.assign(window.wpdBlocks || {}, ' . wp_json_encode([
+            'postId'    => (int) $post->ID,
+            'vars'      => WPD_Settings::style_vars($o),
+            'pageClass' => implode(' ', WPD_Settings::page_classes($o)),
+            'softOrb'   => !empty($o['hero_soft_orb']) ? WPD_URL . WPD_Renderer::ORB_IMAGE : '',
+            'palette'   => [$o['primary'], $o['accent'], $o['dark'], $o['text'], $o['bg']],
+        ]) . ');', 'before');
     }
 
     /**

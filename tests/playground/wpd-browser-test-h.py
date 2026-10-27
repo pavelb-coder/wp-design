@@ -261,7 +261,8 @@ with sync_playwright() as p:
     if org_input.count():
         org_input.first.fill("Центр «Юниор»")
         time.sleep(0.4)
-    url_input = page.get_by_label("Ссылка организации")
+    # Только боковая панель блока: с 2.4.0 в панели «Блоки олимпиады» есть скрытое поле с той же подписью
+    url_input = page.locator(".block-editor-block-inspector").get_by_label("Ссылка организации")
     if url_input.count():
         url_input.first.fill("https://junior.example.org/")
         time.sleep(0.4)

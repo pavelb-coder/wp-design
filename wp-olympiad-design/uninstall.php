@@ -7,6 +7,7 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
 delete_option('wpd_settings');
 delete_post_meta_by_key('_wpd_enabled');
 delete_post_meta_by_key('_wpd_page');
+delete_post_meta_by_key('_wpd_rev'); // отметка изменений панели в блочном редакторе (2.4.0)
 
 // Регистрация участников (2.0.0–2.1.0, убрана в 2.2.0): если плагин удаляют до завершения очистки,
 // оставшиеся заявки, аккаунты участников, роль, настройки и временные данные удаляются здесь целиком.

@@ -58,7 +58,7 @@ $orb_url  = WPD_URL . 'assets/img/cities-orb.webp';
 $logo_url = WPD_URL . 'assets/img/kvantorium-logo.webp';
 
 /* 1. Поля, палитра, стили главного блока */
-check('version 2.3.0', WPD_VERSION === '2.3.0' && has(file_get_contents(WPD_DIR . 'wp-olympiad-design.php'), 'Version:           2.3.0'));
+check('version 2.3.0+', version_compare(WPD_VERSION, '2.3.0', '>='));
 check('field design_style: select on design tab, default classic',
     isset($map['design_style']) && $map['design_style']['type'] === 'select' && $map['design_style']['section'] === 'colors' && $map['design_style']['default'] === 'classic');
 check('design_style options: classic and soft', array_keys($map['design_style']['options']) === ['classic', 'soft'] && has($map['design_style']['options']['soft'], 'Мягкий градиент'));
@@ -260,7 +260,8 @@ check('css: reduced motion and print for soft', (bool) preg_match('/@media \(pre
 check('css: hidden rule still wins over soft display', substr_count($css, '[hidden]') >= 3);
 $fjs = file_get_contents(WPD_DIR . 'assets/js/wpd.js');
 check('front js: reveal only for soft pages, not in editor, not hero', has($fjs, ".wpd-page.wpd-style-soft:not(.wpd-page--editor)") && has($fjs, "classList.contains('wpd-hero')") && has($fjs, 'if (reduceMotion || !(\'IntersectionObserver\' in window))'));
-check('settings js: palette follows style', has(file_get_contents(WPD_DIR . 'assets/js/wpd-settings.js'), "#wpd_design_style"));
+// 2.4.0: обработчик общий для страницы настроек и панели страницы (поле id$="design_style", префикс из id)
+check('settings js: palette follows style', has(file_get_contents(WPD_DIR . 'assets/js/wpd-settings.js'), 'select[id$="design_style"]'));
 ob_start();
 $_GET = ['page' => 'wpd-settings', 'tab' => 'design'];
 WPD_Settings::render_page();

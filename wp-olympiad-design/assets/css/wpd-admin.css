@@ -222,3 +222,197 @@
         width: auto;
     }
 }
+
+/* ---------------------------------------------------------------
+ * 2.4.0: своё оформление страницы, вид блоков, инструменты
+ * ------------------------------------------------------------- */
+
+.wpd-pe__ovg.is-on > summary {
+    color: #1d4ed8;
+}
+
+.wpd-pe__badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 11px;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.wpd-pe__badge[hidden] {
+    display: none;
+}
+
+.wpd-pe__ovg-switch {
+    margin: 4px 0 2px;
+}
+
+.wpd-pe__sub {
+    margin: 18px 0 4px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f1;
+    font-size: 13px;
+}
+
+.wpd-pe__ovt th {
+    width: 220px;
+}
+
+.wpd-pe__wide-row td {
+    padding-left: 0;
+}
+
+.wpd-pe__wide-label {
+    margin: 0 0 6px;
+}
+
+.wpd-pe__ovg-body .wpd-rep {
+    max-width: 100%;
+}
+
+/* Вид блока в списке порядка */
+.wpd-pe__block {
+    flex-wrap: wrap;
+}
+
+.wpd-pe__bs-btn .dashicons {
+    color: #8c8f94;
+}
+
+.wpd-pe__block.has-bstyle .wpd-pe__bs-btn .dashicons,
+.wpd-pe__bs-btn[aria-expanded="true"] .dashicons {
+    color: #1d4ed8;
+}
+
+.wpd-pe__bs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px 18px;
+    flex-basis: 100%;
+    margin: 8px 0 2px 26px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: #f6f7f7;
+}
+
+.wpd-pe__bs[hidden] {
+    display: none;
+}
+
+.wpd-pe__bs-f {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 12px;
+}
+
+.wpd-pe__bs-note {
+    flex-basis: 100%;
+    font-size: 12px;
+}
+
+/* Инструменты */
+.wpd-pe__tools select {
+    max-width: 320px;
+}
+
+.wpd-pe__tools-msg {
+    margin-left: 6px;
+    color: #00a32a;
+}
+
+.wpd-pe__tools-msg.is-error {
+    color: #d63638;
+}
+
+/* Боковая колонка «Оформление олимпиады» в блочном редакторе */
+.wpd-side .components-base-control,
+.wpd-side .components-toggle-control {
+    margin-bottom: 14px;
+}
+
+.wpd-side__group {
+    margin: 4px 0 8px;
+    padding-top: 10px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.wpd-side__label {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.wpd-side__palettes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.wpd-side__palette {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+}
+
+.wpd-side__palette.is-selected {
+    border-color: var(--wp-admin-theme-color, #3858e9);
+    box-shadow: 0 0 0 1px var(--wp-admin-theme-color, #3858e9);
+}
+
+.wpd-side__sw {
+    display: flex;
+    height: 14px;
+    overflow: hidden;
+    border-radius: 3px;
+    font-size: 11px;
+    line-height: 14px;
+}
+
+.wpd-side__sw span {
+    flex: 1;
+}
+
+.wpd-side__pname {
+    font-size: 11px;
+}
+
+.wpd-side__colors {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.wpd-side__color {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.wpd-side__color input[type="color"] {
+    width: 32px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: none;
+}
+
+.wpd-side__note {
+    color: #757575;
+    font-size: 12px;
+}
