@@ -167,3 +167,21 @@
     font-size: 32px;
     color: #2271b1;
 }
+
+/* 2.8.0: сетевая папка — вкладка «Документы», строки из папки, панель страницы */
+.wpd-nf { margin-top: 32px; padding-top: 8px; border-top: 1px solid #c3c4c7; }
+.wpd-nf__env { max-width: 860px; }
+.wpd-nf__tools { margin-top: 8px; }
+.wpd-nf__tools .spinner { float: none; vertical-align: middle; margin-top: 0; }
+.wpd-nf__table { max-width: 980px; margin: 8px 0; }
+.wpd-nf__table td, .wpd-nf__table th { vertical-align: middle; }
+.wpd-nf__table tr.is-same td, .wpd-nf__table tr.is-toobig td { color: #646970; }
+.wpd-nf__table tr.is-gone td { color: #b32d2e; }
+.wpd-nf__log { margin-top: 16px; max-width: 980px; }
+.wpd-nf__log summary { cursor: pointer; font-weight: 600; }
+.wpd-nf__log li.is-error { color: #b32d2e; }
+.wpd-rep__src, .wpd-pe__src { margin: 0; color: #2271b1; font-size: 12px; flex-basis: 100%; }
+.wpd-pe__nf { margin-top: 12px; padding: 8px 12px; border: 1px dashed #c3c4c7; border-radius: 4px; background: #f6f7f7; }
+.wpd-pe__nf p { margin: 6px 0; }
+.wpd-pe__nf .spinner { float: none; vertical-align: middle; margin-top: 0; }
+.wpd-pe__nf [data-wpd-nf-msg].is-error { color: #b32d2e; }
