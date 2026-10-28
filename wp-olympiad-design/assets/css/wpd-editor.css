@@ -396,3 +396,37 @@
 .wpd-page .wpd-hero--soft .wpd-ed-media-empty .components-button {
     color: #22232e;
 }
+
+
+/* 2.6.0: кнопки-ссылки в редакторе — скрытые и показываемые по датам кнопки, поля под плиткой */
+.wpd-page .wpd-qbtn.wpd-qbtn--off {
+    opacity: 0.45;
+}
+
+.wpd-page .wpd-qbtn.wpd-qbtn--scheduled {
+    outline: 2px dashed rgba(100, 116, 139, 0.6);
+    outline-offset: 2px;
+}
+
+.wpd-ed-state {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.wpd-ed-item--buttons .wpd-ed-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin: 4px 0;
+}
+
+.wpd-ed-item--buttons .wpd-ed-dates input {
+    max-width: 100%;
+    font-size: 12px;
+}
+
+.wpd-page .wpd-qbtn__desc.is-empty {
+    opacity: 0.5;
+}

@@ -115,6 +115,8 @@ class WPD_Settings
             'behavior' => 'Поведение',
             'slider'   => 'Слайдер',
             'buttons'  => 'Кнопки-ссылки',
+            'buttons_layout' => 'Раскладка',
+            'buttons_look'   => 'Вид и цвета',
             'cards'    => 'Карточки',
             'notice'   => 'Объявление',
             'news'     => 'Новости',
@@ -135,7 +137,7 @@ class WPD_Settings
             'docs'     => ['title' => 'Документы', 'sections' => ['docs']],
             'faq'      => ['title' => 'Частые вопросы', 'sections' => ['faq']],
             'slider'   => ['title' => 'Слайдер', 'sections' => ['slider']],
-            'buttons'  => ['title' => 'Кнопки-ссылки', 'sections' => ['buttons']],
+            'buttons'  => ['title' => 'Кнопки-ссылки', 'sections' => ['buttons', 'buttons_layout', 'buttons_look']],
             'cards'    => ['title' => 'Карточки', 'sections' => ['cards']],
             'notice'   => ['title' => 'Объявление', 'sections' => ['notice']],
             'news'     => ['title' => 'Новости', 'sections' => ['news']],
@@ -378,15 +380,58 @@ class WPD_Settings
                               ['icon' => 'email-alt', 'text' => 'Контакты', 'url' => '', 'new_tab' => 0, 'small' => 0],
                           ],
                           'fields' => [
-                              'icon'    => ['label' => 'Иконка', 'type' => 'icon'],
-                              'text'    => ['label' => 'Текст', 'type' => 'text'],
-                              'url'     => ['label' => 'Ссылка', 'type' => 'url'],
-                              'new_tab' => ['label' => 'Открывать в новой вкладке', 'type' => 'checkbox'],
-                              'small'   => ['label' => 'Мелкий текст (для длинных подписей)', 'type' => 'checkbox'],
+                              'icon'       => ['label' => 'Иконка', 'type' => 'icon'],
+                              'text'       => ['label' => 'Текст', 'type' => 'text'],
+                              'url'        => ['label' => 'Ссылка', 'type' => 'url'],
+                              'new_tab'    => ['label' => 'Открывать в новой вкладке', 'type' => 'checkbox'],
+                              'small'      => ['label' => 'Мелкий текст (для длинных подписей)', 'type' => 'checkbox'],
+                              // 2.6.0
+                              'desc'       => ['label' => 'Подпись под текстом', 'type' => 'text'],
+                              'badge'      => ['label' => 'Метка в углу (например, «Новое»)', 'type' => 'text'],
+                              'image'      => ['label' => 'Картинка вместо иконки', 'type' => 'image'],
+                              'color'      => ['label' => 'Цвет плитки', 'type' => 'color_opt'],
+                              'icon_color' => ['label' => 'Цвет иконки', 'type' => 'color_opt'],
+                              'download'   => ['label' => 'Ссылка на файл — скачивать', 'type' => 'checkbox'],
+                              'hidden'     => ['label' => 'Скрыть кнопку', 'type' => 'checkbox'],
+                              'from'       => ['label' => 'Показывать с', 'type' => 'datetime'],
+                              'to'         => ['label' => 'Показывать до', 'type' => 'datetime'],
                           ],
-                          'desc' => 'Плитки с иконками для быстрых переходов: положение, регистрация, расписание и т. п. Кнопка без ссылки выводится как подпись.'],
+                          'desc' => 'Плитки с иконками для быстрых переходов: положение, регистрация, расписание и т. п. Кнопка без ссылки выводится как подпись. '
+                              . 'Даты показа — в часовом поясе таймера (вкладка «Таймер и эффекты»); пустая дата — без ограничения. '
+                              . 'Тёмный цвет плитки делает текст белым.'],
             'buttons_icon_size' => ['label' => 'Размер иконок, px', 'type' => 'number', 'section' => 'buttons', 'default' => 0, 'min' => 0, 'max' => 96,
                                     'desc' => '0 — по умолчанию: 44 px, в стиле «Мягкий градиент» — 32 px. От 16 до 96.'],
+            // 2.6.0: раскладка
+            'buttons_title'          => ['label' => 'Заголовок блока', 'type' => 'text', 'section' => 'buttons_layout', 'default' => '',
+                                         'desc' => 'Пусто — без заголовка.'],
+            'buttons_columns'        => ['label' => 'Колонок на компьютере', 'type' => 'select', 'section' => 'buttons_layout', 'default' => '',
+                                         'options' => ['' => 'Автоматически', '2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6'],
+                                         'desc' => 'Автоматически — сколько поместится (плитка не уже 140 px). В виде «Компактные» не действует.'],
+            'buttons_columns_mobile' => ['label' => 'Колонок на телефоне', 'type' => 'select', 'section' => 'buttons_layout', 'default' => '',
+                                         'options' => ['' => 'Автоматически (2)', '1' => '1', '2' => '2', '3' => '3'],
+                                         'desc' => 'Экран до 600 px.'],
+            'buttons_gap'            => ['label' => 'Отступ между плитками, px', 'type' => 'number', 'section' => 'buttons_layout', 'default' => 0, 'min' => 0, 'max' => 48,
+                                         'desc' => '0 — по умолчанию (12 px).'],
+            'buttons_height'         => ['label' => 'Высота плиток, px', 'type' => 'number', 'section' => 'buttons_layout', 'default' => 0, 'min' => 0, 'max' => 320,
+                                         'desc' => 'Минимальная высота. 0 — по виду плиток (116 px, «Иконка слева» — 72 px).'],
+            'buttons_align'          => ['label' => 'Выравнивание текста', 'type' => 'select', 'section' => 'buttons_layout', 'default' => '',
+                                         'options' => ['' => 'Как в стиле оформления', 'center' => 'По центру', 'left' => 'По левому краю']],
+            // 2.6.0: вид и цвета
+            'buttons_layout'         => ['label' => 'Вид плиток', 'type' => 'select', 'section' => 'buttons_look', 'default' => 'stack',
+                                         'options' => ['stack' => 'Иконка сверху', 'row' => 'Иконка слева', 'compact' => 'Компактные (в строку)']],
+            'buttons_variant'        => ['label' => 'Заливка', 'type' => 'select', 'section' => 'buttons_look', 'default' => 'card',
+                                         'options' => ['card' => 'Карточки с тенью', 'outline' => 'Контурные', 'solid' => 'Залитые основным цветом', 'tint' => 'Светлый оттенок основного цвета']],
+            'buttons_radius'         => ['label' => 'Скругление', 'type' => 'select', 'section' => 'buttons_look', 'default' => '',
+                                         'options' => ['' => 'Как в оформлении', 'none' => 'Без скругления', 'small' => 'Небольшое (6 px)', 'medium' => 'Среднее (12 px)', 'large' => 'Большое (20 px)', 'pill' => 'Полное']],
+            'buttons_text_size'      => ['label' => 'Размер текста, px', 'type' => 'number', 'section' => 'buttons_look', 'default' => 0, 'min' => 0, 'max' => 28,
+                                         'desc' => '0 — по умолчанию. От 11 до 28.'],
+            'buttons_bg'             => ['label' => 'Фон плиток', 'type' => 'color_opt', 'section' => 'buttons_look', 'default' => '',
+                                         'desc' => 'Пусто — по заливке. Тёмный фон делает текст белым.'],
+            'buttons_icon_color'     => ['label' => 'Цвет иконок', 'type' => 'color_opt', 'section' => 'buttons_look', 'default' => '',
+                                         'desc' => 'Пусто — основной цвет.'],
+            'buttons_text_color'     => ['label' => 'Цвет текста', 'type' => 'color_opt', 'section' => 'buttons_look', 'default' => ''],
+            'buttons_hover_color'    => ['label' => 'Цвет при наведении', 'type' => 'color_opt', 'section' => 'buttons_look', 'default' => '',
+                                         'desc' => 'Цвет текста, иконки и рамки при наведении. Пусто — основной цвет.'],
 
             // Карточки
             'cards_title' => ['label' => 'Заголовок блока карточек', 'type' => 'text', 'section' => 'cards', 'default' => '',
@@ -603,6 +648,10 @@ class WPD_Settings
                     case 'textarea':
                         $clean[$sub] = sanitize_textarea_field($raw);
                         break;
+                    case 'datetime':
+                        // Дата не делает строку непустой: кнопка без текста, но с датами не сохраняется
+                        $clean[$sub] = self::normalize_datetime($raw);
+                        continue 2;
                     default:
                         $clean[$sub] = sanitize_text_field($raw);
                 }
@@ -1352,6 +1401,32 @@ class WPD_Settings
                     (поле «Размер иконок»; 0 — как в настройках). Размер блока важнее размера страницы, размер страницы — общего.</li>
             </ul>
 
+            <h2>Кнопки-ссылки (2.6.0)</h2>
+            <ul style="list-style:disc;margin-left:20px">
+                <li><strong>Для всего блока</strong> (вкладка «Кнопки-ссылки», разделы «Раскладка» и «Вид и цвета»): заголовок блока,
+                    число колонок на компьютере и телефоне, отступ между плитками, высота плиток, выравнивание текста; вид плиток
+                    (иконка сверху, иконка слева, компактные в строку), заливка (карточки с тенью, контурные, залитые основным цветом,
+                    светлый оттенок), скругление, размер текста, фон плиток, цвет иконок, текста и цвет при наведении.
+                    Тёмный фон делает текст белым.</li>
+                <li><strong>Для каждой кнопки:</strong> подпись под текстом, метка в углу («Новое»), картинка вместо иконки, свой цвет
+                    плитки и иконки, «скачивать файл» (атрибут <code>download</code>), «скрыть кнопку» и даты показа «с» и «до» —
+                    в часовом поясе таймера. Скрытые и ещё не показываемые кнопки в редакторе видны приглушёнными.
+                    При кешировании страниц кнопка по датам появится после обновления кеша.</li>
+                <li>То же для одной страницы — группа «Кнопки-ссылки» в панели «Блоки олимпиады», для отдельного блока
+                    «Олимпиада: кнопки-ссылки» — его боковая панель (разделы «Раскладка» и «Вид и цвета») и поля под плиткой.
+                    Значения блока важнее значений страницы, значения страницы — общих. Если изменить группу страницы,
+                    блоки на холсте обновятся после сохранения и перезагрузки редактора.</li>
+            </ul>
+
+            <h2>«Ответ не является допустимым ответом JSON»</h2>
+            <p>Так блочный редактор сообщает, что в ответ на сохранение попал посторонний текст — обычно предупреждение PHP
+                темы или другого плагина при включённом показе ошибок, либо пробелы или BOM в начале PHP-файла.
+                С 2.6.0 плагин убирает такой вывод из ответов REST API, а перехваченный текст показывает администратору
+                в уведомлении — по нему можно найти источник. Если ошибка остаётся, ответ, скорее всего, подменяет сервер
+                (защита хостинга, правила брандмауэра) или запрос не доходит до WordPress — смотрите ответ запроса
+                во вкладке «Сеть» инструментов разработчика браузера. Отключить защиту:
+                <code>define('WPD_REST_GUARD', false);</code> в <code>wp-config.php</code>.</p>
+
             <h2>Шорткоды</h2>
             <p>Выводят блоки с общим содержимым — для виджетов, шаблонов и классического редактора.</p>
             <table class="widefat striped" style="max-width:640px">
@@ -1504,6 +1579,10 @@ class WPD_Settings
                 case 'color_opt':
                     $html .= sprintf('<div class="wpd-rep__f"><label for="%1$s">%2$s</label><input type="text" id="%1$s" name="%3$s" value="%4$s" class="wpd-color-opt" placeholder="#rrggbb" maxlength="7"></div>',
                         esc_attr($id), $label, esc_attr($name), esc_attr($value));
+                    break;
+                case 'datetime':
+                    $html .= sprintf('<label class="wpd-rep__f" for="%1$s"><span>%2$s</span><input type="datetime-local" id="%1$s" name="%3$s" value="%4$s"></label>',
+                        esc_attr($id), $label, esc_attr($name), esc_attr(str_replace(' ', 'T', $value)));
                     break;
                 case 'icon':
                     $current = isset(self::icons()[$value]) ? $value : (string) array_key_first(self::icons());

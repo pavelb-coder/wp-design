@@ -707,27 +707,204 @@ class WPD_Renderer
      *
      * @param array|null $items null — из общих настроек
      */
-    public static function buttons_html(array $o, ?array $items = null): string
+    /**
+     * Кнопки-ссылки. 2.6.0: заголовок, раскладка, вид и цвета блока; у кнопки — подпись, метка, картинка вместо иконки,
+     * свои цвета, скачивание, скрытие и показ по датам.
+     *
+     * @param array|null  $items null — из общих настроек
+     * @param string|null $title null — из общих настроек; пустая строка — без заголовка
+     * @param bool        $editor true — для холста редактора: скрытые кнопки и кнопки вне дат показа выводятся приглушёнными
+     */
+    public static function buttons_html(array $o, ?array $items = null, ?string $title = null, bool $editor = false): string
     {
         $items = WPD_Settings::sanitize_rows($items === null ? $o['buttons'] : $items, 'buttons');
-        $items = array_values(array_filter($items, function ($item) {
-            return $item['text'] !== '';
-        }));
-        if (!$items) {
+        $now   = self::buttons_now($o);
+        $rows  = [];
+        foreach ($items as $item) {
+            if ($item['text'] === '') {
+                continue;
+            }
+            $visible = self::button_visible($item, $now);
+            if ($visible || $editor) {
+                $item['_off'] = !$visible;
+                $rows[] = $item;
+            }
+        }
+        if (!$rows) {
             return '';
         }
         self::enqueue_icons();
+        $title = $title === null ? (string) ($o['buttons_title'] ?? '') : $title;
+        $look  = self::buttons_look($o);
 
-        $html = '<nav class="wpd-buttons" aria-label="Быстрые ссылки"><ul class="wpd-buttons__grid">';
-        foreach ($items as $item) {
-            $class = 'wpd-qbtn' . ($item['small'] ? ' wpd-qbtn--small' : '') . ($item['url'] === '' ? ' wpd-qbtn--nolink' : '');
-            $inner = '<span class="wpd-qbtn__icon dashicons dashicons-' . esc_attr($item['icon']) . '" aria-hidden="true"></span>'
-                . '<span class="wpd-qbtn__text">' . esc_html($item['text']) . '</span>';
-            $html .= '<li>' . ($item['url'] !== ''
-                ? '<a class="' . $class . '"' . self::link_attrs($item['url'], $item['new_tab']) . '>' . $inner . '</a>'
-                : '<span class="' . $class . '">' . $inner . '</span>') . '</li>';
+        $html = '<nav class="' . esc_attr($look['class']) . '"' . ($look['style'] !== '' ? ' style="' . esc_attr($look['style']) . '"' : '')
+            . ' aria-label="' . esc_attr($title !== '' ? $title : 'Быстрые ссылки') . '">';
+        if ($title !== '') {
+            $html .= '<h2 class="wpd-h2">' . esc_html($title) . '</h2>';
+        }
+        $html .= '<ul class="wpd-buttons__grid">';
+        foreach ($rows as $item) {
+            $item_look = self::button_item_look($item);
+            $class = 'wpd-qbtn' . ($item['small'] ? ' wpd-qbtn--small' : '') . ($item['url'] === '' ? ' wpd-qbtn--nolink' : '')
+                . $item_look['class'] . (!empty($item['_off']) ? ' wpd-qbtn--off' : '');
+            $style = $item_look['style'] !== '' ? ' style="' . esc_attr($item_look['style']) . '"' : '';
+            $media = $item['image'] !== ''
+                ? '<img class="wpd-qbtn__img" src="' . esc_url($item['image']) . '" alt="" loading="lazy">'
+                : '<span class="wpd-qbtn__icon dashicons dashicons-' . esc_attr($item['icon']) . '" aria-hidden="true"></span>';
+            $inner = $media . '<span class="wpd-qbtn__body"><span class="wpd-qbtn__text">' . esc_html($item['text']) . '</span>'
+                . ($item['desc'] !== '' ? '<span class="wpd-qbtn__desc">' . esc_html($item['desc']) . '</span>' : '') . '</span>'
+                . ($item['badge'] !== '' ? '<span class="wpd-qbtn__badge">' . esc_html($item['badge']) . '</span>' : '');
+            if ($item['url'] !== '') {
+                $attrs = self::link_attrs($item['url'], $item['new_tab']) . ($item['download'] ? ' download' : '');
+                $html .= '<li><a class="' . esc_attr($class) . '"' . $style . $attrs . '>' . $inner . '</a></li>';
+            } else {
+                $html .= '<li><span class="' . esc_attr($class) . '"' . $style . '>' . $inner . '</span></li>';
+            }
         }
         return $html . '</ul></nav>';
+    }
+
+    /** Текущее время для дат показа кнопок — в часовом поясе таймера, «ГГГГ-ММ-ДД ЧЧ:ММ». Фильтр wpd_buttons_now — для проверок. */
+    public static function buttons_now(array $o): string
+    {
+        $now = (string) apply_filters('wpd_buttons_now', '');
+        if ($now !== '') {
+            return $now;
+        }
+        return (new DateTime('now', WPD_Settings::countdown_timezone($o)))->format('Y-m-d H:i');
+    }
+
+    /** Кнопка показывается: не скрыта, дата «с» наступила, дата «до» ещё нет. */
+    public static function button_visible(array $item, string $now): bool
+    {
+        if (!empty($item['hidden'])) {
+            return false;
+        }
+        $from = (string) ($item['from'] ?? '');
+        $to   = (string) ($item['to'] ?? '');
+        if ($from !== '' && strcmp($now, $from) < 0) {
+            return false;
+        }
+        if ($to !== '' && strcmp($now, $to) >= 0) {
+            return false;
+        }
+        return true;
+    }
+
+    /** Тёмный цвет (#rrggbb): на нём нужен белый текст. */
+    public static function is_dark(string $hex): bool
+    {
+        if (!preg_match('/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i', $hex, $m)) {
+            if (!preg_match('/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i', $hex, $m)) {
+                return false;
+            }
+            $m = [0, $m[1] . $m[1], $m[2] . $m[2], $m[3] . $m[3]];
+        }
+        $lum = (0.299 * hexdec($m[1]) + 0.587 * hexdec($m[2]) + 0.114 * hexdec($m[3])) / 255;
+        return $lum < 0.6;
+    }
+
+    /**
+     * Классы и CSS-переменные блока кнопок из настроек (или атрибутов блока, уже подставленных в $o).
+     *
+     * @return array{class:string,style:string}
+     */
+    public static function buttons_look(array $o): array
+    {
+        $map   = WPD_Settings::field_map();
+        $pick  = function (string $key) use ($o, $map): string {
+            $v = isset($o[$key]) && is_scalar($o[$key]) ? (string) $o[$key] : '';
+            return array_key_exists($v, $map[$key]['options']) ? $v : (string) $map[$key]['default'];
+        };
+        $color = function (string $key) use ($o): string {
+            return (string) sanitize_hex_color(isset($o[$key]) && is_scalar($o[$key]) ? trim((string) $o[$key]) : '');
+        };
+        $int   = function (string $key) use ($o, $map): int {
+            $v = isset($o[$key]) && is_numeric($o[$key]) ? (int) $o[$key] : 0;
+            return $v > 0 ? min((int) $map[$key]['max'], $v) : 0;
+        };
+
+        $class = ['wpd-buttons'];
+        $vars  = [];
+        $layout  = $pick('buttons_layout');
+        $variant = $pick('buttons_variant');
+        if ($layout !== 'stack') {
+            $class[] = 'wpd-buttons--' . $layout;
+        }
+        if ($variant !== 'card') {
+            $class[] = 'wpd-buttons--' . $variant;
+        }
+        if (($cols = $pick('buttons_columns')) !== '') {
+            $class[] = 'wpd-buttons--cols';
+            $vars['--wpd-qb-cols'] = $cols;
+        }
+        if (($cols_m = $pick('buttons_columns_mobile')) !== '') {
+            $class[] = 'wpd-buttons--cols-m';
+            $vars['--wpd-qb-cols-m'] = $cols_m;
+        }
+        if (($align = $pick('buttons_align')) !== '') {
+            $class[] = 'wpd-buttons--align-' . $align;
+        }
+        if (($radius = $pick('buttons_radius')) !== '') {
+            $vars['--wpd-qb-radius'] = ['none' => '0px', 'small' => '6px', 'medium' => '12px', 'large' => '20px', 'pill' => '999px'][$radius];
+        }
+        if ($gap = $int('buttons_gap')) {
+            $vars['--wpd-qb-gap'] = $gap . 'px';
+        }
+        if ($height = $int('buttons_height')) {
+            $vars['--wpd-qb-h'] = $height . 'px';
+        }
+        if ($size = $int('buttons_text_size')) {
+            $size = max(11, $size);
+            $class[] = 'wpd-buttons--fs';
+            $vars['--wpd-qb-fs']       = $size . 'px';
+            $vars['--wpd-qb-fs-small'] = max(11, (int) round($size * 0.85)) . 'px';
+        }
+        $bg = $color('buttons_bg');
+        if ($bg !== '') {
+            $vars['--wpd-qb-bg'] = $bg;
+            if (self::is_dark($bg)) {
+                $class[] = 'wpd-buttons--dark';
+            }
+        }
+        foreach (['buttons_icon_color' => '--wpd-qb-icon', 'buttons_text_color' => '--wpd-qb-text', 'buttons_hover_color' => '--wpd-qb-hover'] as $key => $var) {
+            if (($c = $color($key)) !== '') {
+                $vars[$var] = $c;
+            }
+        }
+        $style = '';
+        foreach ($vars as $k => $v) {
+            $style .= $k . ':' . $v . ';';
+        }
+        return ['class' => implode(' ', $class), 'style' => $style];
+    }
+
+    /**
+     * Свой вид кнопки: цвет плитки (тёмный — белый текст), цвет иконки, метка.
+     *
+     * @return array{class:string,style:string}
+     */
+    public static function button_item_look(array $item): array
+    {
+        $class = '';
+        $style = '';
+        $bg = (string) sanitize_hex_color((string) ($item['color'] ?? ''));
+        if ($bg !== '') {
+            $style .= '--wpd-qb-bg:' . $bg . ';';
+            $class .= ' has-color' . (self::is_dark($bg) ? ' wpd-qbtn--dark' : ' wpd-qbtn--light');
+        }
+        $icon = (string) sanitize_hex_color((string) ($item['icon_color'] ?? ''));
+        if ($icon !== '') {
+            $style .= '--wpd-qb-icon:' . $icon . ';';
+            $class .= ' has-icon-color';
+        }
+        if ((string) ($item['badge'] ?? '') !== '') {
+            $class .= ' wpd-qbtn--badge';
+        }
+        if ((string) ($item['image'] ?? '') !== '') {
+            $class .= ' wpd-qbtn--img';
+        }
+        return ['class' => $class, 'style' => $style];
     }
 
     /**

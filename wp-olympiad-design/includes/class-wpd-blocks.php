@@ -59,6 +59,7 @@ class WPD_Blocks
             'softOrb'   => !empty($o['hero_soft_orb']) ? WPD_URL . WPD_Renderer::ORB_IMAGE : '',
             'palette'   => [$o['primary'], $o['accent'], $o['dark'], $o['text'], $o['bg']],
             'iconSizes' => self::icon_sizes_data($o),
+            'buttonsSettings' => self::buttons_settings_data($o),
         ]) . ');', 'before');
     }
 
@@ -191,7 +192,7 @@ class WPD_Blocks
                 'attributes'  => [
                     'items' => ['type' => 'array', 'default' => array_values((array) $o['buttons'])],
                     'iconSize' => ['type' => 'integer', 'default' => (int) $o['buttons_icon_size']],
-                ],
+                ] + self::buttons_attr_defs($o),
                 'render'      => [__CLASS__, 'render_buttons'],
             ],
             'cards' => [
@@ -330,6 +331,9 @@ class WPD_Blocks
             'icons'       => WPD_Settings::icons(),
             // 2.5.0: размеры иконок — CSS-переменная, границы и размер по умолчанию для атрибутов блоков
             'iconSizes'   => self::icon_sizes_data(),
+            // 2.6.0: кнопки-ссылки — варианты списков и значения настроек (для атрибутов, совпадающих со значением по умолчанию)
+            'buttonsOptions'  => self::buttons_options_data(),
+            'buttonsSettings' => self::buttons_settings_data($o),
             // Список рубрик нужен только редактору; на сайте лишний запрос не делаем
             'categories'  => is_admin() ? self::categories() : [],
             'noticeLayouts' => WPD_Settings::field_map()['notice_layout']['options'],
@@ -451,6 +455,91 @@ class WPD_Blocks
     {
         if (array_key_exists($attr, $a) && is_numeric($a[$attr]) && (int) $a[$attr] > 0) {
             $o[$key] = (int) $a[$attr];
+        }
+        return $o;
+    }
+
+    /**
+     * Атрибуты блока «Кнопки-ссылки» (2.6.0) → поля настроек. Строки и цвета: присутствующий атрибут заменяет
+     * настройку (пустой цвет — без цвета, пустой заголовок — без заголовка); числа: больше 0 — заменяет, 0 — как в настройках.
+     */
+    const BUTTONS_ATTRS = [
+        'title'         => 'buttons_title',
+        'columns'       => 'buttons_columns',
+        'columnsMobile' => 'buttons_columns_mobile',
+        'gap'           => 'buttons_gap',
+        'height'        => 'buttons_height',
+        'textAlign'     => 'buttons_align',
+        'layout'        => 'buttons_layout',
+        'variant'       => 'buttons_variant',
+        'radius'        => 'buttons_radius',
+        'textSize'      => 'buttons_text_size',
+        'bgColor'       => 'buttons_bg',
+        'iconColor'     => 'buttons_icon_color',
+        'textColor'     => 'buttons_text_color',
+        'hoverColor'    => 'buttons_hover_color',
+    ];
+
+    /** Определения атрибутов блока кнопок; значения по умолчанию — текущие настройки (на сервере потом убираются). */
+    private static function buttons_attr_defs(array $o): array
+    {
+        $map = WPD_Settings::field_map();
+        $out = [];
+        foreach (self::BUTTONS_ATTRS as $attr => $key) {
+            $out[$attr] = $map[$key]['type'] === 'number'
+                ? ['type' => 'integer', 'default' => (int) $o[$key]]
+                : ['type' => 'string', 'default' => (string) $o[$key]];
+        }
+        return $out;
+    }
+
+    /** Значения настроек кнопок для холста: атрибут → значение (общие или свои для страницы). */
+    public static function buttons_settings_data(?array $o = null): array
+    {
+        $o   = $o ?? WPD_Settings::get();
+        $map = WPD_Settings::field_map();
+        $out = [];
+        foreach (self::BUTTONS_ATTRS as $attr => $key) {
+            $out[$attr] = $map[$key]['type'] === 'number' ? (int) $o[$key] : (string) $o[$key];
+        }
+        return $out;
+    }
+
+    /** Варианты выпадающих списков и границы чисел для боковой панели блока кнопок. */
+    public static function buttons_options_data(): array
+    {
+        $map = WPD_Settings::field_map();
+        $out = [];
+        foreach (self::BUTTONS_ATTRS as $attr => $key) {
+            $f = $map[$key];
+            if ($f['type'] === 'select') {
+                $out[$attr] = ['label' => $f['label'], 'options' => $f['options']];
+            } elseif ($f['type'] === 'number') {
+                $out[$attr] = ['label' => $f['label'], 'max' => (int) $f['max'], 'help' => (string) ($f['desc'] ?? '')];
+            } else {
+                $out[$attr] = ['label' => $f['label'], 'help' => (string) ($f['desc'] ?? '')];
+            }
+        }
+        return $out;
+    }
+
+    /** Подставляет атрибуты блока кнопок в настройки (значения проверяет рендерер). */
+    public static function with_buttons_attrs(array $o, array $a): array
+    {
+        $map = WPD_Settings::field_map();
+        foreach (self::BUTTONS_ATTRS as $attr => $key) {
+            if (!array_key_exists($attr, $a) || !is_scalar($a[$attr])) {
+                continue;
+            }
+            if ($map[$key]['type'] === 'number') {
+                if (is_numeric($a[$attr]) && (int) $a[$attr] > 0) {
+                    $o[$key] = min((int) $map[$key]['max'], (int) $a[$attr]);
+                }
+            } elseif ($map[$key]['type'] === 'text') {
+                $o[$key] = sanitize_text_field((string) $a[$attr]);
+            } else {
+                $o[$key] = (string) $a[$attr];
+            }
         }
         return $o;
     }
@@ -582,7 +671,7 @@ class WPD_Blocks
     public static function render_buttons($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = self::with_icon_size(WPD_Settings::get(), $a, 'iconSize', 'buttons_icon_size');
+        $o = self::with_buttons_attrs(self::with_icon_size(WPD_Settings::get(), $a, 'iconSize', 'buttons_icon_size'), $a);
         return self::wrap(WPD_Renderer::buttons_html($o, self::items($a, (array) $o['buttons'])), $a, 'buttons', $o);
     }
 

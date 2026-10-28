@@ -715,7 +715,7 @@
     display: grid;
     /* На узких экранах — не меньше двух колонок */
     grid-template-columns: repeat(auto-fit, minmax(min(140px, calc(50% - 6px)), 1fr));
-    gap: 12px;
+    gap: var(--wpd-qb-gap, 12px);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -728,11 +728,11 @@
     justify-content: center;
     gap: 10px;
     height: 100%;
-    min-height: 116px;
+    min-height: var(--wpd-qb-h, 116px);
     padding: 18px 12px;
-    border-radius: var(--wpd-radius);
-    background: #fff;
-    color: var(--wpd-text);
+    border-radius: var(--wpd-qb-radius, var(--wpd-radius));
+    background: var(--wpd-qb-bg, #fff);
+    color: var(--wpd-qb-text, var(--wpd-text));
     font-weight: 700;
     line-height: 1.25;
     text-align: center;
@@ -743,7 +743,7 @@
 
 .wpd-page a.wpd-qbtn:hover,
 .wpd-page a.wpd-qbtn:focus-visible {
-    color: var(--wpd-primary);
+    color: var(--wpd-qb-hover, var(--wpd-primary));
     transform: translateY(-3px);
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
 }
@@ -752,11 +752,11 @@
     width: var(--wpd-icon-qbtn, 44px);
     height: var(--wpd-icon-qbtn, 44px);
     font-size: var(--wpd-icon-qbtn, 44px);
-    color: var(--wpd-primary);
+    color: var(--wpd-qb-icon, var(--wpd-primary));
 }
 
 .wpd-page .wpd-qbtn--small .wpd-qbtn__text {
-    font-size: 13px;
+    font-size: var(--wpd-qb-fs-small, 13px);
 }
 
 /* Карточки */
@@ -2075,11 +2075,11 @@
     overflow: hidden;
     align-items: flex-start;
     justify-content: space-between;
-    min-height: clamp(116px, 12vw, 160px);
+    min-height: var(--wpd-qb-h, clamp(116px, 12vw, 160px));
     padding: clamp(14px, 1.5vw, 22px);
-    border-radius: calc(var(--wpd-radius) * 0.5);
-    background: linear-gradient(135deg, #fff 0%, #fdfcff 70%, #e8e2ff 100%);
-    color: #7f82a0;
+    border-radius: var(--wpd-qb-radius, calc(var(--wpd-radius) * 0.5));
+    background: var(--wpd-qb-bg, linear-gradient(135deg, #fff 0%, #fdfcff 70%, #e8e2ff 100%));
+    color: var(--wpd-qb-text, #7f82a0);
     font-weight: 500;
     font-size: clamp(15px, 1.3vw, 19px);
     text-align: left;
@@ -2103,7 +2103,7 @@
 
 .wpd-page.wpd-style-soft a.wpd-qbtn:hover,
 .wpd-page.wpd-style-soft a.wpd-qbtn:focus-visible {
-    color: var(--wpd-primary);
+    color: var(--wpd-qb-hover, var(--wpd-primary));
     box-shadow: 0 14px 36px rgba(114, 121, 201, 0.14);
 }
 
@@ -2339,5 +2339,250 @@
 @media (min-width: 783px) {
     .wpd-page > .wpd-b--hide-desktop {
         display: none !important;
+    }
+}
+
+
+/* ---------------------------------------------------------------
+ * 2.6.0: кнопки-ссылки — заголовок, раскладка, вид и цвета блока; подпись, метка, картинка и цвета кнопки.
+ * В конце файла, чтобы модификаторы перекрывали стиль «Мягкий градиент».
+ * ------------------------------------------------------------- */
+.wpd-page .wpd-qbtn {
+    position: relative;
+}
+
+.wpd-page .wpd-qbtn__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.wpd-page .wpd-qbtn__desc {
+    font-size: 0.82em;
+    font-weight: 400;
+    line-height: 1.3;
+    opacity: 0.8;
+}
+
+.wpd-page .wpd-qbtn__img {
+    flex: none;
+    width: var(--wpd-icon-qbtn, 44px);
+    height: var(--wpd-icon-qbtn, 44px);
+    object-fit: contain;
+}
+
+.wpd-page.wpd-style-soft .wpd-qbtn__img {
+    width: var(--wpd-icon-qbtn, 32px);
+    height: var(--wpd-icon-qbtn, 32px);
+}
+
+.wpd-page .wpd-qbtn__badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    max-width: calc(100% - 16px);
+    overflow: hidden;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--wpd-accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.5;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Метка занимает место стрелки «Мягкого градиента» */
+.wpd-page.wpd-style-soft a.wpd-qbtn--badge::after {
+    display: none;
+}
+
+.wpd-page a.wpd-qbtn:hover .wpd-qbtn__icon.dashicons,
+.wpd-page a.wpd-qbtn:focus-visible .wpd-qbtn__icon.dashicons {
+    color: var(--wpd-qb-hover, var(--wpd-qb-icon, var(--wpd-primary)));
+}
+
+.wpd-page .wpd-buttons--fs .wpd-qbtn {
+    font-size: var(--wpd-qb-fs);
+}
+
+/* Иконка слева */
+.wpd-page .wpd-buttons--row .wpd-buttons__grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+}
+
+.wpd-page .wpd-buttons--row .wpd-qbtn,
+.wpd-page .wpd-buttons--compact .wpd-qbtn {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    text-align: left;
+}
+
+.wpd-page .wpd-buttons--row .wpd-qbtn {
+    min-height: var(--wpd-qb-h, 72px);
+    padding: 14px 18px;
+}
+
+.wpd-page .wpd-buttons--row .wpd-qbtn__badge,
+.wpd-page .wpd-buttons--compact .wpd-qbtn__badge {
+    position: static;
+    flex: none;
+    margin-left: auto;
+}
+
+/* Компактные: плитки по ширине текста, в строку с переносом */
+.wpd-page .wpd-buttons--compact .wpd-buttons__grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--wpd-qb-gap, 10px);
+}
+
+.wpd-page .wpd-buttons--compact .wpd-qbtn {
+    gap: 8px;
+    height: auto;
+    min-height: var(--wpd-qb-h, 0px);
+    padding: 10px 16px;
+}
+
+.wpd-page .wpd-buttons--compact .wpd-qbtn__icon.dashicons,
+.wpd-page .wpd-buttons--compact .wpd-qbtn__img {
+    width: var(--wpd-icon-qbtn, 22px);
+    height: var(--wpd-icon-qbtn, 22px);
+    font-size: var(--wpd-icon-qbtn, 22px);
+}
+
+.wpd-page.wpd-style-soft .wpd-buttons--row a.wpd-qbtn::after,
+.wpd-page.wpd-style-soft .wpd-buttons--compact a.wpd-qbtn::after {
+    display: none;
+}
+
+/* Число колонок: после «Иконки слева», чтобы заданное число колонок действовало и там */
+.wpd-page .wpd-buttons--cols .wpd-buttons__grid {
+    grid-template-columns: repeat(var(--wpd-qb-cols), minmax(0, 1fr));
+}
+
+@media (max-width: 600px) {
+    .wpd-page .wpd-buttons--cols .wpd-buttons__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .wpd-page .wpd-buttons--cols-m .wpd-buttons__grid {
+        grid-template-columns: repeat(var(--wpd-qb-cols-m), minmax(0, 1fr));
+    }
+}
+
+/* Выравнивание текста */
+.wpd-page .wpd-buttons--align-left .wpd-qbtn {
+    align-items: flex-start;
+    text-align: left;
+}
+
+.wpd-page .wpd-buttons--align-center .wpd-qbtn {
+    align-items: center;
+    text-align: center;
+}
+
+.wpd-page .wpd-buttons--row.wpd-buttons--align-left .wpd-qbtn,
+.wpd-page .wpd-buttons--row.wpd-buttons--align-center .wpd-qbtn,
+.wpd-page .wpd-buttons--compact.wpd-buttons--align-left .wpd-qbtn,
+.wpd-page .wpd-buttons--compact.wpd-buttons--align-center .wpd-qbtn {
+    align-items: center;
+}
+
+.wpd-page .wpd-buttons--row.wpd-buttons--align-center .wpd-qbtn {
+    justify-content: center;
+}
+
+.wpd-page .wpd-buttons--compact.wpd-buttons--align-center .wpd-buttons__grid {
+    justify-content: center;
+}
+
+/* Заливка: контурные, залитые основным цветом, светлый оттенок */
+.wpd-page .wpd-buttons--outline .wpd-qbtn {
+    border: 2px solid var(--wpd-qb-icon, var(--wpd-primary));
+    background: var(--wpd-qb-bg, transparent);
+    box-shadow: none;
+}
+
+.wpd-page .wpd-buttons--outline a.wpd-qbtn:hover,
+.wpd-page .wpd-buttons--outline a.wpd-qbtn:focus-visible {
+    border-color: var(--wpd-qb-hover, var(--wpd-primary));
+    box-shadow: none;
+}
+
+.wpd-page .wpd-buttons--solid .wpd-qbtn {
+    background: var(--wpd-qb-bg, var(--wpd-primary));
+    color: var(--wpd-qb-text, #fff);
+}
+
+.wpd-page .wpd-buttons--solid .wpd-qbtn__icon.dashicons {
+    color: var(--wpd-qb-icon, #fff);
+}
+
+.wpd-page .wpd-buttons--solid a.wpd-qbtn:hover,
+.wpd-page .wpd-buttons--solid a.wpd-qbtn:focus-visible {
+    color: var(--wpd-qb-hover, #fff);
+    filter: brightness(1.08);
+}
+
+.wpd-page .wpd-buttons--solid a.wpd-qbtn:hover .wpd-qbtn__icon.dashicons,
+.wpd-page .wpd-buttons--solid a.wpd-qbtn:focus-visible .wpd-qbtn__icon.dashicons {
+    color: var(--wpd-qb-hover, var(--wpd-qb-icon, #fff));
+}
+
+.wpd-page .wpd-buttons--tint .wpd-qbtn {
+    background: var(--wpd-qb-bg, #eef2ff);
+    background: var(--wpd-qb-bg, color-mix(in srgb, var(--wpd-primary) 10%, #fff));
+    box-shadow: none;
+}
+
+/* Тёмный фон блока или кнопки — белый текст и иконки (если цвет не задан) */
+.wpd-page .wpd-buttons--dark .wpd-qbtn {
+    color: var(--wpd-qb-text, #fff);
+}
+
+.wpd-page .wpd-buttons--dark .wpd-qbtn__icon.dashicons {
+    color: var(--wpd-qb-icon, #fff);
+}
+
+.wpd-page .wpd-buttons .wpd-qbtn--dark {
+    color: #fff;
+}
+
+.wpd-page .wpd-buttons .wpd-qbtn--dark:not(.has-icon-color) .wpd-qbtn__icon.dashicons {
+    color: #fff;
+}
+
+.wpd-page .wpd-buttons .wpd-qbtn--light {
+    color: var(--wpd-text);
+}
+
+.wpd-page .wpd-buttons--dark .wpd-qbtn--light:not(.has-icon-color) .wpd-qbtn__icon.dashicons {
+    color: var(--wpd-primary);
+}
+
+.wpd-page .wpd-buttons--dark a.wpd-qbtn:hover,
+.wpd-page .wpd-buttons--dark a.wpd-qbtn:focus-visible,
+.wpd-page .wpd-buttons a.wpd-qbtn--dark:hover,
+.wpd-page .wpd-buttons a.wpd-qbtn--dark:focus-visible {
+    color: var(--wpd-qb-hover, #fff);
+}
+
+.wpd-page .wpd-buttons a.wpd-qbtn--dark:hover .wpd-qbtn__icon.dashicons,
+.wpd-page .wpd-buttons a.wpd-qbtn--dark:focus-visible .wpd-qbtn__icon.dashicons {
+    color: var(--wpd-qb-hover, var(--wpd-qb-icon, #fff));
+}
+
+.wpd-page .wpd-buttons a.wpd-qbtn--dark:not(.has-icon-color):hover .wpd-qbtn__icon.dashicons {
+    color: var(--wpd-qb-hover, #fff);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wpd-page .wpd-buttons--solid a.wpd-qbtn:hover {
+        filter: none;
     }
 }

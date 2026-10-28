@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       WP Olympiad Design
  * Plugin URI:        https://github.com/pavelb-coder/wp-design
- * Description:       Оформление страниц в стиле сайта олимпиады: главный блок, таймер до начала и окончания с кнопкой, статистика, документы, FAQ, слайдер, кнопки-ссылки, карточки, объявление, новости и контакты с названием организации. Блоки редактора, панель страницы со своим оформлением, настраиваемые размеры иконок, общие настройки с вкладками.
- * Version:           2.5.0
+ * Description:       Оформление страниц в стиле сайта олимпиады: главный блок, таймер до начала и окончания с кнопкой, статистика, документы, FAQ, слайдер, кнопки-ссылки, карточки, объявление, новости и контакты с названием организации. Блоки редактора, панель страницы со своим оформлением, настраиваемые размеры иконок и вид кнопок-ссылок, общие настройки с вкладками.
+ * Version:           2.6.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            pavelb-coder
@@ -15,9 +15,13 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('WPD_VERSION', '2.5.0');
+define('WPD_VERSION', '2.6.0');
 define('WPD_DIR', plugin_dir_path(__FILE__));
 define('WPD_URL', plugin_dir_url(__FILE__));
+
+// 2.6.0: первым — буфер для запросов REST, чтобы посторонний вывод не ломал сохранение в блочном редакторе
+require_once WPD_DIR . 'includes/class-wpd-rest-guard.php';
+WPD_Rest_Guard::init();
 
 require_once WPD_DIR . 'includes/class-wpd-settings.php';
 require_once WPD_DIR . 'includes/class-wpd-renderer.php';
