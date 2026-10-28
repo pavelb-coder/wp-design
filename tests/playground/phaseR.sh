@@ -31,7 +31,7 @@ t "helper: pages created" "$( [ -n "$ID" ] && [ -n "$SRC" ] && echo 1 || echo 0)
 get "/wp-admin/post.php?post=$ID&action=edit" r_edit.html
 t "edit: sidebar script loaded" "$(has r_edit.html 'wp-olympiad-design/assets/js/wpd-sidebar.js')"
 t "edit: admin script loaded" "$(has r_edit.html 'wp-olympiad-design/assets/js/wpd-admin.js')"
-t "edit: nine override groups" "$( [ "$(grep -o 'data-wpd-ovg="' r_edit.html | wc -l)" = "9" ] && echo 1 || echo 0)"
+t "edit: twelve override groups" "$( [ "$(grep -o 'data-wpd-ovg="' r_edit.html | wc -l)" = "12" ] && echo 1 || echo 0)"
 t "edit: block style toggles (12)" "$( [ "$(grep -o 'data-wpd-bs-toggle' r_edit.html | wc -l)" = "12" ] && echo 1 || echo 0)"
 t "edit: own CSS and tools" "$(all1 "$(has r_edit.html 'id="wpd_pe_page_css"')" "$(has r_edit.html 'data-wpd-tools')")"
 t "edit: copy source offered" "$(has r_edit.html "<option value=\"$SRC\">")"

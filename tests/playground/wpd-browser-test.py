@@ -299,7 +299,7 @@ with sync_playwright() as p:
     last.locator(".wpd-stat__label textarea").fill("карточка из браузера")
     time.sleep(0.4)
     items = attrs(page, stats_id).get("items", [])
-    check("stats: new card values", items[-1] == {"num": "999+", "label": "карточка из браузера"}, items[-1] if items else None)
+    check("stats: new card values", items and items[-1].get("num") == "999+" and items[-1].get("label") == "карточка из браузера", items[-1] if items else None)
     # Переместить последнюю карточку вверх
     last.locator(".wpd-ed-tools button").first.dispatch_event("click")  # тулбар блока может перекрыть кнопку
     time.sleep(0.4)
@@ -317,11 +317,11 @@ with sync_playwright() as p:
     cv.locator(".wpd-page--docs .wpd-ed-add button").click()
     time.sleep(0.5)
     doc = cv.locator(".wpd-page--docs .wpd-ed-doc").last
-    doc.locator(".wpd-doc__name textarea").fill("Регламент финала")
-    doc.locator("input.wpd-ed-urlinput").fill("https://example.com/final.pdf")
+    doc.locator("textarea[aria-label='Название документа']").fill("Регламент финала")  # 2.7.0: ниже ещё подпись документа
+    doc.locator("input[type=url].wpd-ed-urlinput").fill("https://example.com/final.pdf")  # 2.7.0: в «Ещё» есть текстовые поля
     time.sleep(0.4)
     ditems = attrs(page, docs_id).get("items", [])
-    check("docs: document added", ditems and ditems[-1] == {"title": "Регламент финала", "url": "https://example.com/final.pdf"}, ditems[-1] if ditems else None)
+    check("docs: document added", ditems and ditems[-1].get("title") == "Регламент финала" and ditems[-1].get("url") == "https://example.com/final.pdf", ditems[-1] if ditems else None)
     check("docs: PDF icon in editor", doc.locator(".wpd-doc__icon").inner_text().strip() == "PDF")
 
     # FAQ: добавить вопрос, ответ с форматированием в RichText

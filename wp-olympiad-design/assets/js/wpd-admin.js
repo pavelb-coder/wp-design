@@ -38,7 +38,15 @@
         if (values) {
             $row.find('[data-wpd-field]').each(function () {
                 var key = this.getAttribute('data-wpd-field');
-                if (values[key] !== undefined) {
+                if (values[key] === undefined || values[key] === null) {
+                    return;
+                }
+                // 2.7.0: флажки и даты строк (скрыть, показывать с/до)
+                if (this.type === 'checkbox') {
+                    this.checked = !!parseInt(values[key], 10);
+                } else if (this.type === 'datetime-local') {
+                    this.value = String(values[key]).replace(' ', 'T');
+                } else {
                     this.value = values[key];
                 }
             });
@@ -117,7 +125,7 @@
             e.preventDefault();
             var $row = $(this).closest('.wpd-pe__row');
             var filled = $row.find('input, textarea').filter(function () {
-                return this.value.trim() !== '';
+                return this.type !== 'checkbox' && this.value.trim() !== '';
             }).length;
             if (filled && !window.confirm(t.remove || 'Удалить строку?')) {
                 return;
@@ -138,7 +146,7 @@
             }
             var $list = $box.find('[data-wpd-list="' + list + '"]');
             var filled = $list.find('input, textarea').filter(function () {
-                return this.value.trim() !== '';
+                return this.type !== 'checkbox' && this.value.trim() !== '';
             }).length;
             if (filled && !window.confirm(t.replace || 'Заменить текущие строки?')) {
                 return;

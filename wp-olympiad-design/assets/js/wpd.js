@@ -137,10 +137,28 @@
         }
     }
 
+    /* 2.7.0: «Открыт только один ответ» — открытие вопроса закрывает остальные (кроме печати, где открыты все) */
+    var printing = false;
+    function initFaqSingle(section) {
+        section.addEventListener('toggle', function (e) {
+            var item = e.target;
+            if (printing || !item.classList || !item.classList.contains('wpd-faq__item') || !item.open) {
+                return;
+            }
+            var items = section.querySelectorAll('.wpd-faq__item');
+            for (var i = 0; i < items.length; i++) {
+                if (items[i] !== item && items[i].open) {
+                    items[i].open = false;
+                }
+            }
+        }, true);
+    }
+
     /* Печать: открываем все вопросы FAQ, после печати возвращаем как было */
     function initPrintFaq() {
         var opened = [];
         window.addEventListener('beforeprint', function () {
+            printing = true;
             opened = [];
             var items = document.querySelectorAll('.wpd-page .wpd-faq__item');
             for (var i = 0; i < items.length; i++) {
@@ -155,6 +173,7 @@
                 opened[i].open = false;
             }
             opened = [];
+            setTimeout(function () { printing = false; }, 0);
         });
     }
 
@@ -331,6 +350,11 @@
         var faqs = document.querySelectorAll('.wpd-faq[data-wpd-search]');
         for (var j = 0; j < faqs.length; j++) {
             initFaqSearch(faqs[j]);
+        }
+
+        var singles = document.querySelectorAll('.wpd-page .wpd-faq[data-wpd-single]');
+        for (var q = 0; q < singles.length; q++) {
+            initFaqSingle(singles[q]);
         }
 
         initStatCounters(document.querySelectorAll('.wpd-stat__num[data-count]'));

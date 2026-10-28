@@ -109,18 +109,27 @@ class WPD_Settings
             'hero_image' => 'Изображение',
             'hero_look'  => 'Вид главного блока',
             'features' => 'Возможности',
+            'countdown_look' => 'Вид таймера',
             'stats'    => 'Статистика',
+            'stats_look' => 'Раскладка и вид',
             'docs'     => 'Документы',
+            'docs_look'  => 'Раскладка и вид',
             'faq'      => 'Частые вопросы',
+            'faq_look'   => 'Вид',
             'behavior' => 'Поведение',
             'slider'   => 'Слайдер',
+            'slider_look' => 'Вид',
             'buttons'  => 'Кнопки-ссылки',
             'buttons_layout' => 'Раскладка',
             'buttons_look'   => 'Вид и цвета',
             'cards'    => 'Карточки',
+            'cards_look' => 'Раскладка и вид',
             'notice'   => 'Объявление',
+            'notice_look' => 'Вид',
             'news'     => 'Новости',
+            'news_look'  => 'Раскладка и вид',
             'contacts' => 'Контакты',
+            'contacts_look' => 'Раскладка и вид',
         ];
     }
 
@@ -132,16 +141,16 @@ class WPD_Settings
         return [
             'design'   => ['title' => 'Оформление', 'sections' => ['colors', 'look', 'behavior', 'code']],
             'hero'     => ['title' => 'Главный блок', 'sections' => ['hero', 'hero_image', 'hero_look']],
-            'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features']],
-            'stats'    => ['title' => 'Статистика', 'sections' => ['stats']],
-            'docs'     => ['title' => 'Документы', 'sections' => ['docs']],
-            'faq'      => ['title' => 'Частые вопросы', 'sections' => ['faq']],
-            'slider'   => ['title' => 'Слайдер', 'sections' => ['slider']],
+            'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features', 'countdown_look']],
+            'stats'    => ['title' => 'Статистика', 'sections' => ['stats', 'stats_look']],
+            'docs'     => ['title' => 'Документы', 'sections' => ['docs', 'docs_look']],
+            'faq'      => ['title' => 'Частые вопросы', 'sections' => ['faq', 'faq_look']],
+            'slider'   => ['title' => 'Слайдер', 'sections' => ['slider', 'slider_look']],
             'buttons'  => ['title' => 'Кнопки-ссылки', 'sections' => ['buttons', 'buttons_layout', 'buttons_look']],
-            'cards'    => ['title' => 'Карточки', 'sections' => ['cards']],
-            'notice'   => ['title' => 'Объявление', 'sections' => ['notice']],
-            'news'     => ['title' => 'Новости', 'sections' => ['news']],
-            'contacts' => ['title' => 'Контакты', 'sections' => ['contacts']],
+            'cards'    => ['title' => 'Карточки', 'sections' => ['cards', 'cards_look']],
+            'notice'   => ['title' => 'Объявление', 'sections' => ['notice', 'notice_look']],
+            'news'     => ['title' => 'Новости', 'sections' => ['news', 'news_look']],
+            'contacts' => ['title' => 'Контакты', 'sections' => ['contacts', 'contacts_look']],
             'help'     => ['title' => 'Справка', 'sections' => []],
         ];
     }
@@ -171,6 +180,16 @@ class WPD_Settings
      * Описание всех полей. Это единственный источник правды для дефолтов, санитизации и формы.
      */
     public static function field_map(): array
+    {
+        static $map = null;
+        if ($map !== null) {
+            return $map;
+        }
+        $map = self::base_fields() + self::look_fields();
+        return $map;
+    }
+
+    private static function base_fields(): array
     {
         return [
             // Стиль оформления (2.3.0)
@@ -322,22 +341,67 @@ class WPD_Settings
                                     'desc' => 'Числа вида 300 или 300+ плавно растут при появлении в экране. Отключается для пользователей с настройкой «уменьшить движение».'],
 
             // Статистика
-            'stats' => ['label' => 'Карточки статистики', 'type' => 'textarea', 'section' => 'stats',
-                        'default' => "12–18|возраст участников\n300+|школьников в прошлом году\n20|регионов России\n2|этапа: онлайн и очный финал",
-                        'desc' => 'Каждая строка: число|подпись. Пустое поле — блок не выводится.'],
+            'stats' => ['label' => 'Карточки статистики', 'type' => 'repeater', 'section' => 'stats', 'max' => 12,
+                        'item' => 'Карточка', 'add' => 'Добавить карточку',
+                        'default' => [
+                            ['num' => '12–18', 'label' => 'возраст участников'],
+                            ['num' => '300+', 'label' => 'школьников в прошлом году'],
+                            ['num' => '20', 'label' => 'регионов России'],
+                            ['num' => '2', 'label' => 'этапа: онлайн и очный финал'],
+                        ],
+                        'fields' => [
+                            'num'    => ['label' => 'Число', 'type' => 'text'],
+                            'label'  => ['label' => 'Подпись', 'type' => 'text'],
+                            // 2.7.0
+                            'icon'   => ['label' => 'Иконка над числом', 'type' => 'icon_opt'],
+                            'color'  => ['label' => 'Цвет карточки', 'type' => 'color_opt'],
+                            'hidden' => ['label' => 'Скрыть карточку', 'type' => 'checkbox'],
+                            'from'   => ['label' => 'Показывать с', 'type' => 'datetime'],
+                            'to'     => ['label' => 'Показывать до', 'type' => 'datetime'],
+                        ],
+                        'desc' => 'Число вида 300, 300+ или 50% анимируется. Тёмный цвет карточки делает текст белым. '
+                            . 'Даты показа — в часовом поясе таймера; пустая дата — без ограничения. Нет карточек — блок не выводится.'],
 
             // Документы
             'docs_title' => ['label' => 'Заголовок блока документов', 'type' => 'text', 'section' => 'docs', 'default' => 'Документы'],
-            'docs'       => ['label' => 'Документы', 'type' => 'textarea', 'section' => 'docs', 'default' => '',
-                             'desc' => 'Каждая строка: название|ссылка (PDF или страница). Пустое поле — блок не выводится.'],
+            'docs'       => ['label' => 'Документы', 'type' => 'repeater', 'section' => 'docs', 'default' => [], 'max' => 20,
+                             'item' => 'Документ', 'add' => 'Добавить документ',
+                             'fields' => [
+                                 'title'    => ['label' => 'Название', 'type' => 'text'],
+                                 'url'      => ['label' => 'Ссылка (PDF или страница)', 'type' => 'url'],
+                                 // 2.7.0
+                                 'desc'     => ['label' => 'Подпись под названием', 'type' => 'text'],
+                                 'badge'    => ['label' => 'Метка (например, «Новое»)', 'type' => 'text'],
+                                 'type'     => ['label' => 'Текст значка (пусто — PDF или WEB)', 'type' => 'text'],
+                                 'color'    => ['label' => 'Цвет значка', 'type' => 'color_opt'],
+                                 'new_tab'  => ['label' => 'Открывать в новой вкладке', 'type' => 'checkbox'],
+                                 'download' => ['label' => 'Ссылка на файл — скачивать', 'type' => 'checkbox'],
+                                 'hidden'   => ['label' => 'Скрыть документ', 'type' => 'checkbox'],
+                                 'from'     => ['label' => 'Показывать с', 'type' => 'datetime'],
+                                 'to'       => ['label' => 'Показывать до', 'type' => 'datetime'],
+                             ],
+                             'desc' => 'Документ без ссылки не выводится. Даты показа — в часовом поясе таймера. Нет документов — блок не выводится.'],
             'docs_icon_size' => ['label' => 'Размер значков документов, px', 'type' => 'number', 'section' => 'docs', 'default' => 0, 'min' => 0, 'max' => 96,
                                  'desc' => '0 — по умолчанию (44 px). Квадратный значок с подписью PDF или WEB, подпись меняется вместе с ним. От 24 до 96.'],
 
             // FAQ
             'faq_title' => ['label' => 'Заголовок блока FAQ', 'type' => 'text', 'section' => 'faq', 'default' => 'Часто задаваемые вопросы'],
-            'faq'       => ['label' => 'Вопросы и ответы', 'type' => 'textarea', 'section' => 'faq',
-                            'default' => "Как проходит олимпиада?\nВ два этапа: онлайн-отбор и очный финал. Лучшие участники отбора приглашаются на финал.\n\nУчастие бесплатное?\nДа, участие в отборочном этапе бесплатное.",
-                            'desc' => 'Первая строка блока — вопрос, остальные строки — ответ. Блоки разделяются пустой строкой. Разрешены теги a, strong, em, br.'],
+            'faq'       => ['label' => 'Вопросы и ответы', 'type' => 'repeater', 'section' => 'faq', 'max' => 40,
+                            'item' => 'Вопрос', 'add' => 'Добавить вопрос',
+                            'default' => [
+                                ['q' => 'Как проходит олимпиада?', 'a' => 'В два этапа: онлайн-отбор и очный финал. Лучшие участники отбора приглашаются на финал.'],
+                                ['q' => 'Участие бесплатное?', 'a' => 'Да, участие в отборочном этапе бесплатное.'],
+                            ],
+                            'fields' => [
+                                'q'      => ['label' => 'Вопрос', 'type' => 'text'],
+                                'a'      => ['label' => 'Ответ (теги a, strong, em, br)', 'type' => 'rich'],
+                                // 2.7.0
+                                'open'   => ['label' => 'Ответ открыт сразу', 'type' => 'checkbox'],
+                                'hidden' => ['label' => 'Скрыть вопрос', 'type' => 'checkbox'],
+                                'from'   => ['label' => 'Показывать с', 'type' => 'datetime'],
+                                'to'     => ['label' => 'Показывать до', 'type' => 'datetime'],
+                            ],
+                            'desc' => 'Вопрос без текста не выводится. Даты показа — в часовом поясе таймера. Нет вопросов — блок не выводится.'],
 
             // Поведение
             'hide_title' => ['label' => 'Скрывать заголовок темы', 'type' => 'checkbox', 'section' => 'behavior', 'default' => 1,
@@ -358,8 +422,14 @@ class WPD_Settings
                              'text'    => ['label' => 'Текст', 'type' => 'textarea'],
                              'url'     => ['label' => 'Ссылка', 'type' => 'url'],
                              'new_tab' => ['label' => 'Открывать в новой вкладке', 'type' => 'checkbox'],
+                             // 2.7.0
+                             'button'  => ['label' => 'Текст кнопки (при ссылке)', 'type' => 'text'],
+                             'badge'   => ['label' => 'Метка над заголовком', 'type' => 'text'],
+                             'hidden'  => ['label' => 'Скрыть слайд', 'type' => 'checkbox'],
+                             'from'    => ['label' => 'Показывать с', 'type' => 'datetime'],
+                             'to'      => ['label' => 'Показывать до', 'type' => 'datetime'],
                          ],
-                         'desc' => 'До 10 слайдов. Слайд без изображения, заголовка, текста и ссылки не выводится. Нет слайдов — блок не выводится.'],
+                         'desc' => 'До 10 слайдов. Даты показа — в часовом поясе таймера. Слайд без изображения, заголовка, текста и ссылки не выводится. Нет слайдов — блок не выводится.'],
             'slider_height'          => ['label' => 'Высота слайдера, px', 'type' => 'number', 'section' => 'slider', 'default' => 420,
                                          'min' => 200, 'max' => 900],
             'slider_autoplay'        => ['label' => 'Автопрокрутка', 'type' => 'checkbox', 'section' => 'slider', 'default' => 1,
@@ -450,8 +520,15 @@ class WPD_Settings
                                   'color'   => ['label' => 'Цвет', 'type' => 'color_opt'],
                                   'url'     => ['label' => 'Ссылка', 'type' => 'url'],
                                   'new_tab' => ['label' => 'Открывать в новой вкладке', 'type' => 'checkbox'],
+                                  // 2.7.0
+                                  'icon'    => ['label' => 'Иконка у заголовка', 'type' => 'icon_opt'],
+                                  'badge'   => ['label' => 'Метка в углу', 'type' => 'text'],
+                                  'more'    => ['label' => 'Текст ссылки (пусто — как в блоке)', 'type' => 'text'],
+                                  'hidden'  => ['label' => 'Скрыть карточку', 'type' => 'checkbox'],
+                                  'from'    => ['label' => 'Показывать с', 'type' => 'datetime'],
+                                  'to'      => ['label' => 'Показывать до', 'type' => 'datetime'],
                               ],
-                              'desc' => 'Цветные плитки-разделы. Пустой цвет — цвета палитры по очереди (основной, акцентный, тёмный).'],
+                              'desc' => 'Даты показа — в часовом поясе таймера. Цветные плитки-разделы. Пустой цвет — цвета палитры по очереди (основной, акцентный, тёмный).'],
 
             // Объявление
             'notice_layout'    => ['label' => 'Вид', 'type' => 'select', 'section' => 'notice', 'default' => 'image_text',
@@ -501,6 +578,148 @@ class WPD_Settings
             'contacts_icon_size' => ['label' => 'Размер иконок, px', 'type' => 'number', 'section' => 'contacts', 'default' => 0, 'min' => 0, 'max' => 64,
                                      'desc' => '0 — по умолчанию (24 px). Иконки адреса, телефона, e-mail и организации. От 12 до 64.'],
         ];
+    }
+
+    /**
+     * Блоки с общими параметрами «Раскладка и вид» (2.7.0) и набор этих параметров у каждого.
+     * Поле настроек — «<блок>_<параметр>», секция — «<блок>_look».
+     */
+    const LOOK_BLOCKS = [
+        'stats'     => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
+        'docs'      => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
+        'faq'       => ['gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
+        'cards'     => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
+        'news'      => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
+        'notice'    => ['align', 'variant', 'radius', 'text_size', 'accent', 'text_color'],
+        'slider'    => ['align', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
+        'countdown' => ['align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
+        'contacts'  => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
+    ];
+
+    /** Скругления «Раскладки и вида», px. */
+    const LOOK_RADIUS = ['none' => 0, 'small' => 6, 'medium' => 12, 'large' => 20];
+
+    /**
+     * Поля «Раскладка и вид» (2.7.0): общие параметры из LOOK_BLOCKS и свои параметры блоков.
+     */
+    private static function look_fields(): array
+    {
+        $item = [
+            'stats' => 'карточек', 'docs' => 'документов', 'faq' => 'вопросов', 'cards' => 'карточек', 'news' => 'новостей',
+            'notice' => 'объявления', 'slider' => 'подписи слайда', 'countdown' => 'таймера', 'contacts' => 'контактов',
+        ];
+        $out = [];
+        foreach (self::LOOK_BLOCKS as $slug => $keys) {
+            $section = $slug . '_look';
+            $what    = $item[$slug];
+            foreach ($keys as $k) {
+                switch ($k) {
+                    case 'columns':
+                        $max  = $slug === 'contacts' ? 4 : 6;
+                        $opts = ['' => 'Автоматически'];
+                        for ($n = 1; $n <= $max; $n++) {
+                            $opts[(string) $n] = (string) $n;
+                        }
+                        $f = ['label' => 'Колонок на компьютере', 'type' => 'select', 'default' => '', 'options' => $opts,
+                              'desc' => 'Автоматически — сколько поместится. На планшете — не больше двух.'
+                                  . ($slug === 'news' ? ' В карусели — сколько новостей видно сразу.' : '')
+                                  . ($slug === 'contacts' ? ' Колонки строк контактов.' : '')];
+                        break;
+                    case 'columns_mobile':
+                        $f = ['label' => 'Колонок на телефоне', 'type' => 'select', 'default' => '',
+                              'options' => ['' => 'Автоматически (1)', '1' => '1', '2' => '2', '3' => '3'], 'desc' => 'Экран до 600 px.'];
+                        break;
+                    case 'gap':
+                        $f = ['label' => 'Отступ между элементами, px', 'type' => 'number', 'default' => 0, 'min' => 0, 'max' => 48,
+                              'desc' => '0 — по умолчанию.'];
+                        break;
+                    case 'align':
+                        $f = ['label' => 'Выравнивание текста', 'type' => 'select', 'default' => '',
+                              'options' => ['' => 'Как в оформлении', 'left' => 'По левому краю', 'center' => 'По центру']];
+                        break;
+                    case 'variant':
+                        $f = ['label' => 'Вид ' . $what, 'type' => 'select', 'default' => '',
+                              'options' => ['' => 'Как в оформлении', 'card' => 'Белые карточки с тенью', 'outline' => 'Контурные',
+                                            'solid' => 'Залитые основным цветом', 'tint' => 'Светлый оттенок основного цвета', 'plain' => 'Без фона и рамки']];
+                        break;
+                    case 'radius':
+                        $f = ['label' => 'Скругление углов', 'type' => 'select', 'default' => '',
+                              'options' => ['' => 'Как в оформлении', 'none' => 'Без скругления', 'small' => 'Небольшое (6 px)',
+                                            'medium' => 'Среднее (12 px)', 'large' => 'Большое (20 px)']];
+                        break;
+                    case 'text_size':
+                        $f = ['label' => 'Размер текста, px', 'type' => 'number', 'default' => 0, 'min' => 0, 'max' => 28,
+                              'desc' => '0 — по умолчанию. От 11 до 28; заголовки внутри элементов меняются пропорционально.'];
+                        break;
+                    case 'bg':
+                        $f = ['label' => $slug === 'slider' ? 'Фон подписи слайда' : 'Фон ' . $what, 'type' => 'color_opt', 'default' => '',
+                              'desc' => $slug === 'slider'
+                                  ? 'У слайдов без картинки — фон всего слайда. Пусто — по виду.'
+                                  : 'Пусто — по виду. Тёмный фон делает текст белым.'];
+                        break;
+                    case 'accent':
+                        $f = ['label' => 'Цвет акцентов блока', 'type' => 'color_opt', 'default' => '',
+                              'desc' => $slug === 'slider'
+                                  ? 'Стрелки, точки и кнопки. Пусто — цвета оформления.'
+                                  : 'Заменяет основной и акцентный цвета внутри блока: числа, значки, рамки, ссылки. Пусто — цвета оформления.'];
+                        break;
+                    default: // text_color
+                        $f = ['label' => $slug === 'slider' ? 'Цвет текста подписи' : 'Цвет текста', 'type' => 'color_opt', 'default' => ''];
+                }
+                $f['section'] = $section;
+                $out[$slug . '_' . $k] = $f;
+            }
+        }
+
+        // Свои параметры блоков
+        return $out + [
+            'countdown_value_size' => ['label' => 'Размер цифр таймера, px', 'type' => 'number', 'section' => 'countdown_look', 'default' => 0, 'min' => 0, 'max' => 64,
+                                       'desc' => '0 — по умолчанию (22 px). От 14 до 64.'],
+            'stats_title'          => ['label' => 'Заголовок блока', 'type' => 'text', 'section' => 'stats', 'default' => '',
+                                       'desc' => 'Пусто — без заголовка.'],
+            'stats_num_size'       => ['label' => 'Размер чисел, px', 'type' => 'number', 'section' => 'stats_look', 'default' => 0, 'min' => 0, 'max' => 96,
+                                       'desc' => '0 — по умолчанию (40 px). От 20 до 96.'],
+            'docs_new_tab'         => ['label' => 'Открывать все документы в новой вкладке', 'type' => 'checkbox', 'section' => 'docs', 'default' => 0],
+            'docs_show_type'       => ['label' => 'Значок с подписью PDF или WEB', 'type' => 'checkbox', 'section' => 'docs_look', 'default' => 1,
+                                       'desc' => 'Снимите, чтобы выводить только названия.'],
+            'faq_open_first'       => ['label' => 'Первый ответ открыт сразу', 'type' => 'checkbox', 'section' => 'faq', 'default' => 0],
+            'faq_single'           => ['label' => 'Открыт только один ответ', 'type' => 'checkbox', 'section' => 'faq', 'default' => 0,
+                                       'desc' => 'Открытие вопроса закрывает остальные.'],
+            'faq_numbered'         => ['label' => 'Нумерация вопросов', 'type' => 'checkbox', 'section' => 'faq_look', 'default' => 0],
+            'slider_interval'      => ['label' => 'Интервал автопрокрутки, секунд', 'type' => 'number', 'section' => 'slider', 'default' => 6, 'min' => 2, 'max' => 30],
+            'slider_caption_pos'   => ['label' => 'Положение подписи', 'type' => 'select', 'section' => 'slider_look', 'default' => 'bottom',
+                                       'options' => ['bottom' => 'Внизу', 'center' => 'По центру', 'top' => 'Вверху']],
+            'cards_more_text'      => ['label' => 'Текст ссылки в карточках', 'type' => 'text', 'section' => 'cards', 'default' => '',
+                                       'desc' => 'Например «Подробнее». Пусто — стрелка. Выводится у карточек со ссылкой.'],
+            'cards_image_height'   => ['label' => 'Высота изображений, px', 'type' => 'number', 'section' => 'cards_look', 'default' => 0, 'min' => 0, 'max' => 480,
+                                       'desc' => '0 — по пропорциям 16:10.'],
+            'notice_button_text'   => ['label' => 'Текст кнопки', 'type' => 'text', 'section' => 'notice', 'default' => '',
+                                       'desc' => 'Кнопка под текстом объявления, ведёт по ссылке. Пусто — без кнопки.'],
+            'notice_from'          => ['label' => 'Показывать с', 'type' => 'datetime', 'section' => 'notice', 'default' => '',
+                                       'desc' => 'В часовом поясе таймера. Пусто — без ограничения.'],
+            'notice_to'            => ['label' => 'Показывать до', 'type' => 'datetime', 'section' => 'notice', 'default' => '',
+                                       'desc' => 'После этой даты объявление не выводится.'],
+            'news_excerpt_words'   => ['label' => 'Длина анонса, слов', 'type' => 'number', 'section' => 'news', 'default' => 20, 'min' => 5, 'max' => 80,
+                                       'desc' => 'Для записей без своей цитаты.'],
+            'news_show_image'      => ['label' => 'Показывать изображения', 'type' => 'checkbox', 'section' => 'news_look', 'default' => 1],
+            'news_show_date'       => ['label' => 'Показывать дату', 'type' => 'checkbox', 'section' => 'news_look', 'default' => 1],
+            'news_show_excerpt'    => ['label' => 'Показывать анонс', 'type' => 'checkbox', 'section' => 'news_look', 'default' => 1],
+            'contacts_button_text' => ['label' => 'Текст кнопки', 'type' => 'text', 'section' => 'contacts', 'default' => 'Связаться',
+                                       'desc' => 'Пусто — без кнопки.'],
+            'contacts_show_icons'  => ['label' => 'Показывать иконки', 'type' => 'checkbox', 'section' => 'contacts_look', 'default' => 1],
+        ];
+    }
+
+    /** Поля блока на вкладке «Раскладка и вид» и свои параметры блока (2.7.0): ключи настроек. */
+    public static function look_keys(string $slug): array
+    {
+        $out = [];
+        foreach (self::field_map() as $key => $f) {
+            if ($f['section'] === $slug . '_look') {
+                $out[] = $key;
+            }
+        }
+        return $out;
     }
 
     /**
@@ -617,6 +836,9 @@ class WPD_Settings
     public static function sanitize_rows($rows, string $key): array
     {
         $field = self::field_map()[$key] ?? null;
+        if (is_string($rows) && in_array($key, self::LEGACY_TEXT, true)) {
+            $rows = self::legacy_rows($key, $rows);
+        }
         if (!$field || $field['type'] !== 'repeater' || !is_array($rows)) {
             return [];
         }
@@ -645,6 +867,13 @@ class WPD_Settings
                     case 'icon':
                         $clean[$sub] = isset(self::icons()[$raw]) ? $raw : (string) array_key_first(self::icons());
                         continue 2;
+                    case 'icon_opt':
+                        // 2.7.0: иконка необязательна — пусто, если не выбрана
+                        $clean[$sub] = isset(self::icons()[$raw]) ? $raw : '';
+                        continue 2;
+                    case 'rich':
+                        $clean[$sub] = trim(wp_kses($raw, self::allowed_html()));
+                        break;
                     case 'textarea':
                         $clean[$sub] = sanitize_textarea_field($raw);
                         break;
@@ -711,6 +940,12 @@ class WPD_Settings
         $out = [];
         foreach (self::field_map() as $key => $field) {
             $out[$key] = array_key_exists($key, $saved) ? $saved[$key] : $field['default'];
+        }
+        // 2.7.0: статистика, документы и FAQ до 2.7.0 хранились текстом — читаем как строки списка
+        foreach (self::LEGACY_TEXT as $key) {
+            if (is_string($out[$key])) {
+                $out[$key] = self::sanitize_rows($out[$key], $key);
+            }
         }
 
         self::$cache = $out;
@@ -1133,24 +1368,56 @@ class WPD_Settings
         return $items;
     }
 
-    /**
-     * Карточки статистики из текстового поля: [['num' => ..., 'label' => ...]].
-     */
-    public static function stats_items(string $text): array
+    /** Поля, которые до 2.7.0 были текстовыми (строки «число|подпись», «название|ссылка», блоки FAQ). */
+    const LEGACY_TEXT = ['stats', 'docs', 'faq'];
+
+    /** Строки списка из старого текстового формата. */
+    public static function legacy_rows(string $key, string $text): array
     {
-        return array_map(function ($p) {
-            return ['num' => $p['left'], 'label' => $p['right']];
-        }, self::parse_pairs($text));
+        switch ($key) {
+            case 'stats':
+                return array_map(function ($p) {
+                    return ['num' => $p['left'], 'label' => $p['right']];
+                }, self::parse_pairs($text));
+            case 'docs':
+                return array_map(function ($p) {
+                    return ['title' => $p['left'], 'url' => $p['right']];
+                }, self::parse_pairs($text));
+            case 'faq':
+                return self::parse_faq($text);
+        }
+        return [];
     }
 
     /**
-     * Документы из текстового поля: [['title' => ..., 'url' => ...]].
+     * Карточки статистики: [['num' => ..., 'label' => ..., ...]]. Строка — старый текстовый формат (только число и подпись),
+     * массив — строки списка (2.7.0) со всеми полями.
+     *
+     * @param string|array $value
      */
-    public static function docs_items(string $text): array
+    public static function stats_items($value): array
     {
-        return array_map(function ($p) {
-            return ['title' => $p['left'], 'url' => $p['right']];
-        }, self::parse_pairs($text));
+        return is_array($value) ? self::sanitize_rows($value, 'stats') : self::legacy_rows('stats', (string) $value);
+    }
+
+    /**
+     * Документы: [['title' => ..., 'url' => ..., ...]]. Строка — старый текстовый формат.
+     *
+     * @param string|array $value
+     */
+    public static function docs_items($value): array
+    {
+        return is_array($value) ? self::sanitize_rows($value, 'docs') : self::legacy_rows('docs', (string) $value);
+    }
+
+    /**
+     * Вопросы FAQ: [['q' => ..., 'a' => ..., ...]]. Строка — старый текстовый формат.
+     *
+     * @param string|array $value
+     */
+    public static function faq_items($value): array
+    {
+        return is_array($value) ? self::sanitize_rows($value, 'faq') : self::parse_faq((string) $value);
     }
 
     /**
@@ -1418,6 +1685,26 @@ class WPD_Settings
                     блоки на холсте обновятся после сохранения и перезагрузки редактора.</li>
             </ul>
 
+            <h2>Параметры остальных блоков (2.7.0)</h2>
+            <ul style="list-style:disc;margin-left:20px">
+                <li><strong>«Раскладка и вид»</strong> — у статистики, документов, частых вопросов, слайдера, карточек, объявления,
+                    новостей, контактов и таймера (разделы «Раскладка и вид» или «Вид» на их вкладках): колонки на компьютере
+                    и телефоне, отступ между элементами, выравнивание, вид элементов (белые карточки, контурные, залитые основным
+                    цветом, светлый оттенок, без фона и рамки), скругление, размер текста, фон, цвет акцентов и цвет текста.
+                    Тёмный фон делает текст белым. Пустые значения — как раньше.</li>
+                <li><strong>Свои параметры блоков:</strong> заголовок и размер чисел статистики; новая вкладка и значок PDF/WEB
+                    у документов; «первый ответ открыт», «открыт только один ответ» и нумерация в FAQ; интервал автопрокрутки
+                    и положение подписи слайдера; текст ссылки и высота изображений карточек; кнопка и даты показа объявления;
+                    длина анонса, изображения, дата и анонс новостей; текст кнопки и иконки контактов; размер цифр таймера.</li>
+                <li><strong>Для каждого элемента</strong> (поля в карточке элемента на вкладке; в панели «Блоки олимпиады» — под «Ещё» в строке): иконка и цвет карточки статистики;
+                    подпись, метка, текст и цвет значка, новая вкладка и скачивание у документа; «открыт сразу» у вопроса;
+                    метка и кнопка у слайда; иконка, метка и текст ссылки у карточки; у всех — «скрыть» и даты показа «с» и «до»
+                    в часовом поясе таймера. В панели страницы строки с такими настройками отмечены жёлтой полосой слева.</li>
+                <li>То же для одной страницы — группы панели «Блоки олимпиады», для блока «Олимпиада: …» — разделы
+                    «Параметры блока», «Раскладка и вид» и «Цвета» его боковой панели и поля под элементом на холсте.
+                    Значение блока важнее значения страницы, значение страницы — общего; числа 0 — как в настройках.</li>
+            </ul>
+
             <h2>«Ответ не является допустимым ответом JSON»</h2>
             <p>Так блочный редактор сообщает, что в ответ на сохранение попал посторонний текст — обычно предупреждение PHP
                 темы или другого плагина при включённом показе ошибок, либо пробелы или BOM в начале PHP-файла.
@@ -1569,8 +1856,20 @@ class WPD_Settings
                         esc_attr($name), checked($value, '1', false), $label);
                     break;
                 case 'textarea':
-                    $html .= sprintf('<label class="wpd-rep__f wpd-rep__f--wide" for="%1$s"><span>%2$s</span><textarea id="%1$s" name="%3$s" rows="2" class="large-text">%4$s</textarea></label>',
-                        esc_attr($id), $label, esc_attr($name), esc_textarea($value));
+                case 'rich':
+                    $html .= sprintf('<label class="wpd-rep__f wpd-rep__f--wide" for="%1$s"><span>%2$s</span><textarea id="%1$s" name="%3$s" rows="%5$d" class="large-text">%4$s</textarea></label>',
+                        esc_attr($id), $label, esc_attr($name), esc_textarea($value), $def['type'] === 'rich' ? 3 : 2);
+                    break;
+                case 'icon_opt':
+                    $current = isset(self::icons()[$value]) ? $value : '';
+                    $opts = '<option value="">— без иконки —</option>';
+                    foreach (self::icons() as $icon => $icon_label) {
+                        $opts .= sprintf('<option value="%s"%s>%s</option>', esc_attr($icon), selected($current, $icon, false), esc_html($icon_label));
+                    }
+                    $html .= sprintf('<label class="wpd-rep__f" for="%1$s"><span>%2$s</span><span class="wpd-icon-pick">'
+                        . '<span class="dashicons dashicons-%3$s" data-wpd-icon-preview aria-hidden="true"></span>'
+                        . '<select id="%1$s" name="%4$s" data-wpd-icon>%5$s</select></span></label>',
+                        esc_attr($id), $label, esc_attr($current !== '' ? $current : 'marker'), esc_attr($name), $opts);
                     break;
                 case 'image':
                     $html .= '<div class="wpd-rep__f wpd-rep__f--wide"><label for="' . esc_attr($id) . '">' . $label . '</label>'

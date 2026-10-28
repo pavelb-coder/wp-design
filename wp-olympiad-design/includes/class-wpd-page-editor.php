@@ -19,9 +19,9 @@ class WPD_Page_Editor
 
     /** Списки, которые можно задать для страницы, и ключи их строк. */
     const LISTS = [
-        'stats' => ['num', 'label'],
-        'docs'  => ['title', 'url'],
-        'faq'   => ['q', 'a'],
+        'stats' => ['num', 'label', 'icon', 'color', 'hidden', 'from', 'to'],
+        'docs'  => ['title', 'url', 'desc', 'badge', 'type', 'color', 'new_tab', 'download', 'hidden', 'from', 'to'],
+        'faq'   => ['q', 'a', 'open', 'hidden', 'from', 'to'],
     ];
 
     /**
@@ -58,15 +58,22 @@ class WPD_Page_Editor
                            'desc' => 'Стиль оформления, палитра и цвета, шрифты, размеры, кнопки, тени, ширина и отступы, заголовок темы, размер значков документов.'],
             'hero'     => ['title' => 'Главный блок: кнопки, изображение, вид', 'sections' => ['hero', 'hero_image', 'hero_look'], 'extra' => [],
                            'desc' => 'Вторая кнопка и иконки, таймер в блоке, положение, подгонка и рамка изображения, затемнение, цвета, высота, отступы, выравнивание, размер заголовка, размер иконок на кнопках.'],
-            'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features'], 'extra' => [],
-                           'desc' => 'Свои даты, подписи и кнопка таймера, часовой пояс, поиск по FAQ, анимация чисел.'],
-            'slider'   => ['title' => 'Слайдер', 'sections' => ['slider'], 'extra' => [], 'desc' => 'Свои слайды, высота, автопрокрутка, стрелки и точки.'],
+            'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features', 'countdown_look'], 'extra' => [],
+                           'desc' => 'Свои даты, подписи и кнопка таймера, часовой пояс, поиск по FAQ, анимация чисел, вид таймера.'],
+            // 2.7.0: раскладка и вид статистики, документов и FAQ (содержимое списков — в панелях выше)
+            'stats'    => ['title' => 'Статистика: заголовок, раскладка и вид', 'sections' => ['stats', 'stats_look'], 'extra' => [],
+                           'desc' => 'Заголовок, колонки, отступы, вид, скругление, размер текста и чисел, цвета карточек.'],
+            'docs'     => ['title' => 'Документы: раскладка и вид', 'sections' => ['docs', 'docs_look'], 'extra' => [],
+                           'desc' => 'Новая вкладка, колонки, отступы, вид, скругление, размер текста, значки, цвета.'],
+            'faq'      => ['title' => 'Частые вопросы: поведение и вид', 'sections' => ['faq', 'faq_look'], 'extra' => [],
+                           'desc' => 'Открытый первый ответ, только один открытый, нумерация, отступы, вид, скругление, размер текста, цвета.'],
+            'slider'   => ['title' => 'Слайдер', 'sections' => ['slider', 'slider_look'], 'extra' => [], 'desc' => 'Свои слайды, высота, автопрокрутка и интервал, стрелки и точки, положение и цвета подписи.'],
             'buttons'  => ['title' => 'Кнопки-ссылки', 'sections' => ['buttons', 'buttons_layout', 'buttons_look'], 'extra' => [],
                            'desc' => 'Свои плитки с иконками, размер иконок, заголовок, колонки, вид и цвета плиток.'],
-            'cards'    => ['title' => 'Карточки', 'sections' => ['cards'], 'extra' => [], 'desc' => 'Свой заголовок и карточки.'],
-            'notice'   => ['title' => 'Объявление', 'sections' => ['notice'], 'extra' => [], 'desc' => 'Свой текст, изображение, цвет и ссылка.'],
-            'news'     => ['title' => 'Новости', 'sections' => ['news'], 'extra' => [], 'desc' => 'Своя рубрика, количество и вид.'],
-            'contacts' => ['title' => 'Контакты', 'sections' => ['contacts'], 'extra' => [], 'desc' => 'Свои адрес, телефон, e-mail, организация, логотип и размер иконок.'],
+            'cards'    => ['title' => 'Карточки', 'sections' => ['cards', 'cards_look'], 'extra' => [], 'desc' => 'Свой заголовок и карточки, колонки, вид, цвета, высота изображений.'],
+            'notice'   => ['title' => 'Объявление', 'sections' => ['notice', 'notice_look'], 'extra' => [], 'desc' => 'Свой текст, изображение, цвет, ссылка и кнопка, даты показа, вид.'],
+            'news'     => ['title' => 'Новости', 'sections' => ['news', 'news_look'], 'extra' => [], 'desc' => 'Своя рубрика, количество и вид, колонки, что показывать в карточках, цвета.'],
+            'contacts' => ['title' => 'Контакты', 'sections' => ['contacts', 'contacts_look'], 'extra' => [], 'desc' => 'Свои адрес, телефон, e-mail, организация, логотип, кнопка, размер иконок, колонки и вид.'],
         ];
     }
 
@@ -83,10 +90,17 @@ class WPD_Page_Editor
         if (!isset($groups[$group])) {
             return [];
         }
+        // Поле, которое другая группа забрала себе в extra (размер значков документов — в «Оформлении страницы»), только там
+        $claimed = [];
+        foreach ($groups as $name => $def) {
+            if ($name !== $group) {
+                $claimed = array_merge($claimed, $def['extra']);
+            }
+        }
         $keys = [];
         foreach (WPD_Settings::field_map() as $key => $field) {
             if ((in_array($field['section'], $groups[$group]['sections'], true) || in_array($key, $groups[$group]['extra'], true))
-                && !in_array($key, self::OV_EXCLUDE, true)) {
+                && !in_array($key, self::OV_EXCLUDE, true) && !in_array($key, $claimed, true)) {
                 $keys[] = $key;
             }
         }
@@ -379,26 +393,9 @@ class WPD_Page_Editor
         $out['docs_title'] = sanitize_text_field($norm['docs_title']);
         $out['faq_title']  = sanitize_text_field($norm['faq_title']);
 
-        foreach ($norm['stats'] as $row) {
-            $row = ['num' => sanitize_text_field($row['num']), 'label' => sanitize_text_field($row['label'])];
-            if ($row['num'] !== '' || $row['label'] !== '') {
-                $out['stats'][] = $row;
-            }
-        }
-        foreach ($norm['docs'] as $row) {
-            $row = ['title' => sanitize_text_field($row['title']), 'url' => esc_url_raw($row['url'])];
-            if ($row['title'] !== '' || $row['url'] !== '') {
-                $out['docs'][] = $row;
-            }
-        }
-        foreach ($norm['faq'] as $row) {
-            $row = [
-                'q' => sanitize_text_field($row['q']),
-                'a' => trim(wp_kses($row['a'], WPD_Settings::allowed_html())),
-            ];
-            if ($row['q'] !== '' || $row['a'] !== '') {
-                $out['faq'][] = $row;
-            }
+        // 2.7.0: строки списков очищаются так же, как в общих настройках (с метками, цветами, скрытием и датами)
+        foreach (array_keys(self::LISTS) as $list) {
+            $out[$list] = WPD_Settings::sanitize_rows($norm[$list], $list);
         }
 
         // 2.4.0: группы общих настроек со своими значениями. Включённая группа хранит все свои поля.
@@ -714,7 +711,7 @@ class WPD_Page_Editor
             'global' => [
                 'stats' => WPD_Settings::stats_items($o['stats']),
                 'docs'  => WPD_Settings::docs_items($o['docs']),
-                'faq'   => WPD_Settings::parse_faq($o['faq']),
+                'faq'   => WPD_Settings::faq_items($o['faq']),
             ],
             'i18n'   => [
                 'replace'     => 'Заменить текущие строки значениями из общих настроек?',
@@ -790,6 +787,11 @@ class WPD_Page_Editor
         ];
 
 
+        foreach (['stats', 'docs', 'faq'] as $part) {
+            if (isset($p['ov'][$part])) {
+                $notes[$part] = 'свой вид для этой страницы';
+            }
+        }
         foreach (['slider', 'buttons', 'cards', 'notice', 'news', 'contacts'] as $part) {
             if (isset($p['ov'][$part])) {
                 $notes[$part] = 'своё для этой страницы';
@@ -1088,7 +1090,7 @@ class WPD_Page_Editor
                 $add          = 'Добавить документ';
                 break;
             default:
-                $global_count = count(WPD_Settings::parse_faq($o['faq']));
+                $global_count = count(WPD_Settings::faq_items($o['faq']));
                 $unit         = 'вопросов';
                 $add          = 'Добавить вопрос';
         }
@@ -1183,6 +1185,44 @@ class WPD_Page_Editor
                     . '</span>';
         }
 
-        return '<div class="wpd-pe__row">' . $fields . $tools . '</div>';
+        // 2.7.0: дополнительные поля строки — под спойлером «Ещё»
+        $check = function (string $key, string $label) use ($name, $val): string {
+            return '<label class="wpd-pe__check"><input type="checkbox" name="' . $name($key) . '" value="1" data-wpd-field="' . esc_attr($key) . '"'
+                . checked($val($key), '1', false) . '> ' . esc_html($label) . '</label>';
+        };
+        $text = function (string $key, string $placeholder, string $type = 'text') use ($name, $val): string {
+            return '<input type="' . $type . '" name="' . $name($key) . '" value="' . esc_attr($type === 'datetime-local' ? str_replace(' ', 'T', $val($key)) : $val($key))
+                . '" placeholder="' . esc_attr($placeholder) . '" aria-label="' . esc_attr($placeholder) . '" data-wpd-field="' . esc_attr($key) . '"'
+                . ($type === 'text' ? ' class="wpd-pe__wide"' : '') . '>';
+        };
+        $color = function (string $key, string $label) use ($name, $val): string {
+            return '<label class="wpd-pe__color">' . esc_html($label) . ' <input type="text" name="' . $name($key) . '" value="' . esc_attr($val($key))
+                . '" class="wpd-pe__hex" placeholder="#rrggbb" maxlength="7" data-wpd-field="' . esc_attr($key) . '"></label>';
+        };
+        $icon = function (string $key) use ($name, $val): string {
+            $opts = '<option value="">— без иконки —</option>';
+            foreach (WPD_Settings::icons() as $k => $label) {
+                $opts .= '<option value="' . esc_attr($k) . '"' . selected($val($key), $k, false) . '>' . esc_html($label) . '</option>';
+            }
+            return '<label class="wpd-pe__icon">Иконка <select name="' . $name($key) . '" data-wpd-field="' . esc_attr($key) . '">' . $opts . '</select></label>';
+        };
+        switch ($list) {
+            case 'stats':
+                $more = $icon('icon') . $color('color', 'Цвет карточки');
+                break;
+            case 'docs':
+                $more = $text('desc', 'Подпись под названием') . $text('badge', 'Метка, например «Новое»') . $text('type', 'Текст значка (пусто — PDF/WEB)')
+                    . $color('color', 'Цвет значка') . $check('new_tab', 'в новой вкладке') . $check('download', 'скачивать файл');
+                break;
+            default:
+                $more = $check('open', 'ответ открыт сразу');
+        }
+        $more .= $check('hidden', 'скрыть')
+            . '<span class="wpd-pe__dates">показывать с ' . $text('from', 'Показывать с', 'datetime-local')
+            . ' до ' . $text('to', 'Показывать до', 'datetime-local') . '</span>';
+        $flagged = $val('hidden') === '1' || $val('from') !== '' || $val('to') !== '';
+
+        return '<div class="wpd-pe__row' . ($flagged ? ' is-flagged' : '') . '">' . $fields . $tools
+            . '<details class="wpd-pe__more"><summary>Ещё</summary><div class="wpd-pe__more-body">' . $more . '</div></details></div>';
     }
 }

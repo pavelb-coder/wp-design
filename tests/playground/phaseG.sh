@@ -25,7 +25,7 @@ t "page: 13 tabs"                       "$([ "$(grep -oE 'class="nav-tab( nav-ta
 t "page: design tab active by default" "$(python3 -c "import re,sys;s=open('g_design.html',encoding='utf-8').read();print(1 if re.search(r'tab=design\"\s*class=\"nav-tab nav-tab-active\"',s) else 0)")"
 t "page: hidden _tab=design"           "$(has g_design.html 'name="wpd_settings\[_tab\]" value="design"')"
 
-declare -A EXPECT=([design]=30 [hero]=34 [features]=12 [stats]=1 [docs]=3 [faq]=2 [slider]=8 [buttons]=16 [cards]=2 [notice]=8 [news]=5 [contacts]=13 [help]=0)
+declare -A EXPECT=([design]=30 [hero]=34 [features]=20 [stats]=13 [docs]=15 [faq]=13 [slider]=16 [buttons]=16 [cards]=14 [notice]=17 [news]=19 [contacts]=25 [help]=0)
 for tab in design hero features stats docs faq slider buttons cards notice news contacts help; do
   get "/wp-admin/admin.php?page=wpd-settings&tab=$tab" "g_$tab.html"
   t "tab $tab: ${EXPECT[$tab]} fields"  "$([ "$(fields g_$tab.html)" = "${EXPECT[$tab]}" ] && echo 1 || echo 0)"
@@ -53,7 +53,7 @@ LOC=$(curl -s -c cjG.txt -b cjG.txt -o /dev/null --max-time 120 -w "%{redirect_u
 t "save: redirect back to stats tab"   "$(echo "$LOC" | grep -q 'tab=stats' && echo "$LOC" | grep -q 'settings-updated=true' && echo 1 || echo 0)"
 get "/wp-admin/admin.php?page=wpd-settings&tab=stats&settings-updated=true" g_after.html
 t "save: notice shown"                 "$(has g_after.html 'settings-error\|notice-success\|updated')"
-t "save: stats value saved"            "$(has g_after.html '500+|участников из формы')"
+t "save: stats value saved (rows)"     "$(grep -q 'value="500+"' g_after.html && grep -q 'value="участников из формы"' g_after.html && echo 1 || echo 0)"
 get "/wp-admin/admin.php?page=wpd-settings&tab=design" g_design2.html
 t "save: color on other tab kept"      "$(has g_design2.html 'value="#0f766e"')"
 t "save: hide_title on other tab kept" "$(python3 -c "import re;s=open('g_design2.html',encoding='utf-8').read();print(1 if re.search(r'name=\"wpd_settings\[hide_title\]\" value=\"1\"\s+checked', s) else 0)")"
@@ -74,7 +74,7 @@ get "/wp-admin/admin.php?page=wpd-settings&tab=features" g_feat3.html
 t "uncheck: countdown off"             "$(grep -qE 'name="wpd_settings\[countdown_enabled\]" value="1"\s+checked' g_feat3.html && echo 0 || echo 1)"
 t "uncheck: faq search still on"       "$(grep -qE 'name="wpd_settings\[faq_search\]" value="1"\s+checked' g_feat3.html && echo 1 || echo 0)"
 get "/wp-admin/admin.php?page=wpd-settings&tab=stats" g_stats3.html
-t "uncheck: stats tab untouched"       "$(has g_stats3.html '500+|участников из формы')"
+t "uncheck: stats tab untouched"       "$(grep -q 'value="500+"' g_stats3.html && grep -q 'value="участников из формы"' g_stats3.html && echo 1 || echo 0)"
 
 # Ссылка «Настройки» в списке плагинов
 get "/wp-admin/plugins.php" g_plugins.html

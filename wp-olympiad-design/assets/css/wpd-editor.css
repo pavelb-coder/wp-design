@@ -430,3 +430,73 @@
 .wpd-page .wpd-qbtn__desc.is-empty {
     opacity: 0.5;
 }
+
+/* ---------------------------------------------------------------
+ * 2.7.0: дополнительные поля элементов остальных блоков
+ * ------------------------------------------------------------- */
+
+/* Скрытый на сайте элемент — полупрозрачный, с показом по датам — пунктирная рамка */
+.wpd-page .wpd-ed-off {
+    opacity: 0.5;
+}
+
+.wpd-page .wpd-ed-scheduled {
+    outline: 2px dashed #dba617;
+    outline-offset: 2px;
+}
+
+.wpd-page .wpd-ed-state {
+    margin: 4px 0 0;
+    color: #8a6100;
+    font-size: 12px;
+}
+
+.wpd-page .wpd-ed-more {
+    position: relative;
+    z-index: 2;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.wpd-page .wpd-ed-more .wpd-ed-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+}
+
+.wpd-page .wpd-ed-more .wpd-ed-urlinput {
+    flex: 0 0 auto;
+    width: 100%;
+}
+
+.wpd-page .wpd-ed-more .wpd-ed-tools {
+    align-self: flex-end;
+}
+
+.wpd-page .wpd-ed-dates input[type="datetime-local"] {
+    max-width: 100%;
+    font-size: 12px;
+}
+
+.wpd-page .wpd-ed-icon-opt {
+    max-width: 220px;
+}
+
+/* Карточки и слайды: панель под элементом не наследует белый текст */
+.wpd-page .wpd-card .wpd-ed-more,
+.wpd-page .wpd-slide .wpd-ed-more,
+.wpd-page .wpd-stat .wpd-ed-more {
+    color: #1e1e1e;
+    text-align: left;
+}
+
+.wpd-page .wpd-doc__name.wpd-ed-grow {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.wpd-page .wpd-doc__desc.is-empty,
+.wpd-page .wpd-h2.is-empty {
+    opacity: 0.6;
+}

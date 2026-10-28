@@ -457,7 +457,13 @@ class WPD_Renderer
                 $shown_value = $done;
         }
 
-        $html = '<div class="wpd-countdown" data-target="' . esc_attr($dt->format(DATE_ATOM)) . '"'
+        // 2.7.0: «Вид таймера»
+        $look = self::block_look($o, 'countdown');
+        $val  = self::px($o, 'countdown_value_size', 14, 64);
+        $style = $look['style'] . ($val ? '--wpd-bl-val:' . $val . 'px;' : '');
+        $html = '<div class="wpd-countdown' . esc_attr(self::look_class($look) . ($val ? ' wpd-countdown--size' : '')) . '"'
+            . ($style !== '' ? ' style="' . esc_attr($style) . '"' : '')
+            . ' data-target="' . esc_attr($dt->format(DATE_ATOM)) . '"'
             . ($end_dt ? ' data-end="' . esc_attr($end_dt->format(DATE_ATOM)) . '"' : '')
             . ' data-label="' . esc_attr($label) . '"'
             . ($end_dt ? ' data-end-label="' . esc_attr($end_lbl) . '"' : '')
@@ -485,51 +491,268 @@ class WPD_Renderer
         return ' data-count="' . (int) $m[1] . '" data-suffix="' . esc_attr($m[2]) . '"';
     }
 
+    /* ---------------------------------------------------------------
+     * 2.7.0: «Раскладка и вид» блоков и общие поля элементов
+     * ------------------------------------------------------------- */
+
     /**
-     * @param array|null $items [['num' => ..., 'label' => ...]]; null — из общих настроек
+     * Классы и CSS-переменные блока по общим параметрам «Раскладка и вид» (WPD_Settings::LOOK_BLOCKS).
+     * Значения берутся из $o (настройки, страница или атрибуты блока, уже подставленные в $o).
+     * Без своих параметров class = 'wpd-look' — тогда разметка блока не меняется (см. look_class()).
+     *
+     * @return array{class:string,style:string}
+     */
+    public static function block_look(array $o, string $slug): array
+    {
+        $keys = WPD_Settings::LOOK_BLOCKS[$slug] ?? [];
+        $map  = WPD_Settings::field_map();
+        $val  = function (string $k) use ($o, $slug): string {
+            $key = $slug . '_' . $k;
+            return isset($o[$key]) && is_scalar($o[$key]) ? trim((string) $o[$key]) : '';
+        };
+        $pick = function (string $k) use ($val, $map, $slug): string {
+            $v = $val($k);
+            return array_key_exists($v, $map[$slug . '_' . $k]['options']) ? (string) $v : '';
+        };
+        $int = function (string $k) use ($val, $map, $slug): int {
+            $v = is_numeric($val($k)) ? (int) $val($k) : 0;
+            return $v > 0 ? min((int) $map[$slug . '_' . $k]['max'], $v) : 0;
+        };
+        $color = function (string $k) use ($val): string {
+            return (string) sanitize_hex_color($val($k));
+        };
+
+        $class = ['wpd-look'];
+        $vars  = [];
+        foreach ($keys as $k) {
+            switch ($k) {
+                case 'columns':
+                    if (($n = $pick($k)) !== '') {
+                        $class[] = 'wpd-look--cols';
+                        $vars['--wpd-bl-cols']   = $n;
+                        $vars['--wpd-bl-cols-t'] = (string) min(2, (int) $n);
+                    }
+                    break;
+                case 'columns_mobile':
+                    if (($n = $pick($k)) !== '') {
+                        $class[] = 'wpd-look--cols-m';
+                        $vars['--wpd-bl-cols-m'] = $n;
+                    }
+                    break;
+                case 'gap':
+                    if ($n = $int($k)) {
+                        $class[] = 'wpd-look--gap';
+                        $vars['--wpd-bl-gap'] = $n . 'px';
+                    }
+                    break;
+                case 'align':
+                case 'variant':
+                    if (($v = $pick($k)) !== '') {
+                        $class[] = 'wpd-look--' . ($k === 'align' ? 'align-' : '') . $v;
+                    }
+                    break;
+                case 'radius':
+                    if (($v = $pick($k)) !== '') {
+                        $class[] = 'wpd-look--radius';
+                        $vars['--wpd-radius'] = WPD_Settings::LOOK_RADIUS[$v] . 'px';
+                    }
+                    break;
+                case 'text_size':
+                    if ($n = $int($k)) {
+                        $class[] = 'wpd-look--fs';
+                        $vars['--wpd-bl-fs'] = max(11, $n) . 'px';
+                    }
+                    break;
+                case 'bg':
+                    if (($c = $color($k)) !== '') {
+                        $class[] = 'wpd-look--bg';
+                        $vars['--wpd-bl-bg'] = $c;
+                    }
+                    break;
+                case 'accent':
+                    if (($c = $color($k)) !== '') {
+                        $class[] = 'wpd-look--accent';
+                        $vars['--wpd-primary'] = $c;
+                        $vars['--wpd-accent']  = $c;
+                    }
+                    break;
+                case 'text_color':
+                    if (($c = $color($k)) !== '') {
+                        $class[] = 'wpd-look--color';
+                        $vars['--wpd-bl-text'] = $c;
+                    }
+                    break;
+            }
+        }
+
+        // Тон: на тёмном фоне и заливке текст светлый, на светлом — тёмный (важно для цветных карточек)
+        $bg      = in_array('bg', $keys, true) ? $color('bg') : '';
+        $variant = in_array('variant', $keys, true) ? $pick('variant') : '';
+        if ($bg !== '') {
+            $class[] = self::is_dark($bg) ? 'wpd-look--ondark' : 'wpd-look--onlight';
+        } elseif ($variant === 'solid') {
+            $class[] = 'wpd-look--ondark';
+        } elseif ($variant !== '') {
+            $class[] = 'wpd-look--onlight';
+        }
+
+        $style = '';
+        foreach ($vars as $name => $value) {
+            $style .= $name . ':' . $value . ';';
+        }
+        return ['class' => implode(' ', $class), 'style' => $style];
+    }
+
+    /** Классы «Раскладки и вида» для корня блока: пусто, если своих параметров нет. */
+    public static function look_class(array $look): string
+    {
+        return $look['class'] === 'wpd-look' ? '' : ' ' . $look['class'];
+    }
+
+    /** Открывающий тег корня блока с классами и переменными «Раскладки и вида». */
+    private static function look_open(string $tag, string $base, array $look, string $extra_style = '', string $attrs = ''): string
+    {
+        $style = $look['style'] . $extra_style;
+        return '<' . $tag . ' class="' . esc_attr($base . self::look_class($look)) . '"'
+            . ($style !== '' ? ' style="' . esc_attr($style) . '"' : '') . $attrs . '>';
+    }
+
+    /** Строки списка, которые показываются сейчас: не скрыты и в пределах дат показа (часовой пояс таймера). */
+    public static function visible_items(array $items, array $o): array
+    {
+        $now = self::buttons_now($o);
+        return array_values(array_filter($items, function ($item) use ($now) {
+            return is_array($item) && self::button_visible($item, $now);
+        }));
+    }
+
+    /** Ключи строк списка из описания повторяющегося поля настроек. */
+    public static function row_keys(string $key): array
+    {
+        return array_keys(WPD_Settings::field_map()[$key]['fields'] ?? []);
+    }
+
+    /** Метка элемента. */
+    private static function badge_html($text, string $mod = ''): string
+    {
+        $text = trim((string) $text);
+        return $text === '' ? '' : '<span class="wpd-it-badge' . ($mod !== '' ? ' wpd-it-badge--' . $mod : '') . '">' . esc_html($text) . '</span>';
+    }
+
+    /** Иконка Dashicons элемента; неизвестная или пустая — ничего. */
+    private static function item_icon($icon, string $class): string
+    {
+        $icon = (string) $icon;
+        if ($icon === '' || !isset(WPD_Settings::icons()[$icon])) {
+            return '';
+        }
+        self::enqueue_icons();
+        return '<span class="' . $class . ' dashicons dashicons-' . esc_attr($icon) . '" aria-hidden="true"></span>';
+    }
+
+    /**
+     * Свой цвет элемента: класс тона и CSS-переменная.
+     *
+     * @return array{class:string,style:string}
+     */
+    private static function item_color($hex, string $var = '--wpd-it-bg'): array
+    {
+        $c = (string) sanitize_hex_color(trim((string) $hex));
+        if ($c === '') {
+            return ['class' => '', 'style' => ''];
+        }
+        return ['class' => ' has-color ' . (self::is_dark($c) ? 'wpd-it--dark' : 'wpd-it--light'), 'style' => $var . ':' . $c . ';'];
+    }
+
+    /** Число из настроек в пределах min…max; 0 и неверное значение — 0 (по умолчанию). */
+    private static function px(array $o, string $key, int $min, int $max): int
+    {
+        $v = isset($o[$key]) && is_numeric($o[$key]) ? (int) $o[$key] : 0;
+        return $v > 0 ? max($min, min($max, $v)) : 0;
+    }
+
+    /**
+     * Статистика. 2.7.0: заголовок, иконки и цвета карточек, скрытие и показ по датам, «Раскладка и вид».
+     *
+     * @param array|null $items [['num' => ..., 'label' => ..., ...]]; null — из общих настроек
      */
     public static function stats_html(array $o, ?array $items = null): string
     {
-        $items = $items === null ? WPD_Settings::stats_items($o['stats']) : self::clean_items($items, ['num', 'label']);
+        $items = $items === null ? WPD_Settings::stats_items($o['stats']) : self::clean_items($items, self::row_keys('stats'));
+        $items = self::visible_items($items, $o);
         $html  = '';
 
         foreach ($items as $item) {
-            if ($item['num'] === '' && $item['label'] === '') {
+            $num   = (string) ($item['num'] ?? '');
+            $label = (string) ($item['label'] ?? '');
+            if ($num === '' && $label === '') {
                 continue;
             }
-            $attrs = $o['stats_animate'] ? self::count_attrs($item['num']) : '';
-            $html .= '<li class="wpd-stat">'
-                . '<span class="wpd-stat__num"' . $attrs . '>' . esc_html($item['num']) . '</span>'
-                . '<span class="wpd-stat__label">' . esc_html($item['label']) . '</span>'
+            $attrs = !empty($o['stats_animate']) ? self::count_attrs($num) : '';
+            $col   = self::item_color($item['color'] ?? '');
+            $html .= '<li class="wpd-stat' . $col['class'] . '"' . ($col['style'] !== '' ? ' style="' . esc_attr($col['style']) . '"' : '') . '>'
+                . self::item_icon($item['icon'] ?? '', 'wpd-stat__icon')
+                . '<span class="wpd-stat__num"' . $attrs . '>' . esc_html($num) . '</span>'
+                . '<span class="wpd-stat__label">' . esc_html($label) . '</span>'
                 . '</li>';
         }
 
         if ($html === '') {
             return '';
         }
-        return '<section class="wpd-stats" aria-label="Ключевые цифры"><ul class="wpd-stats__grid">' . $html . '</ul></section>';
+        $look  = self::block_look($o, 'stats');
+        $num   = self::px($o, 'stats_num_size', 20, 96);
+        $title = trim((string) ($o['stats_title'] ?? ''));
+        return self::look_open('section', 'wpd-stats', $look, $num ? '--wpd-bl-num:' . $num . 'px;' : '', ' aria-label="Ключевые цифры"')
+            . ($title !== '' ? '<h2 class="wpd-h2">' . esc_html($title) . '</h2>' : '')
+            . '<ul class="wpd-stats__grid">' . $html . '</ul></section>';
     }
 
     /**
-     * @param array|null  $items [['title' => ..., 'url' => ...]]; null — из общих настроек
+     * Документы. 2.7.0: подпись, метка, текст и цвет значка, новая вкладка, скачивание, скрытие и даты, «Раскладка и вид».
+     *
+     * @param array|null  $items [['title' => ..., 'url' => ..., ...]]; null — из общих настроек
      * @param string|null $title заголовок блока; null или пусто — из общих настроек
      */
     public static function docs_html(array $o, ?array $items = null, ?string $title = null): string
     {
-        $items = $items === null ? WPD_Settings::docs_items($o['docs']) : self::clean_items($items, ['title', 'url']);
+        $items = $items === null ? WPD_Settings::docs_items($o['docs']) : self::clean_items($items, self::row_keys('docs'));
+        $items = self::visible_items($items, $o);
         $title = ($title === null || $title === '') ? $o['docs_title'] : $title;
+        $show_type = !array_key_exists('docs_show_type', $o) || !empty($o['docs_show_type']);
+        $all_new   = !empty($o['docs_new_tab']);
         $list  = '';
 
         foreach ($items as $item) {
-            $url = esc_url($item['url']);
+            $url = esc_url((string) ($item['url'] ?? ''));
             if ($url === '') {
                 continue;
             }
-            $name   = $item['title'] !== '' ? $item['title'] : $item['url'];
-            $is_pdf = (bool) preg_match('/\.pdf(\?|#|$)/i', $item['url']);
-            $list .= '<li><a class="wpd-doc" href="' . $url . '">'
-                . '<span class="wpd-doc__icon" aria-hidden="true">' . ($is_pdf ? 'PDF' : 'WEB') . '</span>'
-                . '<span class="wpd-doc__name">' . esc_html($name) . '</span>'
+            $name   = (string) ($item['title'] ?? '') !== '' ? (string) $item['title'] : (string) $item['url'];
+            $is_pdf = (bool) preg_match('/\.pdf(\?|#|$)/i', (string) $item['url']);
+            $type   = trim((string) ($item['type'] ?? ''));
+            $type   = $type !== '' ? (function_exists('mb_substr') ? mb_substr($type, 0, 6) : substr($type, 0, 6)) : ($is_pdf ? 'PDF' : 'WEB');
+            $desc   = trim((string) ($item['desc'] ?? ''));
+            $col    = self::item_color($item['color'] ?? '', '--wpd-it-icon');
+            $class  = 'wpd-doc' . ($col['class'] !== '' ? ' has-icon-color' : '');
+            $attrs  = ' href="' . $url . '"';
+            if ($all_new || !empty($item['new_tab'])) {
+                $attrs .= ' target="_blank" rel="noopener noreferrer"';
+            }
+            if (!empty($item['download'])) {
+                $attrs .= ' download';
+            }
+            if ($col['style'] !== '') {
+                $attrs .= ' style="' . esc_attr($col['style']) . '"';
+            }
+            $name_html = '<span class="wpd-doc__name">' . esc_html($name) . '</span>';
+            if ($desc !== '') {
+                $name_html = '<span class="wpd-doc__text">' . $name_html . '<span class="wpd-doc__desc">' . esc_html($desc) . '</span></span>';
+            }
+            $list .= '<li><a class="' . $class . '"' . $attrs . '>'
+                . ($show_type ? '<span class="wpd-doc__icon" aria-hidden="true">' . esc_html($type) . '</span>' : '')
+                . $name_html
+                . self::badge_html($item['badge'] ?? '', 'inline')
                 . '</a></li>';
         }
 
@@ -537,19 +760,23 @@ class WPD_Renderer
             return '';
         }
 
-        return '<section class="wpd-docs"><h2 class="wpd-h2">' . esc_html($title) . '</h2>'
+        $look = self::block_look($o, 'docs');
+        return self::look_open('section', 'wpd-docs' . ($show_type ? '' : ' wpd-docs--notype'), $look)
+            . '<h2 class="wpd-h2">' . esc_html($title) . '</h2>'
             . '<ul class="wpd-docs__list">' . $list . '</ul></section>';
     }
 
     /**
-     * @param array|null  $items [['q' => ..., 'a' => ...]]; null — из общих настроек
+     * Частые вопросы. 2.7.0: открытые ответы, «только один открыт», нумерация, скрытие и даты, «Вид».
+     *
+     * @param array|null  $items [['q' => ..., 'a' => ..., ...]]; null — из общих настроек
      * @param string|null $title заголовок блока; null или пусто — из общих настроек
      */
     public static function faq_html(array $o, ?array $items = null, ?string $title = null): string
     {
-        $items = $items === null ? WPD_Settings::parse_faq($o['faq']) : self::clean_items($items, ['q', 'a']);
-        $items = array_values(array_filter($items, function ($item) {
-            return $item['q'] !== '';
+        $items = $items === null ? WPD_Settings::faq_items($o['faq']) : self::clean_items($items, self::row_keys('faq'));
+        $items = array_values(array_filter(self::visible_items($items, $o), function ($item) {
+            return (string) ($item['q'] ?? '') !== '';
         }));
         $title = ($title === null || $title === '') ? $o['faq_title'] : $title;
         if (!$items) {
@@ -557,8 +784,10 @@ class WPD_Renderer
         }
 
         $searchable = !empty($o['faq_search']) && count($items) >= self::FAQ_SEARCH_MIN;
+        $look       = self::block_look($o, 'faq');
 
-        $html = '<section class="wpd-faq"' . ($searchable ? ' data-wpd-search' : '') . '>'
+        $html = self::look_open('section', 'wpd-faq' . (!empty($o['faq_numbered']) ? ' wpd-faq--numbered' : ''), $look, '',
+                ($searchable ? ' data-wpd-search' : '') . (!empty($o['faq_single']) ? ' data-wpd-single' : ''))
             . '<h2 class="wpd-h2">' . esc_html($title) . '</h2>';
 
         if ($searchable) {
@@ -570,10 +799,11 @@ class WPD_Renderer
 
         $html .= '<div class="wpd-faq__list">';
 
-        foreach ($items as $item) {
-            $html .= '<details class="wpd-faq__item">'
+        foreach ($items as $i => $item) {
+            $open  = !empty($item['open']) || ($i === 0 && !empty($o['faq_open_first']));
+            $html .= '<details class="wpd-faq__item"' . ($open ? ' open' : '') . '>'
                 . '<summary class="wpd-faq__q">' . esc_html($item['q']) . '</summary>'
-                . '<div class="wpd-faq__a">' . wp_kses(nl2br($item['a']), WPD_Settings::allowed_html()) . '</div>'
+                . '<div class="wpd-faq__a">' . wp_kses(nl2br((string) ($item['a'] ?? '')), WPD_Settings::allowed_html()) . '</div>'
                 . '</details>';
         }
 
@@ -635,13 +865,23 @@ class WPD_Renderer
      */
     public static function slider_html(array $o, array $args = []): string
     {
-        $items = WPD_Settings::sanitize_rows(self::arg($args, 'items', $o['slides']), 'slides');
+        $items = self::visible_items(WPD_Settings::sanitize_rows(self::arg($args, 'items', $o['slides']), 'slides'), $o);
         if (!$items) {
             return '';
         }
 
         $height  = min(900, max(200, (int) self::arg($args, 'height', $o['slider_height'])));
         $classes = ['wpd-slider'];
+        // 2.7.0: положение подписи и «Вид»
+        $cap = (string) ($o['slider_caption_pos'] ?? 'bottom');
+        if (in_array($cap, ['top', 'center'], true)) {
+            $classes[] = 'wpd-slider--cap-' . $cap;
+        }
+        $look = self::block_look($o, 'slider');
+        if ($look['class'] !== 'wpd-look') {
+            $classes[] = $look['class'];
+        }
+        $interval = isset($o['slider_interval']) && is_numeric($o['slider_interval']) ? max(2, min(30, (int) $o['slider_interval'])) : 6;
         if (!self::arg($args, 'mobile', $o['slider_mobile'])) {
             $classes[] = 'wpd-slider--hide-mobile';
         }
@@ -654,11 +894,12 @@ class WPD_Renderer
 
         $count = count($items);
         $html  = sprintf(
-            '<section class="%s" style="--wpd-slider-h:%dpx" aria-roledescription="carousel" aria-label="Слайдер"'
+            '<section class="%s" style="--wpd-slider-h:%dpx%s" aria-roledescription="carousel" aria-label="Слайдер"'
             . ' data-wpd-carousel="slider"%s%s%s>',
             esc_attr(implode(' ', $classes)),
             $height,
-            self::arg($args, 'autoplay', $o['slider_autoplay']) ? ' data-autoplay="6000"' : '',
+            $look['style'] !== '' ? esc_attr(';' . rtrim($look['style'], ';')) : '',
+            self::arg($args, 'autoplay', $o['slider_autoplay']) ? ' data-autoplay="' . ($interval * 1000) . '"' : '',
             self::arg($args, 'arrows', $o['slider_arrows']) ? ' data-arrows' : '',
             self::arg($args, 'dots', $o['slider_dots']) ? ' data-dots' : ''
         );
@@ -670,13 +911,21 @@ class WPD_Renderer
                 $inner .= '<img class="wpd-slide__img" src="' . esc_url($item['image']) . '" alt=""'
                     . ($i === 0 ? '' : ' loading="lazy"') . '>';
             }
-            if ($item['heading'] !== '' || $item['text'] !== '') {
+            $button = $item['url'] !== '' ? trim((string) ($item['button'] ?? '')) : '';
+            $badge  = trim((string) ($item['badge'] ?? ''));
+            if ($item['heading'] !== '' || $item['text'] !== '' || $button !== '' || $badge !== '') {
                 $inner .= '<div class="wpd-slide__caption">';
+                if ($badge !== '') {
+                    $inner .= '<span class="wpd-slide__badge">' . esc_html($badge) . '</span>';
+                }
                 if ($item['heading'] !== '') {
                     $inner .= '<h2 class="wpd-slide__title">' . esc_html($item['heading']) . '</h2>';
                 }
                 if ($item['text'] !== '') {
                     $inner .= '<p class="wpd-slide__text">' . nl2br(esc_html($item['text'])) . '</p>';
+                }
+                if ($button !== '') {
+                    $inner .= '<span class="wpd-btn wpd-slide__btn">' . esc_html($button) . ' &rarr;</span>';
                 }
                 $inner .= '</div>';
             }
@@ -915,19 +1164,22 @@ class WPD_Renderer
      */
     public static function cards_html(array $o, ?array $items = null, ?string $title = null): string
     {
-        $items = WPD_Settings::sanitize_rows($items === null ? $o['cards'] : $items, 'cards');
+        $items = self::visible_items(WPD_Settings::sanitize_rows($items === null ? $o['cards'] : $items, 'cards'), $o);
         if (!$items) {
             return '';
         }
         $title = $title === null ? (string) $o['cards_title'] : $title;
+        $more_default = trim((string) ($o['cards_more_text'] ?? ''));
+        $look  = self::block_look($o, 'cards');
+        $img_h = self::px($o, 'cards_image_height', 40, 480);
 
-        $html = '<section class="wpd-cards">';
+        $html = self::look_open('section', 'wpd-cards' . ($img_h ? ' wpd-cards--img-h' : ''), $look, $img_h ? '--wpd-bl-img-h:' . $img_h . 'px;' : '');
         if ($title !== '') {
             $html .= '<h2 class="wpd-h2">' . esc_html($title) . '</h2>';
         }
         $html .= '<ul class="wpd-cards__grid">';
         foreach ($items as $item) {
-            $inner = '<span class="wpd-card__title">' . esc_html($item['title']) . '</span>';
+            $inner = '<span class="wpd-card__title">' . self::item_icon($item['icon'] ?? '', 'wpd-card__icon') . esc_html($item['title']) . '</span>';
             if ($item['image'] !== '') {
                 $inner .= '<img class="wpd-card__img" src="' . esc_url($item['image']) . '" alt="" loading="lazy">';
             }
@@ -935,13 +1187,18 @@ class WPD_Renderer
                 $inner .= '<span class="wpd-card__text">' . nl2br(esc_html($item['text'])) . '</span>';
             }
             if ($item['url'] !== '') {
-                $inner .= '<span class="wpd-card__more" aria-hidden="true">&rarr;</span>';
+                $more = trim((string) ($item['more'] ?? '')) !== '' ? trim((string) $item['more']) : $more_default;
+                $inner .= $more !== ''
+                    ? '<span class="wpd-card__more wpd-card__more--text">' . esc_html($more) . ' &rarr;</span>'
+                    : '<span class="wpd-card__more" aria-hidden="true">&rarr;</span>';
                 $inner  = '<a class="wpd-card__link"' . self::link_attrs($item['url'], $item['new_tab']) . '>' . $inner . '</a>';
             } else {
                 $inner = '<div class="wpd-card__link">' . $inner . '</div>';
             }
+            $badge = self::badge_html($item['badge'] ?? '');
             $style = $item['color'] !== '' ? ' style="--wpd-card:' . esc_attr($item['color']) . '"' : '';
-            $html .= '<li class="wpd-card' . ($item['color'] !== '' ? ' has-color' : '') . '"' . $style . '>' . $inner . '</li>';
+            $html .= '<li class="wpd-card' . ($item['color'] !== '' ? ' has-color' : '') . ($badge !== '' ? ' wpd-card--badge' : '') . '"' . $style . '>'
+                . $inner . $badge . '</li>';
         }
         return $html . '</ul></section>';
     }
@@ -963,6 +1220,12 @@ class WPD_Renderer
         $title   = (string) self::arg($args, 'title', $o['notice_title']);
         $content = trim(wp_kses_post((string) self::arg($args, 'content', $o['notice_content'])));
 
+        // 2.7.0: показ по датам (часовой пояс таймера)
+        if (!self::button_visible(['from' => (string) ($o['notice_from'] ?? ''), 'to' => (string) ($o['notice_to'] ?? '')], self::buttons_now($o))) {
+            return '';
+        }
+        $button = $url !== '' ? trim((string) ($o['notice_button_text'] ?? '')) : '';
+
         $has_text = $pre !== '' || $title !== '' || $content !== '';
         if ($layout === 'image_text' && $image === '') {
             $layout = 'text';
@@ -976,9 +1239,14 @@ class WPD_Renderer
 
         $open  = $url !== '' ? '<a' . self::link_attrs($url, $new_tab) . '>' : '';
         $close = $url !== '' ? '</a>' : '';
-        $style = $color !== '' ? ' style="--wpd-notice-bg:' . esc_attr($color) . '"' : '';
-
-        $html = '<section class="wpd-notice wpd-notice--' . str_replace('_', '-', $layout) . '"' . $style . '>';
+        $look = self::block_look($o, 'notice');
+        // Свой «Цвет фона» объявления главнее вида, поэтому тон текста — по нему: тёмный — светлый текст
+        if ($color !== '') {
+            $plain = (string) preg_replace('/ wpd-look--on(dark|light)\b/', '', $look['class']);
+            $look['class'] = $plain . (self::is_dark($color) ? ' wpd-look--ondark' : ($plain !== $look['class'] ? ' wpd-look--onlight' : ''));
+        }
+        $html = self::look_open('section', 'wpd-notice wpd-notice--' . str_replace('_', '-', $layout), $look,
+            $color !== '' ? '--wpd-notice-bg:' . $color : '');
         if ($layout !== 'text') {
             $html .= '<div class="wpd-notice__media">' . $open . '<img src="' . $image . '" alt="' . esc_attr($title) . '" loading="lazy">' . $close . '</div>';
         }
@@ -992,6 +1260,10 @@ class WPD_Renderer
             }
             if ($content !== '') {
                 $html .= '<div class="wpd-notice__content">' . wpautop($content) . '</div>';
+            }
+            if ($button !== '') {
+                $html .= '<p class="wpd-notice__actions"><a class="wpd-btn wpd-notice__btn"' . self::link_attrs($url, $new_tab) . '>'
+                    . esc_html($button) . ' &rarr;</a></p>';
             }
             $html .= '</div>';
         }
@@ -1038,7 +1310,13 @@ class WPD_Renderer
             $more_url = is_string($more_url) ? $more_url : '';
         }
 
-        $html = '<section class="wpd-news wpd-news--' . $layout . '"' . ($layout === 'carousel' ? ' data-wpd-carousel="news" data-arrows' : '') . '>';
+        $look = self::block_look($o, 'news');
+        $show_image   = !array_key_exists('news_show_image', $o) || !empty($o['news_show_image']);
+        $show_date    = !array_key_exists('news_show_date', $o) || !empty($o['news_show_date']);
+        $show_excerpt = !array_key_exists('news_show_excerpt', $o) || !empty($o['news_show_excerpt']);
+        $words        = isset($o['news_excerpt_words']) && is_numeric($o['news_excerpt_words']) ? max(5, min(80, (int) $o['news_excerpt_words'])) : 20;
+        $html = self::look_open('section', 'wpd-news wpd-news--' . $layout . ($show_image ? '' : ' wpd-news--noimg'), $look, '',
+            $layout === 'carousel' ? ' data-wpd-carousel="news" data-arrows' : '');
         $html .= '<div class="wpd-news__head">';
         if ($title !== '') {
             $html .= '<h2 class="wpd-h2">' . esc_html($title) . '</h2>';
@@ -1055,16 +1333,17 @@ class WPD_Renderer
                 $excerpt = wp_strip_all_tags($post->post_excerpt);
             } else {
                 $text    = excerpt_remove_blocks(strip_shortcodes($post->post_content));
-                $excerpt = wp_trim_words(wp_strip_all_tags($text), 20, '…');
+                $excerpt = wp_trim_words(wp_strip_all_tags($text), $words, '…');
             }
 
             $html .= '<article class="wpd-news__item">'
-                . '<a class="wpd-news__media" href="' . esc_url($link) . '" tabindex="-1" aria-hidden="true">'
-                . ($thumb ? '<img src="' . esc_url($thumb) . '" alt="" loading="lazy">' : '<span class="wpd-news__ph"></span>')
-                . '</a><div class="wpd-news__body">'
-                . '<time class="wpd-news__date" datetime="' . esc_attr(get_the_date(DATE_ATOM, $post)) . '">' . esc_html(get_the_date('', $post)) . '</time>'
+                . ($show_image ? '<a class="wpd-news__media" href="' . esc_url($link) . '" tabindex="-1" aria-hidden="true">'
+                    . ($thumb ? '<img src="' . esc_url($thumb) . '" alt="" loading="lazy">' : '<span class="wpd-news__ph"></span>')
+                    . '</a>' : '')
+                . '<div class="wpd-news__body">'
+                . ($show_date ? '<time class="wpd-news__date" datetime="' . esc_attr(get_the_date(DATE_ATOM, $post)) . '">' . esc_html(get_the_date('', $post)) . '</time>' : '')
                 . '<h3 class="wpd-news__title"><a href="' . esc_url($link) . '">' . esc_html(get_the_title($post)) . '</a></h3>'
-                . ($excerpt !== '' ? '<p class="wpd-news__excerpt">' . esc_html($excerpt) . '</p>' : '')
+                . ($show_excerpt && $excerpt !== '' ? '<p class="wpd-news__excerpt">' . esc_html($excerpt) . '</p>' : '')
                 . '</div></article>';
         }
         $html .= '</div>';
@@ -1094,8 +1373,9 @@ class WPD_Renderer
         }
         self::enqueue_icons();
 
-        $icon = function (string $name): string {
-            return '<span class="wpd-contacts__icon dashicons dashicons-' . $name . '" aria-hidden="true"></span>';
+        $show_icons = !array_key_exists('contacts_show_icons', $o) || !empty($o['contacts_show_icons']);
+        $icon = function (string $name) use ($show_icons): string {
+            return $show_icons ? '<span class="wpd-contacts__icon dashicons dashicons-' . $name . '" aria-hidden="true"></span>' : '';
         };
 
         $list = '';
@@ -1140,11 +1420,12 @@ class WPD_Renderer
 
         $button = '';
         $target = $v['page'] !== '' ? $v['page'] : ($v['email'] !== '' ? 'mailto:' . $v['email'] : '');
-        if ($target !== '' && esc_url($target) !== '') {
-            $button = '<a class="wpd-btn wpd-contacts__btn" href="' . esc_url($target) . '">Связаться &rarr;</a>';
+        $btn_text = array_key_exists('contacts_button_text', $o) ? trim((string) $o['contacts_button_text']) : 'Связаться';
+        if ($target !== '' && esc_url($target) !== '' && $btn_text !== '') {
+            $button = '<a class="wpd-btn wpd-contacts__btn" href="' . esc_url($target) . '">' . esc_html($btn_text) . ' &rarr;</a>';
         }
 
-        return '<section class="wpd-contacts">'
+        return self::look_open('section', 'wpd-contacts' . ($show_icons ? '' : ' wpd-contacts--noicons'), self::block_look($o, 'contacts'))
             . ($v['title'] !== '' ? '<h2 class="wpd-h2">' . esc_html($v['title']) . '</h2>' : '')
             . '<div class="wpd-contacts__box' . ($logo_html !== '' ? ' wpd-contacts__box--logo' : '') . '">' . $logo_html
             . '<ul class="wpd-contacts__list">' . $list . '</ul>' . $button . '</div></section>';

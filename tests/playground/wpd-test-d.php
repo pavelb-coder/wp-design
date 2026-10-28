@@ -85,7 +85,7 @@ check('sanitize: javascript button url dropped', $s['hero']['button_url'] === ''
 check('sanitize: image_id non-numeric -> 0', $s['hero']['image_id'] === 0);
 check('sanitize: bad style -> empty', $s['hero']['style'] === '');
 check('sanitize: empty stat row removed, junk skipped', count($s['stats']) === 2, (string) count($s['stats']));
-check('sanitize: stat extra keys dropped', array_keys($s['stats'][1]) === ['num', 'label']);
+check('sanitize: stat extra keys dropped (2.7.0 row keys)', array_keys($s['stats'][1]) === ['num', 'label', 'icon', 'color', 'hidden', 'from', 'to'], implode(',', array_keys($s['stats'][1])));
 check('sanitize: stat tags stripped', $s['stats'][1]['num'] === '7');
 check('sanitize: docs title stripped', $s['docs_title'] === 'Файлы');
 check('sanitize: javascript doc url -> empty', $s['docs'][0]['url'] === '');
@@ -118,7 +118,7 @@ check('save: meta stored', is_array(get_post_meta($pid, '_wpd_page', true)));
 check('save: apostrophe preserved (no extra slashes)', $saved['hero']['title'] === "Свой заголовок O'Reilly", $saved['hero']['title']);
 check('save: order', vis($saved['order'])[0] === 'faq');
 check('save: countdown hidden', vis($saved['hidden']) === ['countdown'], implode(',', $saved['hidden']));
-check('save: custom stats', $saved['stats'] === [['num' => '42', 'label' => 'финалиста']]);
+check('save: custom stats', count($saved['stats']) === 1 && $saved['stats'][0]['num'] === '42' && $saved['stats'][0]['label'] === 'финалиста' && empty($saved['stats'][0]['hidden']));
 check('save: faq rows kept but mode global', $saved['faq_mode'] === 'global');
 
 // Бэкслеш в тексте

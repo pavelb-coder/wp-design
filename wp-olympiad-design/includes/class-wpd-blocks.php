@@ -60,6 +60,7 @@ class WPD_Blocks
             'palette'   => [$o['primary'], $o['accent'], $o['dark'], $o['text'], $o['bg']],
             'iconSizes' => self::icon_sizes_data($o),
             'buttonsSettings' => self::buttons_settings_data($o),
+            'lookSettings'    => self::look_settings_data($o),
         ]) . ');', 'before');
     }
 
@@ -131,7 +132,7 @@ class WPD_Blocks
                     'linkText'   => ['type' => 'string', 'default' => (string) $o['countdown_link_text']],
                     'linkUrl'    => ['type' => 'string', 'default' => (string) $o['countdown_link_url']],
                     'linkNewTab' => ['type' => 'boolean', 'default' => (bool) $o['countdown_link_new_tab']],
-                ],
+                ] + self::look_attr_defs('countdown', $o),
                 'render'      => [__CLASS__, 'render_countdown'],
             ],
             'stats' => [
@@ -141,7 +142,7 @@ class WPD_Blocks
                 'keywords'    => ['цифры', 'статистика', 'stats'],
                 'attributes'  => [
                     'items' => ['type' => 'array', 'default' => WPD_Settings::stats_items($o['stats'])],
-                ],
+                ] + self::look_attr_defs('stats', $o),
                 'render'      => [__CLASS__, 'render_stats'],
             ],
             'docs' => [
@@ -153,7 +154,7 @@ class WPD_Blocks
                     'title' => ['type' => 'string', 'default' => (string) $o['docs_title']],
                     'items' => ['type' => 'array', 'default' => WPD_Settings::docs_items($o['docs'])],
                     'iconSize' => ['type' => 'integer', 'default' => (int) $o['docs_icon_size']],
-                ],
+                ] + self::look_attr_defs('docs', $o),
                 'render'      => [__CLASS__, 'render_docs'],
             ],
             'faq' => [
@@ -163,8 +164,8 @@ class WPD_Blocks
                 'keywords'    => ['faq', 'вопросы', 'аккордеон'],
                 'attributes'  => [
                     'title' => ['type' => 'string', 'default' => (string) $o['faq_title']],
-                    'items' => ['type' => 'array', 'default' => WPD_Settings::parse_faq($o['faq'])],
-                ],
+                    'items' => ['type' => 'array', 'default' => WPD_Settings::faq_items($o['faq'])],
+                ] + self::look_attr_defs('faq', $o),
                 'render'      => [__CLASS__, 'render_faq'],
             ],
             'slider' => [
@@ -181,7 +182,7 @@ class WPD_Blocks
                     'mobile'         => ['type' => 'boolean', 'default' => (bool) $o['slider_mobile']],
                     'mobileHeadings' => ['type' => 'boolean', 'default' => (bool) $o['slider_mobile_headings']],
                     'mobileTexts'    => ['type' => 'boolean', 'default' => (bool) $o['slider_mobile_texts']],
-                ],
+                ] + self::look_attr_defs('slider', $o),
                 'render'      => [__CLASS__, 'render_slider'],
             ],
             'buttons' => [
@@ -203,7 +204,7 @@ class WPD_Blocks
                 'attributes'  => [
                     'title' => ['type' => 'string', 'default' => (string) $o['cards_title']],
                     'items' => ['type' => 'array', 'default' => array_values((array) $o['cards'])],
-                ],
+                ] + self::look_attr_defs('cards', $o),
                 'render'      => [__CLASS__, 'render_cards'],
             ],
             'notice' => [
@@ -220,7 +221,7 @@ class WPD_Blocks
                     'preTitle' => ['type' => 'string', 'default' => (string) $o['notice_pre_title']],
                     'title'    => ['type' => 'string', 'default' => (string) $o['notice_title']],
                     'content'  => ['type' => 'string', 'default' => (string) $o['notice_content']],
-                ],
+                ] + self::look_attr_defs('notice', $o),
                 'render'      => [__CLASS__, 'render_notice'],
             ],
             'news' => [
@@ -234,7 +235,7 @@ class WPD_Blocks
                     'count'    => ['type' => 'integer', 'default' => (int) $o['news_count']],
                     'layout'   => ['type' => 'string', 'default' => (string) $o['news_layout']],
                     'more'     => ['type' => 'string', 'default' => (string) $o['news_more']],
-                ],
+                ] + self::look_attr_defs('news', $o),
                 'render'      => [__CLASS__, 'render_news'],
             ],
             'contacts' => [
@@ -254,7 +255,7 @@ class WPD_Blocks
                     'page'    => ['type' => 'string', 'default' => (string) $o['contact_page']],
                     'code'    => ['type' => 'string', 'default' => (string) $o['contact_code']],
                     'iconSize' => ['type' => 'integer', 'default' => (int) $o['contacts_icon_size']],
-                ],
+                ] + self::look_attr_defs('contacts', $o),
                 'render'      => [__CLASS__, 'render_contacts'],
             ],
         ];
@@ -334,6 +335,9 @@ class WPD_Blocks
             // 2.6.0: кнопки-ссылки — варианты списков и значения настроек (для атрибутов, совпадающих со значением по умолчанию)
             'buttonsOptions'  => self::buttons_options_data(),
             'buttonsSettings' => self::buttons_settings_data($o),
+            // 2.7.0: «Раскладка и вид» и свои параметры остальных блоков — описание полей и значения настроек
+            'lookOptions'     => self::look_options_data(),
+            'lookSettings'    => self::look_settings_data($o),
             // Список рубрик нужен только редактору; на сайте лишний запрос не делаем
             'categories'  => is_admin() ? self::categories() : [],
             'noticeLayouts' => WPD_Settings::field_map()['notice_layout']['options'],
@@ -544,6 +548,133 @@ class WPD_Blocks
         return $o;
     }
 
+    /** Имена атрибутов блока для общих параметров «Раскладки и вида» (2.7.0). */
+    const LOOK_ATTR_NAMES = [
+        'columns' => 'columns', 'columns_mobile' => 'columnsMobile', 'gap' => 'gap', 'align' => 'textAlign', 'variant' => 'variant',
+        'radius' => 'radius', 'text_size' => 'textSize', 'bg' => 'bgColor', 'accent' => 'accentColor', 'text_color' => 'textColor',
+    ];
+
+    /** Свои параметры блоков (2.7.0): атрибут → поле настроек. */
+    const LOOK_EXTRA_ATTRS = [
+        'countdown' => ['valueSize' => 'countdown_value_size'],
+        'stats'     => ['title' => 'stats_title', 'numSize' => 'stats_num_size'],
+        'docs'      => ['newTab' => 'docs_new_tab', 'showType' => 'docs_show_type'],
+        'faq'       => ['openFirst' => 'faq_open_first', 'single' => 'faq_single', 'numbered' => 'faq_numbered'],
+        'slider'    => ['interval' => 'slider_interval', 'captionPos' => 'slider_caption_pos'],
+        'cards'     => ['moreText' => 'cards_more_text', 'imageHeight' => 'cards_image_height'],
+        'notice'    => ['buttonText' => 'notice_button_text', 'from' => 'notice_from', 'to' => 'notice_to'],
+        'news'      => ['excerptWords' => 'news_excerpt_words', 'showImage' => 'news_show_image', 'showDate' => 'news_show_date', 'showExcerpt' => 'news_show_excerpt'],
+        'contacts'  => ['buttonText' => 'contacts_button_text', 'showIcons' => 'contacts_show_icons'],
+    ];
+
+    /** Атрибуты «Раскладки и вида» и своих параметров блока: атрибут → поле настроек. */
+    public static function look_attrs(string $slug): array
+    {
+        $out = [];
+        foreach (WPD_Settings::LOOK_BLOCKS[$slug] ?? [] as $k) {
+            $out[self::LOOK_ATTR_NAMES[$k]] = $slug . '_' . $k;
+        }
+        return $out + (self::LOOK_EXTRA_ATTRS[$slug] ?? []);
+    }
+
+    /** Тип атрибута по типу поля настроек. */
+    private static function attr_type(string $field_type): string
+    {
+        return $field_type === 'number' ? 'integer' : ($field_type === 'checkbox' ? 'boolean' : 'string');
+    }
+
+    /** Значение настройки в типе атрибута. */
+    private static function attr_value(string $field_type, $value)
+    {
+        return $field_type === 'number' ? (int) $value : ($field_type === 'checkbox' ? (bool) $value : (string) $value);
+    }
+
+    /** Определения атрибутов «Раскладки и вида» блока; значения по умолчанию — текущие настройки. */
+    private static function look_attr_defs(string $slug, array $o): array
+    {
+        $map = WPD_Settings::field_map();
+        $out = [];
+        foreach (self::look_attrs($slug) as $attr => $key) {
+            $out[$attr] = ['type' => self::attr_type($map[$key]['type']), 'default' => self::attr_value($map[$key]['type'], $o[$key])];
+        }
+        return $out;
+    }
+
+    /** Значения настроек «Раскладки и вида» для холста: блок → атрибут → значение (общие или свои для страницы). */
+    public static function look_settings_data(?array $o = null): array
+    {
+        $o   = $o ?? WPD_Settings::get();
+        $map = WPD_Settings::field_map();
+        $out = [];
+        foreach (array_keys(WPD_Settings::LOOK_BLOCKS) as $slug) {
+            foreach (self::look_attrs($slug) as $attr => $key) {
+                $out[$slug][$attr] = self::attr_value($map[$key]['type'], $o[$key]);
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Описание полей «Раскладки и вида» для боковой панели блоков: блок → атрибут → подпись, тип, варианты или границы,
+     * группа панели (look — раскладка и вид, colors — цвета, extra — параметры блока).
+     */
+    public static function look_options_data(): array
+    {
+        $map = WPD_Settings::field_map();
+        $out = [];
+        foreach (array_keys(WPD_Settings::LOOK_BLOCKS) as $slug) {
+            foreach (self::look_attrs($slug) as $attr => $key) {
+                $f = $map[$key];
+                $generic = substr($key, strlen($slug) + 1);
+                $group = in_array($generic, WPD_Settings::LOOK_BLOCKS[$slug], true)
+                    ? (in_array($generic, ['bg', 'accent', 'text_color'], true) ? 'colors' : 'look')
+                    : 'extra';
+                $d = ['label' => $f['label'], 'type' => $f['type'], 'group' => $group, 'help' => (string) ($f['desc'] ?? '')];
+                if ($f['type'] === 'select') {
+                    $d['options'] = $f['options'];
+                } elseif ($f['type'] === 'number') {
+                    $d['min'] = (int) $f['min'];
+                    $d['max'] = (int) $f['max'];
+                }
+                $out[$slug][$attr] = $d;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Подставляет атрибуты «Раскладки и вида» блока в настройки. Строки, цвета, списки, флажки и даты: присутствующий атрибут
+     * заменяет настройку; числа: больше 0 — заменяет, 0 — как в настройках. Значения списков и цветов проверяет рендерер.
+     */
+    public static function with_look_attrs(array $o, array $a, string $slug): array
+    {
+        $map = WPD_Settings::field_map();
+        foreach (self::look_attrs($slug) as $attr => $key) {
+            if (!array_key_exists($attr, $a) || !is_scalar($a[$attr])) {
+                continue;
+            }
+            switch ($map[$key]['type']) {
+                case 'number':
+                    if (is_numeric($a[$attr]) && (int) $a[$attr] > 0) {
+                        $o[$key] = max((int) $map[$key]['min'], min((int) $map[$key]['max'], (int) $a[$attr]));
+                    }
+                    break;
+                case 'checkbox':
+                    $o[$key] = $a[$attr] ? 1 : 0;
+                    break;
+                case 'datetime':
+                    $o[$key] = WPD_Settings::normalize_datetime((string) $a[$attr]);
+                    break;
+                case 'text':
+                    $o[$key] = sanitize_text_field((string) $a[$attr]);
+                    break;
+                default:
+                    $o[$key] = (string) $a[$attr];
+            }
+        }
+        return $o;
+    }
+
     /** Данные о размерах иконок для редактора: ключ блока → атрибут, переменная, границы, значение настроек. */
     public static function icon_sizes_data(?array $o = null): array
     {
@@ -602,7 +733,7 @@ class WPD_Blocks
     public static function render_countdown($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
+        $o = self::with_look_attrs(WPD_Settings::get(), $a, 'countdown');
         return self::wrap(WPD_Renderer::countdown_html($o, [
             'enabled'      => true,
             'date'         => self::str($a, 'date', $o['countdown_date']),
@@ -613,20 +744,20 @@ class WPD_Blocks
             'link_text'    => self::str($a, 'linkText', $o['countdown_link_text']),
             'link_url'     => self::str($a, 'linkUrl', $o['countdown_link_url']),
             'link_new_tab' => self::flag($a, 'linkNewTab', $o['countdown_link_new_tab']),
-        ]), $a, 'countdown');
+        ]), $a, 'countdown', $o);
     }
 
     public static function render_stats($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
-        return self::wrap(WPD_Renderer::stats_html($o, self::items($a, WPD_Settings::stats_items($o['stats']))), $a, 'stats');
+        $o = self::with_look_attrs(WPD_Settings::get(), $a, 'stats');
+        return self::wrap(WPD_Renderer::stats_html($o, self::items($a, WPD_Settings::stats_items($o['stats']))), $a, 'stats', $o);
     }
 
     public static function render_docs($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = self::with_icon_size(WPD_Settings::get(), $a, 'iconSize', 'docs_icon_size');
+        $o = self::with_look_attrs(self::with_icon_size(WPD_Settings::get(), $a, 'iconSize', 'docs_icon_size'), $a, 'docs');
         $items = self::items($a, WPD_Settings::docs_items($o['docs']));
         return self::wrap(WPD_Renderer::docs_html($o, $items, self::str($a, 'title', $o['docs_title'])), $a, 'docs', $o);
     }
@@ -634,9 +765,9 @@ class WPD_Blocks
     public static function render_faq($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
-        $items = self::items($a, WPD_Settings::parse_faq($o['faq']));
-        return self::wrap(WPD_Renderer::faq_html($o, $items, self::str($a, 'title', $o['faq_title'])), $a, 'faq');
+        $o = self::with_look_attrs(WPD_Settings::get(), $a, 'faq');
+        $items = self::items($a, WPD_Settings::faq_items($o['faq']));
+        return self::wrap(WPD_Renderer::faq_html($o, $items, self::str($a, 'title', $o['faq_title'])), $a, 'faq', $o);
     }
 
     /**
@@ -655,7 +786,7 @@ class WPD_Blocks
     public static function render_slider($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
+        $o = self::with_look_attrs(WPD_Settings::get(), $a, 'slider');
         return self::wrap(WPD_Renderer::slider_html($o, [
             'items'           => self::items($a, (array) $o['slides']),
             'height'          => self::num($a, 'height', $o['slider_height']),
@@ -665,7 +796,7 @@ class WPD_Blocks
             'mobile'          => self::flag($a, 'mobile', $o['slider_mobile']),
             'mobile_headings' => self::flag($a, 'mobileHeadings', $o['slider_mobile_headings']),
             'mobile_texts'    => self::flag($a, 'mobileTexts', $o['slider_mobile_texts']),
-        ]), $a, 'slider');
+        ]), $a, 'slider', $o);
     }
 
     public static function render_buttons($a): string
@@ -678,14 +809,14 @@ class WPD_Blocks
     public static function render_cards($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
-        return self::wrap(WPD_Renderer::cards_html($o, self::items($a, (array) $o['cards']), self::str($a, 'title', (string) $o['cards_title'])), $a, 'cards');
+        $o = self::with_look_attrs(WPD_Settings::get(), $a, 'cards');
+        return self::wrap(WPD_Renderer::cards_html($o, self::items($a, (array) $o['cards']), self::str($a, 'title', (string) $o['cards_title'])), $a, 'cards', $o);
     }
 
     public static function render_notice($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
+        $o = self::with_look_attrs(WPD_Settings::get(), $a, 'notice');
         return self::wrap(WPD_Renderer::notice_html($o, [
             'layout'    => self::str($a, 'layout', $o['notice_layout']),
             'image'     => self::str($a, 'image', $o['notice_image']),
@@ -695,26 +826,26 @@ class WPD_Blocks
             'pre_title' => self::str($a, 'preTitle', $o['notice_pre_title']),
             'title'     => self::str($a, 'title', $o['notice_title']),
             'content'   => self::str($a, 'content', $o['notice_content']),
-        ]), $a, 'notice');
+        ]), $a, 'notice', $o);
     }
 
     public static function render_news($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
+        $o = self::with_look_attrs(WPD_Settings::get(), $a, 'news');
         return self::wrap(WPD_Renderer::news_html($o, [
             'title'    => self::str($a, 'title', $o['news_title']),
             'category' => self::num($a, 'category', $o['news_category']),
             'count'    => self::num($a, 'count', $o['news_count']),
             'layout'   => self::str($a, 'layout', $o['news_layout']),
             'more'     => self::str($a, 'more', $o['news_more']),
-        ]), $a, 'news');
+        ]), $a, 'news', $o);
     }
 
     public static function render_contacts($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = self::with_icon_size(WPD_Settings::get(), $a, 'iconSize', 'contacts_icon_size');
+        $o = self::with_look_attrs(self::with_icon_size(WPD_Settings::get(), $a, 'iconSize', 'contacts_icon_size'), $a, 'contacts');
         $args = [];
         foreach (['title' => 'contacts_title', 'org' => 'contact_org', 'address' => 'contact_address', 'city' => 'contact_city',
                   'phone' => 'contact_phone', 'email' => 'contact_email', 'map' => 'contact_map', 'page' => 'contact_page',

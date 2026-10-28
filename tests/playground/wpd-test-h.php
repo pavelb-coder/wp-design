@@ -32,7 +32,7 @@ check('version >= 1.5.0', version_compare(WPD_VERSION, '1.5.0', '>='));
 
 /* 1. Поля и вкладки */
 $map = WPD_Settings::field_map();
-check('134 fields', count($map) === 134, (string) count($map));
+check('232 fields', count($map) === 232, (string) count($map));
 foreach (['slider', 'buttons', 'cards', 'notice', 'news', 'contacts'] as $tab) {
     check("tab $tab exists", isset(WPD_Settings::tabs()[$tab]));
 }
@@ -141,7 +141,9 @@ check('notice: image_text without text falls back to image', has(WPD_Renderer::n
 check('notice: image layout without image -> empty', WPD_Renderer::notice_html($o, ['layout' => 'image', 'title' => 'Т']) === '');
 check('notice: script stripped', !has(WPD_Renderer::notice_html($o, ['title' => 'Т', 'content' => '<script>x()</script>Ок']), '<script'));
 
-// Новости
+// Новости. 2.7.0: set_opts() сохраняет опцию полной санитизацией, где неотправленный флажок = 0,
+// поэтому новые флажки показа (по умолчанию включены) задаём явно
+$o = array_merge($o, ['news_show_image' => 1, 'news_show_date' => 1, 'news_show_excerpt' => 1]);
 $other = wp_insert_post(['post_title' => 'Чужая запись', 'post_status' => 'publish', 'post_content' => 'вне рубрики']);
 $news_ids = [];
 for ($i = 1; $i <= 3; $i++) {

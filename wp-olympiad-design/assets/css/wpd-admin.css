@@ -416,3 +416,46 @@
     color: #757575;
     font-size: 12px;
 }
+
+/* 2.7.0: дополнительные поля строк списков — под спойлером «Ещё» */
+.wpd-pe__row {
+    flex-wrap: wrap;
+}
+
+.wpd-pe__row.is-flagged {
+    border-left: 3px solid #dba617;
+}
+
+.wpd-pe__more {
+    flex: 1 1 100%;
+    font-size: 12px;
+}
+
+.wpd-pe__more > summary {
+    cursor: pointer;
+    color: #2271b1;
+}
+
+.wpd-pe__more-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    padding-top: 6px;
+}
+
+.wpd-pe__more-body .wpd-pe__wide {
+    flex: 1 1 220px;
+    width: auto;
+}
+
+.wpd-pe__hex {
+    width: 90px;
+}
+
+.wpd-pe__check,
+.wpd-pe__color,
+.wpd-pe__icon,
+.wpd-pe__dates {
+    white-space: nowrap;
+}

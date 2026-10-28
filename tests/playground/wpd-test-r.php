@@ -66,7 +66,7 @@ $global = WPD_Settings::get_global();
 
 /* 1. Группы переопределений */
 $groups = WPD_Page_Editor::groups();
-check('groups: nine groups in order', array_keys($groups) === ['page', 'hero', 'features', 'slider', 'buttons', 'cards', 'notice', 'news', 'contacts']);
+check('groups: twelve groups in order (2.7.0)', array_keys($groups) === ['page', 'hero', 'features', 'stats', 'docs', 'faq', 'slider', 'buttons', 'cards', 'notice', 'news', 'contacts']);
 $page_keys = WPD_Page_Editor::group_keys('page');
 check('page group: style, palette, colours, fonts', !array_diff(['design_style', 'palette', 'primary', 'accent', 'dark', 'text', 'bg', 'radius', 'google_fonts'], $page_keys));
 check('page group: look and behavior fields', !array_diff(['heading_underline', 'card_hover', 'hide_title'], $page_keys), implode(',', $page_keys));
@@ -329,7 +329,7 @@ $_POST = [];
 ob_start();
 WPD_Page_Editor::meta_box_html(get_post($pg));
 $mb = ob_get_clean();
-check('metabox: nine override groups', substr_count($mb, 'data-wpd-ovg=') === 9, (string) substr_count($mb, 'data-wpd-ovg='));
+check('metabox: twelve override groups', substr_count($mb, 'data-wpd-ovg=') === 12, (string) substr_count($mb, 'data-wpd-ovg='));
 check('metabox: group checkbox names', has($mb, 'name="wpd_page[ovg][page]"') && has($mb, 'name="wpd_page[ovg][contacts]"'));
 check('metabox: enabled groups checked', (bool) preg_match('/<input[^>]*name="wpd_page\[ovg\]\[page\]"[^>]*checked/', $mb) && (bool) preg_match('/<input[^>]*name="wpd_page\[ovg\]\[contacts\]"[^>]*checked/', $mb));
 check('metabox: disabled group not checked', !preg_match('/<input[^>]*name="wpd_page\[ovg\]\[slider\]"[^>]*checked/', $mb));

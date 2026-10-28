@@ -33,8 +33,8 @@ $per_tab = [];
 foreach ($tabs as $id => $t) {
     $per_tab[$id] = count(array_filter(WPD_Settings::field_map(), function ($f) use ($t) { return in_array($f['section'], $t['sections'], true); }));
 }
-check('fields per tab (2.6.0)',
-    $per_tab === ['design' => 30, 'hero' => 34, 'features' => 12, 'stats' => 1, 'docs' => 3, 'faq' => 2, 'slider' => 8, 'buttons' => 16, 'cards' => 2, 'notice' => 8, 'news' => 5, 'contacts' => 13, 'help' => 0], json_encode($per_tab));
+check('fields per tab (2.7.0)',
+    $per_tab === ['design' => 30, 'hero' => 34, 'features' => 20, 'stats' => 13, 'docs' => 15, 'faq' => 13, 'slider' => 16, 'buttons' => 16, 'cards' => 14, 'notice' => 17, 'news' => 19, 'contacts' => 25, 'help' => 0], json_encode($per_tab));
 check('help tab is last', array_key_last($tabs) === 'help');
 
 /* 2. Адреса */
@@ -57,12 +57,12 @@ update_option('wpd_settings', array_merge(WPD_Settings::defaults(), [
 WPD_Settings::flush_cache();
 
 $s = WPD_Settings::sanitize(['_tab' => 'stats', 'stats' => "5|новое"]);
-check('tab stats: stats updated', $s['stats'] === '5|новое');
+check('tab stats: stats updated (2.7.0: rows)', ($s['stats'][0]['num'] ?? '') === '5' && $s['stats'][0]['label'] === 'новое' && count($s['stats']) === 1);
 check('tab stats: color kept', $s['primary'] === '#0f766e');
 check('tab stats: checkboxes of other tabs kept', $s['countdown_enabled'] === 1 && $s['faq_search'] === 1 && $s['hide_title'] === 1);
 check('tab stats: hero text kept', $s['badge'] === 'Метка');
 check('_tab not stored', !array_key_exists('_tab', $s));
-check('all 134 keys returned', count($s) === 134);
+check('all 232 keys returned', count($s) === 232);
 
 $s = WPD_Settings::sanitize(['_tab' => 'features', 'faq_search' => '1', 'countdown_date' => '2031-01-01T10:00']);
 check('tab features: unchecked checkbox -> 0', $s['countdown_enabled'] === 0 && $s['stats_animate'] === 0);
@@ -73,7 +73,7 @@ check('tab features: hide_title (design tab) kept', $s['hide_title'] === 1);
 $s = WPD_Settings::sanitize(['_tab' => 'design', 'primary' => 'javascript:x']);
 check('tab design: bad color -> default', $s['primary'] === '#1d4ed8');
 check('tab design: hide_title omitted -> 0', $s['hide_title'] === 0);
-check('tab design: stats kept', $s['stats'] === '1|старое');
+check('tab design: stats kept (legacy text -> rows)', ($s['stats'][0]['num'] ?? '') === '1' && $s['stats'][0]['label'] === 'старое' && count($s['stats']) === 1);
 
 $s = WPD_Settings::sanitize(['_tab' => 'bogus', 'primary' => '#000000']);
 check('unknown tab -> full mode (others default)', $s['stats'] === WPD_Settings::field_map()['stats']['default'] && $s['countdown_enabled'] === 0);
@@ -88,7 +88,7 @@ WPD_Settings::flush_cache();
 update_option('wpd_settings', ['_tab' => 'hero', 'badge' => 'Финал', 'hero_style' => 'light']);
 $saved = get_option('wpd_settings');
 check('first save through tab: badge stored', ($saved['badge'] ?? '') === 'Финал');
-check('first save through tab: others defaults', ($saved['primary'] ?? '') === '#1d4ed8' && count($saved) === 134);
+check('first save through tab: others defaults', ($saved['primary'] ?? '') === '#1d4ed8' && count($saved) === 232);
 update_option('wpd_settings', ['_tab' => 'docs', 'docs' => 'A|https://example.com/a.pdf', 'docs_title' => 'Файлы']);
 $saved = get_option('wpd_settings');
 check('second save other tab: hero kept', $saved['badge'] === 'Финал' && $saved['hero_style'] === 'light');

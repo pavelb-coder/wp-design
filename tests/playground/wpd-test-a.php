@@ -17,6 +17,9 @@ function check(string $name, bool $cond, string $detail = ''): void {
     if (!$cond) { $fails++; }
 }
 
+// 2.7.0: списки статистики, документов и FAQ — массивы строк; для проверок текста склеиваем значения
+function flat($v): string { return is_array($v) ? implode("\n", array_map('flat', $v)) : (string) $v; }
+
 // 0. Синтаксис всех PHP-файлов
 $plugin_dir = WP_PLUGIN_DIR . '/wp-olympiad-design';
 $files = array_merge(
@@ -63,7 +66,7 @@ check('body_class untouched outside singular', WPD_Renderer::body_class(['x']) =
 // 2. Дефолты и количество полей
 delete_option('wpd_settings');
 $defaults = WPD_Settings::defaults();
-check('defaults count = 134', count($defaults) === 134, (string) count($defaults));
+check('defaults count = 232', count($defaults) === 232, (string) count($defaults));
 check('get() returns defaults when empty', WPD_Settings::get()['primary'] === '#1d4ed8');
 
 $out = do_shortcode('[wpd_page]');
@@ -97,17 +100,17 @@ check('font has no CSS-breaking chars', strpos($bad['font'], '{') === false && s
 check('hero_title tags stripped', strpos($bad['hero_title'], '<img') === false);
 check('javascript: url rejected', $bad['hero_button_url'] === '', $bad['hero_button_url']);
 check('https image url kept', $bad['hero_image_url'] === 'https://example.com/i.jpg');
-check('faq strips script tag', stripos($bad['faq'], '<script') === false);
-check('faq strips onclick attr', stripos($bad['faq'], 'onclick') === false);
-check('faq keeps <a href>', strpos($bad['faq'], '<a href="https://vk.com/x">') !== false, $bad['faq']);
-check('faq keeps <b> removed (not allowed)', strpos($bad['faq'], '<b>') === false);
+check('faq strips script tag', stripos(flat($bad['faq']), '<script') === false);
+check('faq strips onclick attr', stripos(flat($bad['faq']), 'onclick') === false);
+check('faq keeps <a href>', strpos(flat($bad['faq']), '<a href="https://vk.com/x">') !== false, flat($bad['faq']));
+check('faq keeps <b> removed (not allowed)', strpos(flat($bad['faq']), '<b>') === false);
 check('hide_title checkbox on -> 1', $bad['hide_title'] === 1);
 
 $off = WPD_Settings::sanitize(['primary' => '#000000']);
 check('missing checkbox -> 0', $off['hide_title'] === 0);
 check('missing text field -> default', $off['hero_title'] === WPD_Settings::field_map()['hero_title']['default']);
-check('sanitize([]) returns all keys', count(WPD_Settings::sanitize([])) === 134);
-check('sanitize(non-array) safe', count(WPD_Settings::sanitize('garbage')) === 134);
+check('sanitize([]) returns all keys', count(WPD_Settings::sanitize([])) === 232);
+check('sanitize(non-array) safe', count(WPD_Settings::sanitize('garbage')) === 232);
 
 // 4. Парсеры
 $pairs = WPD_Settings::parse_pairs("a|b\r\nc|d\r\n\r\n  e  \n");
