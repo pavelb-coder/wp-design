@@ -140,6 +140,9 @@
             value: read(name) || '',
             onChange: function (v) { write(name, v); props.bump(); },
             help: props.help,
+            // 2.9.0: подсказки шрифтов — список wpd-font-list из панели «Блоки олимпиады»
+            list: props.list,
+            autoComplete: props.list ? 'off' : undefined,
             __nextHasNoMarginBottom: true
         });
     }
@@ -271,7 +274,13 @@
                     el(ColorField, { name: o('dark'), bump: bump })
                 ),
                 el(NumberField, { name: o('radius'), bump: bump }),
-                el(TextField, { name: o('font_heading'), bump: bump, help: 'Например: Unbounded, sans-serif. Пусто — основной шрифт.' }),
+                el(TextField, { name: o('font'), bump: bump, list: 'wpd-font-list', help: 'Основной шрифт страницы.' }),
+                el(TextField, { name: o('font_heading'), bump: bump, list: 'wpd-font-list', help: 'Например: Unbounded, sans-serif. Пусто — основной шрифт.' }),
+                // 2.9.0: шрифты элементов; файлы шрифтов и ссылки сервисов — в панели «Блоки олимпиады»
+                el(TextField, { name: o('font_hero'), bump: bump, list: 'wpd-font-list', help: 'Пусто — шрифт заголовков.' }),
+                el(TextField, { name: o('font_button'), bump: bump, list: 'wpd-font-list' }),
+                el(TextField, { name: o('font_numbers'), bump: bump, list: 'wpd-font-list',
+                    help: 'Свои файлы шрифтов и ссылки на шрифтовые сервисы для страницы — в панели «Блоки олимпиады» под записью.' }),
                 el(SelectField, { name: o('heading_weight'), bump: bump }),
                 el(NumberField, { name: o('font_size'), bump: bump }),
                 el(NumberField, { name: o('content_width'), bump: bump }),

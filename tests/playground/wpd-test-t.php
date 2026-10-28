@@ -64,8 +64,8 @@ $keys = array_keys($map);
 /* 1. Поля */
 $layout_keys = ['buttons_title', 'buttons_columns', 'buttons_columns_mobile', 'buttons_gap', 'buttons_height', 'buttons_align'];
 $look_keys   = ['buttons_layout', 'buttons_variant', 'buttons_radius', 'buttons_text_size', 'buttons_bg', 'buttons_icon_color', 'buttons_text_color', 'buttons_hover_color'];
-check('fields: 232 in total', count($map) === 232, (string) count($map));
-check('fields: 226 plain + 6 repeaters', count(array_filter($map, function ($f) { return $f['type'] !== 'repeater'; })) === 226);
+check('fields: 253 in total', count($map) === 253, (string) count($map));
+check('fields: 244 plain + 9 repeaters', count(array_filter($map, function ($f) { return $f['type'] !== 'repeater'; })) === 244);
 check('fields: layout section fields', count(array_filter($layout_keys, function ($k) use ($map) { return isset($map[$k]) && $map[$k]['section'] === 'buttons_layout'; })) === 6);
 check('fields: look section fields', count(array_filter($look_keys, function ($k) use ($map) { return isset($map[$k]) && $map[$k]['section'] === 'buttons_look'; })) === 8);
 $pos = array_flip($keys);

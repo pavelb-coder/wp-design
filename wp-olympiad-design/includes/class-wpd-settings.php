@@ -104,10 +104,12 @@ class WPD_Settings
         return [
             'colors'   => 'Цвета и шрифт',
             'look'     => 'Типографика и вид',
+            'fonts'    => 'Свои шрифты',
             'code'     => 'Шрифты Google и свой CSS',
             'hero'     => 'Текст и кнопки',
             'hero_image' => 'Изображение',
             'hero_look'  => 'Вид главного блока',
+            'hero_logo'  => 'Логотип',
             'features' => 'Возможности',
             'countdown_look' => 'Вид таймера',
             'stats'    => 'Статистика',
@@ -130,6 +132,8 @@ class WPD_Settings
             'news_look'  => 'Раскладка и вид',
             'contacts' => 'Контакты',
             'contacts_look' => 'Раскладка и вид',
+            'partners' => 'Логотипы партнёров',
+            'partners_look' => 'Раскладка и вид',
         ];
     }
 
@@ -139,8 +143,8 @@ class WPD_Settings
     public static function tabs(): array
     {
         return [
-            'design'   => ['title' => 'Оформление', 'sections' => ['colors', 'look', 'behavior', 'code']],
-            'hero'     => ['title' => 'Главный блок', 'sections' => ['hero', 'hero_image', 'hero_look']],
+            'design'   => ['title' => 'Оформление', 'sections' => ['colors', 'look', 'fonts', 'behavior', 'code']],
+            'hero'     => ['title' => 'Главный блок', 'sections' => ['hero', 'hero_image', 'hero_look', 'hero_logo']],
             'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features', 'countdown_look']],
             'stats'    => ['title' => 'Статистика', 'sections' => ['stats', 'stats_look']],
             'docs'     => ['title' => 'Документы', 'sections' => ['docs', 'docs_look']],
@@ -151,6 +155,7 @@ class WPD_Settings
             'notice'   => ['title' => 'Объявление', 'sections' => ['notice', 'notice_look']],
             'news'     => ['title' => 'Новости', 'sections' => ['news', 'news_look']],
             'contacts' => ['title' => 'Контакты', 'sections' => ['contacts', 'contacts_look']],
+            'partners' => ['title' => 'Партнёры', 'sections' => ['partners', 'partners_look']],
             'help'     => ['title' => 'Справка', 'sections' => []],
         ];
     }
@@ -314,6 +319,19 @@ class WPD_Settings
                                   'options' => ['left' => 'Слева', 'center' => 'По центру']],
             'hero_text_width' => ['label' => 'Максимальная ширина текста, px', 'type' => 'number', 'section' => 'hero_look', 'default' => 0, 'min' => 0, 'max' => 1200,
                                   'desc' => '0 — автоматически. Например, 600 — чтобы строки не растягивались на широком блоке.'],
+
+            // Логотип в главном блоке (2.9.0)
+            'hero_logo'        => ['label' => 'Логотип', 'type' => 'image', 'section' => 'hero_logo', 'default' => '',
+                                   'desc' => 'PNG, WebP или SVG с прозрачным фоном. SVG могут загружать только администраторы; скрипты из файла удаляются.'],
+            'hero_logo_dark'   => ['label' => 'Логотип для тёмного фона', 'type' => 'image', 'section' => 'hero_logo', 'default' => '',
+                                   'desc' => 'Выводится вместо основного на тёмном фоне: стили «Тёмный» и «Градиент», тёмный свой цвет, фото с затемнением. Пусто — основной логотип.'],
+            'hero_logo_pos'    => ['label' => 'Расположение', 'type' => 'select', 'section' => 'hero_logo', 'default' => 'above',
+                                   'options' => ['above' => 'Над заголовком', 'beside' => 'Рядом с заголовком (слева)']],
+            'hero_logo_height' => ['label' => 'Высота логотипа, px', 'type' => 'number', 'section' => 'hero_logo', 'default' => 56, 'min' => 16, 'max' => 240],
+            'hero_logo_alt'    => ['label' => 'Описание логотипа (alt)', 'type' => 'text', 'section' => 'hero_logo', 'default' => '',
+                                   'desc' => 'Например, название организации. Пусто — логотип считается декоративным.'],
+            'hero_logo_url'    => ['label' => 'Ссылка с логотипа', 'type' => 'url', 'section' => 'hero_logo', 'default' => '',
+                                   'desc' => 'Необязательно. Сайт организации открывается в новой вкладке.'],
             'hero_title_size' => ['label' => 'Размер заголовка', 'type' => 'select', 'section' => 'hero_look', 'default' => 'normal',
                                   'options' => ['small' => 'Меньше', 'normal' => 'Обычный', 'large' => 'Крупнее']],
 
@@ -415,6 +433,31 @@ class WPD_Settings
                                'desc' => 'По одному на строку: название и, через двоеточие, насыщенности. Например: Montserrat:400,700 или PT Serif. До 5 шрифтов. Подключаются с fonts.googleapis.com там, где выводятся блоки плагина; затем укажите шрифт в полях «Шрифт» выше.'],
             'custom_css'   => ['label' => 'Свой CSS', 'type' => 'css', 'section' => 'code', 'default' => '',
                                'desc' => 'Добавляется после стилей плагина на сайте и в редакторе блоков. Пишите селекторы с .wpd-page, например: .wpd-page .wpd-hero__title { letter-spacing: -0.02em; }'],
+
+            // Свои шрифты (2.9.0): файлы из медиатеки, таблицы стилей сервисов и шрифты отдельных элементов
+            'font_files'   => ['label' => 'Файлы шрифтов', 'type' => 'repeater', 'section' => 'fonts', 'default' => [], 'max' => 24,
+                               'item' => 'Начертание', 'add' => 'Добавить файл шрифта',
+                               'fields' => [
+                                   'family' => ['label' => 'Название шрифта (font-family)', 'type' => 'text'],
+                                   'url'    => ['label' => 'Файл WOFF2, WOFF, TTF или OTF', 'type' => 'file'],
+                                   'weight' => ['label' => 'Насыщенность', 'type' => 'select', 'default' => '400', 'options' => self::FONT_WEIGHTS],
+                                   'style'  => ['label' => 'Начертание', 'type' => 'select', 'default' => 'normal',
+                                                'options' => ['normal' => 'Прямое', 'italic' => 'Курсив']],
+                               ],
+                               'desc' => 'Каждая строка — один файл (одно начертание). Строки с одним названием составляют семейство: например, «Golos Text» 400 и 700. Загружать файлы шрифтов в медиатеку могут только администраторы. Затем укажите название в полях «Шрифт» — оно появится в подсказках.'],
+            'font_links'   => ['label' => 'Таблицы стилей шрифтовых сервисов', 'type' => 'repeater', 'section' => 'fonts', 'default' => [], 'max' => 5,
+                               'item' => 'Таблица стилей', 'add' => 'Добавить ссылку',
+                               'fields' => [
+                                   'url'      => ['label' => 'Адрес CSS (только https)', 'type' => 'url'],
+                                   'families' => ['label' => 'Названия шрифтов через запятую — для подсказок', 'type' => 'text'],
+                               ],
+                               'desc' => 'Ссылка на CSS из Adobe Fonts (https://use.typekit.net/….css), Fontshare, Bunny Fonts, ParaType и других сервисов. Подключается там же, где шрифты Google.'],
+            'font_hero'    => ['label' => 'Шрифт заголовка главного блока', 'type' => 'font', 'section' => 'fonts', 'default' => '', 'allow_empty' => true,
+                               'desc' => 'Пусто — шрифт заголовков.'],
+            'font_button'  => ['label' => 'Шрифт кнопок', 'type' => 'font', 'section' => 'fonts', 'default' => '', 'allow_empty' => true,
+                               'desc' => 'Все кнопки плагина. Пусто — основной шрифт.'],
+            'font_numbers' => ['label' => 'Шрифт цифр', 'type' => 'font', 'section' => 'fonts', 'default' => '', 'allow_empty' => true,
+                               'desc' => 'Цифры статистики и таймера. Пусто — основной шрифт.'],
 
             // Слайдер
             'slides' => ['label' => 'Слайды', 'type' => 'repeater', 'section' => 'slider', 'default' => [], 'max' => 10,
@@ -576,10 +619,38 @@ class WPD_Settings
                                   'options' => ['auto' => 'Встроенный «Кванториум Красноярск» — только в стиле «Мягкий градиент»', 'builtin' => 'Встроенный «Кванториум Красноярск» — всегда',
                                                 'custom' => 'Свой (адрес ниже)', 'none' => 'Не показывать'],
                                   'desc' => 'Выводится вверху блока контактов, со ссылкой организации, если она задана.'],
-            'contact_logo_url' => ['label' => 'Свой логотип (URL)', 'type' => 'url', 'section' => 'contacts', 'default' => '',
-                                  'desc' => 'Для варианта «Свой». Лучше PNG, WebP или SVG с прозрачным фоном.'],
+            'contact_logo_url' => ['label' => 'Свой логотип', 'type' => 'image', 'section' => 'contacts', 'default' => '',
+                                  'desc' => 'Для варианта «Свой». Лучше PNG, WebP или SVG с прозрачным фоном (SVG — только администраторы).'],
+            'contact_logo_height' => ['label' => 'Высота логотипа, px', 'type' => 'number', 'section' => 'contacts', 'default' => 0, 'min' => 0, 'max' => 200,
+                                      'desc' => '0 — по умолчанию. От 24 до 200.'],
             'contacts_icon_size' => ['label' => 'Размер иконок, px', 'type' => 'number', 'section' => 'contacts', 'default' => 0, 'min' => 0, 'max' => 64,
                                      'desc' => '0 — по умолчанию (24 px). Иконки адреса, телефона, e-mail и организации. От 12 до 64.'],
+
+            // Логотипы партнёров (2.9.0)
+            'partners_title'   => ['label' => 'Заголовок блока', 'type' => 'text', 'section' => 'partners', 'default' => 'Партнёры'],
+            'partners'         => ['label' => 'Логотипы', 'type' => 'repeater', 'section' => 'partners', 'default' => [], 'max' => 40,
+                                   'item' => 'Партнёр', 'add' => 'Добавить партнёра',
+                                   'fields' => [
+                                       'logo'    => ['label' => 'Логотип', 'type' => 'image'],
+                                       'name'    => ['label' => 'Название', 'type' => 'text'],
+                                       'url'     => ['label' => 'Ссылка', 'type' => 'url'],
+                                       'new_tab' => ['label' => 'В новой вкладке', 'type' => 'checkbox'],
+                                       'hidden'  => ['label' => 'Скрыть', 'type' => 'checkbox'],
+                                   ],
+                                   'desc' => 'Название — подпись и описание логотипа (alt). Строка без логотипа выводится как название текстом. Нет строк — блок не выводится.'],
+            'partners_layout'  => ['label' => 'Раскладка', 'type' => 'select', 'section' => 'partners_look', 'default' => 'grid',
+                                   'options' => ['grid' => 'Сетка', 'strip' => 'Лента в одну строку']],
+            'partners_columns' => ['label' => 'Колонок в сетке', 'type' => 'select', 'section' => 'partners_look', 'default' => '',
+                                   'options' => ['' => 'Авто', '2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6']],
+            'partners_speed'   => ['label' => 'Прокрутка ленты', 'type' => 'select', 'section' => 'partners_look', 'default' => 'normal',
+                                   'options' => ['none' => 'Без прокрутки (листается вручную)', 'slow' => 'Медленная', 'normal' => 'Обычная', 'fast' => 'Быстрая'],
+                                   'desc' => 'Для раскладки «Лента». Прокрутка останавливается при наведении и отключается, если в системе включено уменьшение движения.'],
+            'partners_height'  => ['label' => 'Высота логотипов, px', 'type' => 'number', 'section' => 'partners_look', 'default' => 64, 'min' => 24, 'max' => 200],
+            'partners_gray'    => ['label' => 'Чёрно-белые логотипы', 'type' => 'checkbox', 'section' => 'partners_look', 'default' => 1,
+                                   'desc' => 'Цвет появляется при наведении и фокусе.'],
+            'partners_cards'   => ['label' => 'Логотипы на карточках', 'type' => 'checkbox', 'section' => 'partners_look', 'default' => 1,
+                                   'desc' => 'Белые карточки со скруглением; выключено — логотипы прямо на фоне.'],
+            'partners_names'   => ['label' => 'Подписи под логотипами', 'type' => 'checkbox', 'section' => 'partners_look', 'default' => 0],
         ];
     }
 
@@ -862,8 +933,16 @@ class WPD_Settings
                         continue 2;
                     case 'url':
                     case 'image':
+                    case 'file':
                         $clean[$sub] = esc_url_raw(trim($raw));
+                        if ($key === 'font_links' && stripos($clean[$sub], 'https://') !== 0) {
+                            $clean[$sub] = ''; // 2.9.0: таблицы стилей шрифтов — только https
+                        }
                         break;
+                    case 'select':
+                        // 2.9.0: значение из списка; выбор сам по себе не делает строку непустой
+                        $clean[$sub] = isset($def['options'][$raw]) ? $raw : (string) ($def['default'] ?? array_key_first($def['options']));
+                        continue 2;
                     case 'color_opt':
                         $clean[$sub] = (string) sanitize_hex_color(trim($raw));
                         continue 2;
@@ -1098,7 +1177,8 @@ class WPD_Settings
                 break;
 
             case 'font':
-                $value = trim((string) preg_replace('/[^A-Za-z0-9 ,\'"\-]/', '', $raw));
+                // 2.9.0: названия своих шрифтов могут быть кириллицей
+                $value = trim((string) preg_replace('/[^\p{L}\p{N} ,\'"\-_]/u', '', wp_check_invalid_utf8($raw)));
                 $v = $value !== '' || !empty($field['allow_empty']) ? $value : $field['default'];
                 break;
 
@@ -1141,6 +1221,12 @@ class WPD_Settings
         ];
         if ((string) $o['font_heading'] !== '') {
             $vars['--wpd-font-heading'] = (string) $o['font_heading'];
+        }
+        // 2.9.0: шрифты элементов
+        foreach (self::ELEMENT_FONTS as $key => $pair) {
+            if ((string) ($o[$key] ?? '') !== '') {
+                $vars[$pair[0]] = (string) $o[$key];
+            }
         }
         if ((int) $o['font_size'] !== 16) {
             $vars['--wpd-size'] = (int) $o['font_size'] . 'px';
@@ -1222,6 +1308,12 @@ class WPD_Settings
         }
         if (empty($o['card_hover'])) {
             $classes[] = 'wpd-page--no-hover';
+        }
+        // 2.9.0: шрифты элементов
+        foreach (self::ELEMENT_FONTS as $key => $pair) {
+            if ((string) ($o[$key] ?? '') !== '') {
+                $classes[] = $pair[1];
+            }
         }
         // 2.3.0: стиль оформления
         if (($o['design_style'] ?? '') !== 'classic' && isset(self::DESIGN_STYLES[$o['design_style'] ?? ''])) {
@@ -1378,6 +1470,112 @@ class WPD_Settings
 
     /** Поля, которые до 2.7.0 были текстовыми (строки «число|подпись», «название|ссылка», блоки FAQ). */
     const LEGACY_TEXT = ['stats', 'docs', 'faq'];
+
+    /** Шрифты элементов (2.9.0): поле → CSS-переменная и класс контейнера. */
+    const ELEMENT_FONTS = ['font_hero' => ['--wpd-font-hero', 'wpd-ff-hero'], 'font_button' => ['--wpd-font-btn', 'wpd-ff-btn'],
+                           'font_numbers' => ['--wpd-font-num', 'wpd-ff-num']];
+
+    /** Насыщенности файла шрифта (2.9.0); «100 900» — переменный шрифт. */
+    const FONT_WEIGHTS = ['100' => '100 — тонкая', '200' => '200', '300' => '300 — светлая', '400' => '400 — обычная', '500' => '500 — средняя',
+                          '600' => '600 — полужирная', '700' => '700 — жирная', '800' => '800', '900' => '900 — чёрная',
+                          '100 900' => 'Переменный шрифт (100–900)'];
+
+    /** Форматы файлов шрифтов для @font-face. */
+    const FONT_FORMATS = ['woff2' => 'woff2', 'woff' => 'woff', 'ttf' => 'truetype', 'otf' => 'opentype'];
+
+    /** Безопасное название семейства для CSS: буквы, цифры, пробел, дефис и подчёркивание. */
+    public static function font_family_name(string $raw): string
+    {
+        $name = (string) preg_replace('/[^\p{L}\p{N} \-_]/u', '', wp_check_invalid_utf8($raw));
+        return trim((string) preg_replace('/\s+/', ' ', $name));
+    }
+
+    /**
+     * Правила @font-face для файлов шрифтов (2.9.0). Строки без названия или с файлом не того типа пропускаются.
+     */
+    public static function font_face_css(?array $o = null): string
+    {
+        $o   = $o ?? self::get();
+        $css = '';
+        foreach (is_array($o['font_files'] ?? null) ? $o['font_files'] : [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $family = self::font_family_name((string) ($row['family'] ?? ''));
+            $url    = esc_url_raw(trim((string) ($row['url'] ?? '')));
+            $ext    = strtolower((string) pathinfo((string) wp_parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
+            if ($family === '' || $url === '' || !isset(self::FONT_FORMATS[$ext])) {
+                continue;
+            }
+            $weight = isset(self::FONT_WEIGHTS[(string) ($row['weight'] ?? '')]) ? (string) $row['weight'] : '400';
+            $style  = ($row['style'] ?? '') === 'italic' ? 'italic' : 'normal';
+            // Кавычки, скобки и обратная косая черта кодируются, чтобы адрес не вышел за пределы url("…")
+            $safe = strtr($url, ['"' => '%22', "'" => '%27', '(' => '%28', ')' => '%29', '\\' => '%5C', ' ' => '%20']);
+            $css .= '@font-face{font-family:"' . $family . '";src:url("' . $safe . '") format("' . self::FONT_FORMATS[$ext] . '");'
+                . 'font-weight:' . $weight . ';font-style:' . $style . ';font-display:swap;}' . "\n";
+        }
+        return $css;
+    }
+
+    /** Адреса таблиц стилей шрифтовых сервисов (2.9.0): только https, без повторов. */
+    public static function font_link_urls(?array $o = null): array
+    {
+        $o   = $o ?? self::get();
+        $out = [];
+        foreach (is_array($o['font_links'] ?? null) ? $o['font_links'] : [] as $row) {
+            $url = is_array($row) ? esc_url_raw(trim((string) ($row['url'] ?? ''))) : '';
+            if ($url !== '' && stripos($url, 'https://') === 0 && !in_array($url, $out, true)) {
+                $out[] = $url;
+            }
+        }
+        return array_slice($out, 0, 5);
+    }
+
+    /**
+     * Названия шрифтов для подсказок в полях «Шрифт» (2.9.0): свои файлы, сервисы, Google Fonts и системные наборы.
+     */
+    public static function font_suggestions(?array $o = null): array
+    {
+        $o   = $o ?? self::get();
+        $out = [];
+        $add = function (string $family, string $fallback) use (&$out) {
+            $family = self::font_family_name($family);
+            if ($family !== '') {
+                $value = (preg_match('/\s/', $family) ? '"' . $family . '"' : $family) . ', ' . $fallback;
+                $out[$value] = $value;
+            }
+        };
+        foreach (is_array($o['font_files'] ?? null) ? $o['font_files'] : [] as $row) {
+            $add(is_array($row) ? (string) ($row['family'] ?? '') : '', 'sans-serif');
+        }
+        foreach (is_array($o['font_links'] ?? null) ? $o['font_links'] : [] as $row) {
+            foreach (explode(',', is_array($row) ? (string) ($row['families'] ?? '') : '') as $family) {
+                $add(trim($family, " \t\"'"), 'sans-serif');
+            }
+        }
+        foreach (self::google_font_lines((string) ($o['google_fonts'] ?? '')) as $line) {
+            $add(explode(':', $line, 2)[0], 'sans-serif');
+        }
+        foreach (['-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', 'Arial, Helvetica, sans-serif',
+                  'Georgia, "Times New Roman", serif', '"PT Sans", Arial, sans-serif', 'Verdana, Geneva, sans-serif',
+                  'ui-monospace, Consolas, monospace'] as $stack) {
+            $out[$stack] = $stack;
+        }
+        return array_values($out);
+    }
+
+    /** Список подсказок для полей «Шрифт» (выводится один раз на странице). */
+    public static function font_datalist(?array $o = null): string
+    {
+        $html = '<datalist id="wpd-font-list">';
+        foreach (self::font_suggestions($o) as $value) {
+            $html .= '<option value="' . esc_attr($value) . '"></option>';
+        }
+        return $html . '</datalist>';
+    }
+
+    /** @var bool Выведен ли список подсказок шрифтов */
+    private static $font_list_done = false;
 
     /** Строки списка из старого текстового формата. */
     public static function legacy_rows(string $key, string $text): array
@@ -1760,11 +1958,25 @@ class WPD_Settings
                     <tr><td><code>[wpd_notice]</code></td><td>объявление</td></tr>
                     <tr><td><code>[wpd_news]</code></td><td>последние новости из рубрики</td></tr>
                     <tr><td><code>[wpd_contacts]</code></td><td>контакты: название организации со ссылкой, адрес, телефон, e-mail</td></tr>
+                    <tr><td><code>[wpd_partners]</code></td><td>логотипы партнёров: сетка или лента</td></tr>
                 </tbody>
             </table>
 
+            <h2>Свои шрифты и логотипы</h2>
+            <ul style="list-style:disc;margin-left:20px">
+                <li><strong>Файлы шрифтов</strong> (WOFF2, WOFF, TTF, OTF): вкладка «Оформление», раздел «Свои шрифты» — по строке на начертание.
+                    Плагин создаёт правила <code>@font-face</code> с <code>font-display: swap</code>. Затем впишите название в поля «Шрифт» — оно появится в подсказках.</li>
+                <li><strong>Шрифтовые сервисы</strong> (Adobe Fonts, Fontshare, Bunny Fonts, ParaType и другие): ссылка на CSS сервиса, только https.</li>
+                <li><strong>Шрифты элементов:</strong> отдельные шрифты для заголовка главного блока, кнопок и цифр статистики и таймера.
+                    У страницы — в панели «Блоки олимпиады» и в боковой панели редактора; у блока — панель «Шрифты» в его настройках.</li>
+                <li><strong>Логотипы:</strong> в главном блоке (над заголовком или рядом, с вариантом для тёмного фона), в контактах (свой вместо встроенного)
+                    и в блоке «Логотипы партнёров».</li>
+                <li><strong>SVG и файлы шрифтов</strong> загружают в медиатеку только администраторы. Из SVG при загрузке удаляются скрипты,
+                    обработчики событий, внешние ссылки и посторонние элементы; файл с DOCTYPE-сущностями или повреждённый не загружается.</li>
+            </ul>
+
             <h2>Главная страница из компонентов</h2>
-            <p>Слайдер, кнопки-ссылки, карточки, объявление, новости и контакты удобно собрать на главной странице сайта:</p>
+            <p>Слайдер, кнопки-ссылки, карточки, объявление, новости, контакты и логотипы партнёров удобно собрать на главной странице сайта:</p>
             <ol>
                 <li>Заполните вкладки «Слайдер», «Кнопки-ссылки», «Карточки», «Объявление», «Новости» и «Контакты».</li>
                 <li>Вставьте шаблон <strong>«Паттерны → Олимпиада → Главная страница»</strong> в редакторе блоков — или включите
@@ -1819,8 +2031,20 @@ class WPD_Settings
     /**
      * Поле изображения: адрес + выбор из медиатеки + превью.
      */
-    private static function image_input(string $id, string $name, string $value): string
+    private static function image_input(string $id, string $name, string $value, string $kind = 'image'): string
     {
+        if ($kind === 'file') {
+            // 2.9.0: файл шрифта из медиатеки — без превью
+            return sprintf(
+                '<span class="wpd-img wpd-img--file" data-wpd-s-media data-wpd-s-kind="file">'
+                . '<input type="url" id="%1$s" name="%2$s" value="%3$s" class="regular-text code" placeholder="https://…/font.woff2" data-wpd-s-url>'
+                . ' <button type="button" class="button" data-wpd-s-pick>Медиатека…</button>'
+                . '</span>',
+                esc_attr($id),
+                esc_attr($name),
+                esc_attr($value)
+            );
+        }
         return sprintf(
             '<span class="wpd-img" data-wpd-s-media>'
             . '<img src="%3$s" alt="" data-wpd-s-preview%4$s>'
@@ -1910,8 +2134,19 @@ class WPD_Settings
                         esc_attr($id), $label, esc_attr($current !== '' ? $current : 'marker'), esc_attr($name), $opts);
                     break;
                 case 'image':
+                case 'file':
                     $html .= '<div class="wpd-rep__f wpd-rep__f--wide"><label for="' . esc_attr($id) . '">' . $label . '</label>'
-                        . self::image_input($id, $name, $value) . '</div>';
+                        . self::image_input($id, $name, $value, $def['type']) . '</div>';
+                    break;
+                case 'select':
+                    // 2.9.0
+                    $current = isset($def['options'][$value]) ? $value : (string) ($def['default'] ?? array_key_first($def['options']));
+                    $opts = '';
+                    foreach ($def['options'] as $opt => $opt_label) {
+                        $opts .= sprintf('<option value="%s"%s>%s</option>', esc_attr((string) $opt), selected($current, (string) $opt, false), esc_html($opt_label));
+                    }
+                    $html .= sprintf('<label class="wpd-rep__f" for="%1$s"><span>%2$s</span><select id="%1$s" name="%3$s">%4$s</select></label>',
+                        esc_attr($id), $label, esc_attr($name), $opts);
                     break;
                 case 'color_opt':
                     $html .= sprintf('<div class="wpd-rep__f"><label for="%1$s">%2$s</label><input type="text" id="%1$s" name="%3$s" value="%4$s" class="wpd-color-opt" placeholder="#rrggbb" maxlength="7"></div>',
@@ -2057,6 +2292,16 @@ class WPD_Settings
                     'hierarchical'    => 1,
                     'orderby'         => 'name',
                 ]);
+                break;
+
+            case 'font':
+                // 2.9.0: подсказки — свои шрифты, сервисы, Google Fonts и системные наборы
+                printf('<input type="text" id="%1$s" name="%2$s" value="%3$s" class="regular-text" list="wpd-font-list" autocomplete="off">',
+                    esc_attr($id), esc_attr($name), esc_attr((string) $value));
+                if (!self::$font_list_done) {
+                    self::$font_list_done = true;
+                    echo self::font_datalist(); // phpcs:ignore WordPress.Security.EscapeOutput -- экранировано внутри
+                }
                 break;
 
             case 'datetime':

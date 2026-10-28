@@ -32,7 +32,7 @@ check('version >= 1.5.0', version_compare(WPD_VERSION, '1.5.0', '>='));
 
 /* 1. Поля и вкладки */
 $map = WPD_Settings::field_map();
-check('232 fields', count($map) === 232, (string) count($map));
+check('253 fields', count($map) === 253, (string) count($map));
 foreach (['slider', 'buttons', 'cards', 'notice', 'news', 'contacts'] as $tab) {
     check("tab $tab exists", isset(WPD_Settings::tabs()[$tab]));
 }
@@ -237,7 +237,7 @@ $html = WPD_Renderer::page_html($pid, '<p>Текст</p>');
 check('panel shown: slider before hero', has($html, 'wpd-slider') && strpos($html, 'wpd-slider') < strpos($html, 'wpd-hero'));
 check('panel shown: buttons and contacts', has($html, 'Кнопка панели') && has($html, 'mailto:p@example.com'));
 check('panel shown: contacts last', strrpos($html, 'wpd-contacts') > strrpos($html, 'wpd-faq'));
-check('panel: blocks() has 12 entries with titles', count(WPD_Page_Editor::blocks()) === 12 && WPD_Page_Editor::blocks()['news'] !== '');
+check('panel: blocks() has 13 entries with titles', count(WPD_Page_Editor::blocks()) === 13 && WPD_Page_Editor::blocks()['news'] !== '');
 
 /* 9. Справка */
 ob_start();

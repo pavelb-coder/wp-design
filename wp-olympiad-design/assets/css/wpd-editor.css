@@ -505,3 +505,34 @@
 .wpd-ed-nf-msg { margin: 8px 0 0; font-size: 12px; }
 .wpd-ed-nf-msg.is-error { color: #b32d2e; }
 .wpd-ed-src { margin: 2px 0 0 4px; color: #2271b1; }
+
+/* 2.9.0: логотипы партнёров в редакторе — поля под логотипом, лента без движения */
+.wpd-page--editor .wpd-partners__item {
+    flex-direction: column;
+    gap: 6px;
+}
+
+.wpd-page--editor .wpd-partners--strip .wpd-partners__list {
+    flex-wrap: wrap;
+    width: auto;
+}
+
+.wpd-page--editor .wpd-partners__item .wpd-ed-tools {
+    position: static;
+    justify-content: center;
+}
+
+.wpd-page--editor .wpd-partners__item .wpd-ed-item-fields {
+    font-size: 13px;
+    text-align: left;
+}
+
+.wpd-page--editor .wpd-partners__link .wpd-ed-row {
+    display: flex;
+    justify-content: center;
+}
+
+.wpd-page--editor .wpd-partners__name .wpd-ed-plain,
+.wpd-page--editor .wpd-partners__text .wpd-ed-plain {
+    text-align: center;
+}

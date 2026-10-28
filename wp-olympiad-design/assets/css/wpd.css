@@ -3107,3 +3107,261 @@
         color: inherit;
     }
 }
+
+/* ===================================================================
+ * 2.9.0. Шрифты элементов: заголовок главного блока, кнопки, цифры.
+ * Классы wpd-ff-* ставятся, только если шрифт задан, — иначе действуют правила выше.
+ * ================================================================= */
+.wpd-page.wpd-ff-hero .wpd-hero .wpd-hero__title {
+    font-family: var(--wpd-font-hero);
+}
+
+.wpd-page.wpd-ff-btn :is(.wpd-btn, .wpd-qbtn__text, .wpd-slider__arrow) {
+    font-family: var(--wpd-font-btn);
+}
+
+.wpd-page.wpd-ff-num :is(.wpd-stat__num, .wpd-countdown__value) {
+    font-family: var(--wpd-font-num);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===================================================================
+ * 2.9.0. Логотип в главном блоке
+ * ================================================================= */
+.wpd-page .wpd-hero__logo {
+    margin: 0 0 18px;
+    line-height: 0;
+}
+
+.wpd-page .wpd-hero__logo a {
+    display: inline-block;
+    border: 0;
+}
+
+.wpd-page .wpd-hero__logo-img {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: var(--wpd-hero-logo-h, 56px);
+    object-fit: contain;
+}
+
+.wpd-page .wpd-hero--align-center .wpd-hero__logo a,
+.wpd-page .wpd-hero--align-center .wpd-hero__logo-img {
+    margin-inline: auto;
+}
+
+.wpd-page .wpd-hero__heading {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.wpd-page .wpd-hero__heading .wpd-hero__logo {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.wpd-page .wpd-hero__heading .wpd-hero__title {
+    min-width: 0;
+}
+
+.wpd-page .wpd-hero--align-center .wpd-hero__heading {
+    justify-content: center;
+}
+
+@media (max-width: 600px) {
+    .wpd-page .wpd-hero__heading {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .wpd-page .wpd-hero--align-center .wpd-hero__heading {
+        align-items: center;
+    }
+
+    .wpd-page .wpd-hero__logo-img {
+        height: min(var(--wpd-hero-logo-h, 56px), 64px);
+    }
+}
+
+/* Контакты: своя высота логотипа */
+.wpd-page .wpd-contacts__logo[style] .wpd-contacts__logo-img {
+    height: var(--wpd-contacts-logo-h);
+    max-height: none;
+    max-width: 100%;
+}
+
+/* ===================================================================
+ * 2.9.0. Логотипы партнёров: сетка или лента
+ * ================================================================= */
+.wpd-page .wpd-partners__viewport {
+    position: relative;
+}
+
+.wpd-page .wpd-partners__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(calc(var(--wpd-pt-h, 64px) * 2.4), 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.wpd-page .wpd-partners--cols .wpd-partners__list {
+    grid-template-columns: repeat(var(--wpd-pt-cols, 4), minmax(0, 1fr));
+}
+
+.wpd-page .wpd-partners__item {
+    display: flex;
+    margin: 0;
+    padding: 0;
+}
+
+.wpd-page .wpd-partners__link {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: calc(var(--wpd-pt-h, 64px) + 24px);
+    padding: 12px;
+    border: 0;
+    color: inherit;
+    text-align: center;
+    text-decoration: none;
+}
+
+.wpd-page .wpd-partners--cards .wpd-partners__link {
+    padding: 18px 16px;
+    border: var(--wpd-border, 1px) solid rgba(15, 23, 42, 0.08);
+    border-radius: var(--wpd-radius, 16px);
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.wpd-page .wpd-partners--cards a.wpd-partners__link:is(:hover, :focus-visible) {
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+    transform: translateY(-2px);
+}
+
+.wpd-page .wpd-partners__logo {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: var(--wpd-pt-h, 64px);
+    object-fit: contain;
+    transition: filter 0.25s ease, opacity 0.25s ease;
+}
+
+.wpd-page .wpd-partners--gray .wpd-partners__logo {
+    filter: grayscale(1);
+    opacity: 0.7;
+}
+
+.wpd-page .wpd-partners--gray .wpd-partners__item:is(:hover, :focus-within) .wpd-partners__logo {
+    filter: none;
+    opacity: 1;
+}
+
+.wpd-page .wpd-partners__name {
+    font-size: 0.85em;
+    line-height: 1.3;
+    opacity: 0.8;
+}
+
+.wpd-page .wpd-partners__text {
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+/* Лента в одну строку: без прокрутки листается вручную */
+.wpd-page .wpd-partners--strip .wpd-partners__viewport {
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.wpd-page .wpd-partners--strip .wpd-partners__list {
+    display: flex;
+    width: max-content;
+    gap: 16px;
+}
+
+.wpd-page .wpd-partners--strip .wpd-partners__item {
+    flex: 0 0 auto;
+    width: calc(var(--wpd-pt-h, 64px) * 2.8);
+}
+
+/* Бесконечная прокрутка: список повторён дважды и сдвигается на половину своей ширины */
+.wpd-page .wpd-partners--marquee .wpd-partners__viewport {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+
+.wpd-page .wpd-partners--marquee .wpd-partners__list {
+    padding: 6px 0;
+    animation: wpd-partners-marquee var(--wpd-pt-dur, 24s) linear infinite;
+}
+
+.wpd-page .wpd-partners--marquee .wpd-partners__viewport:is(:hover, :focus-within) .wpd-partners__list {
+    animation-play-state: paused;
+}
+
+@keyframes wpd-partners-marquee {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(calc(-50% - 8px));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wpd-page .wpd-partners--marquee .wpd-partners__viewport {
+        overflow-x: auto;
+        -webkit-mask-image: none;
+        mask-image: none;
+    }
+
+    .wpd-page .wpd-partners--marquee .wpd-partners__list {
+        animation: none;
+    }
+
+    .wpd-page .wpd-partners--marquee .wpd-partners__item[aria-hidden="true"] {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .wpd-page .wpd-partners--cols .wpd-partners__list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* «Мягкий градиент»: карточки партнёров в стиле карточек */
+.wpd-page.wpd-style-soft .wpd-partners--cards .wpd-partners__link {
+    border-color: rgba(99, 102, 241, 0.12);
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.06);
+}
+
+@media print {
+    .wpd-page .wpd-partners--marquee .wpd-partners__list {
+        flex-wrap: wrap;
+        width: auto;
+        animation: none;
+    }
+
+    .wpd-page .wpd-partners--marquee .wpd-partners__item[aria-hidden="true"] {
+        display: none;
+    }
+
+    .wpd-page .wpd-partners--gray .wpd-partners__logo {
+        filter: none;
+        opacity: 1;
+    }
+}

@@ -70,7 +70,7 @@ check('hero_style select uses hero_styles()', $map['hero_style']['options'] === 
 check('renderer HERO_STYLES includes soft', WPD_Renderer::HERO_STYLES === ['dark', 'gradient', 'light', 'soft']);
 check('field hero_soft_orb: checkbox in hero image section, on', ($map['hero_soft_orb']['type'] ?? '') === 'checkbox' && $map['hero_soft_orb']['section'] === 'hero_image' && $map['hero_soft_orb']['default'] === 1);
 check('field contact_logo: 4 options, default auto', ($map['contact_logo']['type'] ?? '') === 'select' && array_keys($map['contact_logo']['options']) === ['auto', 'builtin', 'custom', 'none'] && $map['contact_logo']['default'] === 'auto');
-check('field contact_logo_url: url', ($map['contact_logo_url']['type'] ?? '') === 'url' && $map['contact_logo_url']['section'] === 'contacts');
+check('field contact_logo_url: image (2.9.0)', ($map['contact_logo_url']['type'] ?? '') === 'image' && $map['contact_logo_url']['section'] === 'contacts');
 check('defaults: classic look unchanged', WPD_Settings::get()['design_style'] === 'classic' && WPD_Settings::get()['hero_style'] === 'dark' && WPD_Settings::get()['palette'] === 'custom');
 
 /* 2. Санитизация и переключение стиля */

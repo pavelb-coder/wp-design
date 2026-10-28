@@ -20,7 +20,7 @@ check('version >= 1.5.0', version_compare(WPD_VERSION, '1.5.0', '>='));
 
 /* 1. Вкладки */
 $tabs = WPD_Settings::tabs();
-check('13 tabs', count($tabs) === 13, (string) count($tabs));
+check('14 tabs', count($tabs) === 14, (string) count($tabs));
 check('first tab = design', array_key_first($tabs) === 'design');
 check('help tab has no sections', $tabs['help']['sections'] === []);
 $covered = [];
@@ -34,7 +34,7 @@ foreach ($tabs as $id => $t) {
     $per_tab[$id] = count(array_filter(WPD_Settings::field_map(), function ($f) use ($t) { return in_array($f['section'], $t['sections'], true); }));
 }
 check('fields per tab (2.7.0)',
-    $per_tab === ['design' => 30, 'hero' => 34, 'features' => 20, 'stats' => 13, 'docs' => 15, 'faq' => 13, 'slider' => 16, 'buttons' => 16, 'cards' => 14, 'notice' => 17, 'news' => 19, 'contacts' => 25, 'help' => 0], json_encode($per_tab));
+    $per_tab === ['design' => 35, 'hero' => 40, 'features' => 20, 'stats' => 13, 'docs' => 15, 'faq' => 13, 'slider' => 16, 'buttons' => 16, 'cards' => 14, 'notice' => 17, 'news' => 19, 'contacts' => 26, 'partners' => 9, 'help' => 0], json_encode($per_tab));
 check('help tab is last', array_key_last($tabs) === 'help');
 
 /* 2. Адреса */
@@ -62,7 +62,7 @@ check('tab stats: color kept', $s['primary'] === '#0f766e');
 check('tab stats: checkboxes of other tabs kept', $s['countdown_enabled'] === 1 && $s['faq_search'] === 1 && $s['hide_title'] === 1);
 check('tab stats: hero text kept', $s['badge'] === 'Метка');
 check('_tab not stored', !array_key_exists('_tab', $s));
-check('all 232 keys returned', count($s) === 232);
+check('all 253 keys returned', count($s) === 253);
 
 $s = WPD_Settings::sanitize(['_tab' => 'features', 'faq_search' => '1', 'countdown_date' => '2031-01-01T10:00']);
 check('tab features: unchecked checkbox -> 0', $s['countdown_enabled'] === 0 && $s['stats_animate'] === 0);
@@ -88,7 +88,7 @@ WPD_Settings::flush_cache();
 update_option('wpd_settings', ['_tab' => 'hero', 'badge' => 'Финал', 'hero_style' => 'light']);
 $saved = get_option('wpd_settings');
 check('first save through tab: badge stored', ($saved['badge'] ?? '') === 'Финал');
-check('first save through tab: others defaults', ($saved['primary'] ?? '') === '#1d4ed8' && count($saved) === 232);
+check('first save through tab: others defaults', ($saved['primary'] ?? '') === '#1d4ed8' && count($saved) === 253);
 update_option('wpd_settings', ['_tab' => 'docs', 'docs' => 'A|https://example.com/a.pdf', 'docs_title' => 'Файлы']);
 $saved = get_option('wpd_settings');
 check('second save other tab: hero kept', $saved['badge'] === 'Финал' && $saved['hero_style'] === 'light');
@@ -104,7 +104,7 @@ $top = array_values(array_filter($GLOBALS['menu'], function ($m) { return ($m[2]
 check('top-level menu "Олимпиада"', $top && $top[0][0] === 'Олимпиада');
 check('menu icon', $top && $top[0][6] === WPD_Settings::MENU_ICON);
 $subs = $GLOBALS['submenu']['wpd-settings'] ?? [];
-check('13 submenu items', count($subs) === 13, (string) count($subs));
+check('14 submenu items', count($subs) === 14, (string) count($subs));
 check('first submenu = page itself', ($subs[0][2] ?? '') === 'wpd-settings');
 check('submenu for stats tab', in_array('wpd-settings&tab=stats', array_column($subs, 2), true));
 check('settings no longer under Settings menu', !isset($GLOBALS['submenu']['options-general.php']) || !in_array('wpd-settings', array_column($GLOBALS['submenu']['options-general.php'], 2), true));

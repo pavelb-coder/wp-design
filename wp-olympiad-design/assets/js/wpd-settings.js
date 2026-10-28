@@ -76,15 +76,17 @@
             return;
         }
         var $box = $(this).closest('[data-wpd-s-media]');
+        // 2.9.0: файл шрифта — любой тип медиатеки и всегда исходный файл
+        var isFile = $box.attr('data-wpd-s-kind') === 'file';
         var frame = wp.media({
-            title: l10n.chooseImage || 'Изображение',
+            title: isFile ? 'Файл шрифта' : (l10n.chooseImage || 'Изображение'),
             button: { text: l10n.use || 'OK' },
-            library: { type: 'image' },
+            library: isFile ? {} : { type: 'image' },
             multiple: false
         });
         frame.on('select', function () {
             var m = frame.state().get('selection').first().toJSON();
-            var url = (m.sizes && m.sizes.large && m.sizes.large.url) || m.url;
+            var url = isFile ? m.url : ((m.sizes && m.sizes.large && m.sizes.large.url) || m.url);
             $box.find('[data-wpd-s-url]').val(url).trigger('change');
         });
         frame.open();

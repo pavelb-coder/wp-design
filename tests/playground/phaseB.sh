@@ -75,12 +75,12 @@ curl -s -c cj.txt -b cj.txt -o /dev/null --max-time 60 -d "log=admin&pwd=passwor
 # 1.4.0: настройки — пункт меню «Олимпиада» с вкладками; старый адрес перенаправляет туда (curl -L)
 curl -sL -c cj.txt -b cj.txt --max-time 60 "$B/wp-admin/options-general.php?page=wpd-settings" -o settings.html
 : > settings_all.html
-for tab in design hero features stats docs faq slider buttons cards notice news contacts help; do
+for tab in design hero features stats docs faq slider buttons cards notice news contacts partners help; do
   curl -s -c cj.txt -b cj.txt --max-time 60 "$B/wp-admin/admin.php?page=wpd-settings&tab=$tab" >> settings_all.html
 done
 t "admin settings page opens"        "$(has settings.html 'nav-tab-active')"
 plain_fields() { grep -oE "name=[\"']wpd_settings\[[a-z0-9_]+\][\"']" "$1" | grep -v '\[_tab\]' | tr "'" '"' | sort -u | wc -l | tr -d ' '; }
-t "226 plain settings fields rendered (+6 repeaters)" "$([ "$(plain_fields settings_all.html)" = "226" ] && echo 1 || echo 0)"
+t "244 plain settings fields rendered (+9 repeaters)" "$([ "$(plain_fields settings_all.html)" = "244" ] && echo 1 || echo 0)"
 for sec in 'Цвета и шрифт' 'Главный блок' 'Возможности' 'Статистика' 'Документы' 'Частые вопросы' 'Поведение'; do t "section: $sec" "$(has settings_all.html "$sec")"; done
 t "shortcode help on page"           "$(has settings_all.html '\[wpd_page\]')"
 

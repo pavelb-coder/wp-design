@@ -31,8 +31,8 @@ t "helper: pages created" "$( [ -n "$ID" ] && [ -n "$SRC" ] && echo 1 || echo 0)
 get "/wp-admin/post.php?post=$ID&action=edit" r_edit.html
 t "edit: sidebar script loaded" "$(has r_edit.html 'wp-olympiad-design/assets/js/wpd-sidebar.js')"
 t "edit: admin script loaded" "$(has r_edit.html 'wp-olympiad-design/assets/js/wpd-admin.js')"
-t "edit: twelve override groups" "$( [ "$(grep -o 'data-wpd-ovg="' r_edit.html | wc -l)" = "12" ] && echo 1 || echo 0)"
-t "edit: block style toggles (12)" "$( [ "$(grep -o 'data-wpd-bs-toggle' r_edit.html | wc -l)" = "12" ] && echo 1 || echo 0)"
+t "edit: thirteen override groups" "$( [ "$(grep -o 'data-wpd-ovg="' r_edit.html | wc -l)" = "13" ] && echo 1 || echo 0)"
+t "edit: block style toggles (13)" "$( [ "$(grep -o 'data-wpd-bs-toggle' r_edit.html | wc -l)" = "13" ] && echo 1 || echo 0)"
 t "edit: own CSS and tools" "$(all1 "$(has r_edit.html 'id="wpd_pe_page_css"')" "$(has r_edit.html 'data-wpd-tools')")"
 t "edit: copy source offered" "$(has r_edit.html "<option value=\"$SRC\">")"
 t "edit: page palette with id base" "$(has r_edit.html 'data-id-base="wpd_pe_ov_"')"

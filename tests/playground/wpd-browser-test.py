@@ -142,7 +142,7 @@ with sync_playwright() as p:
     wait_editor(page)
 
     types = page.evaluate("() => wp.blocks.getBlockTypes().filter(b => b.name.indexOf('wpd/') === 0).map(b => b.name).sort()")
-    check("editor: 11 blocks registered on client", types == sorted(["wpd/hero", "wpd/countdown", "wpd/stats", "wpd/docs", "wpd/faq", "wpd/slider", "wpd/buttons", "wpd/cards", "wpd/notice", "wpd/news", "wpd/contacts"]), types)
+    check("editor: 12 blocks registered on client", types == sorted(["wpd/hero", "wpd/countdown", "wpd/stats", "wpd/docs", "wpd/faq", "wpd/slider", "wpd/buttons", "wpd/cards", "wpd/notice", "wpd/news", "wpd/contacts", "wpd/partners"]), types)
     cat = page.evaluate("() => (wp.blocks.getCategories() || []).some(c => c.slug === 'wpd')")
     check("editor: category 'wpd' available", cat)
     pattern = page.evaluate("""() => {

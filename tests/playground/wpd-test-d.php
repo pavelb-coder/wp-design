@@ -42,7 +42,7 @@ check('version >= 1.3.0', version_compare(WPD_VERSION, '1.3.0', '>='));
 
 /* 2. Значения по умолчанию */
 $d = WPD_Page_Editor::defaults();
-check('defaults: order of 12 blocks', $d['order'] === ['slider', 'hero', 'buttons', 'countdown', 'notice', 'content', 'cards', 'stats', 'news', 'docs', 'faq', 'contacts'], implode(',', $d['order']));
+check('defaults: order of 13 blocks', $d['order'] === ['slider', 'hero', 'buttons', 'countdown', 'notice', 'content', 'cards', 'stats', 'news', 'docs', 'faq', 'contacts', 'partners'], implode(',', $d['order']));
 check('defaults: only new 1.5.0 components hidden', $d['hidden'] === WPD_Page_Editor::OPT_IN, implode(',', $d['hidden']));
 check('defaults: old blocks visible order unchanged', vis($d['order']) === ['hero', 'countdown', 'content', 'stats', 'docs', 'faq']);
 check('defaults: lists use global', $d['stats_mode'] === 'global' && $d['docs_mode'] === 'global' && $d['faq_mode'] === 'global');
@@ -50,7 +50,7 @@ check('get() of page without meta = defaults', WPD_Page_Editor::get(999999) === 
 
 /* 3. normalize: мусор, дубли, новые блоки */
 $n = WPD_Page_Editor::normalize(['order' => ['faq', 'faq', 'bogus', 'hero', ['x']], 'hidden' => ['bogus', 'docs'], 'hero' => 'str', 'stats' => 'str', 'stats_mode' => 'weird']);
-check('normalize: order dedup + unknown dropped + missing inserted after nearest known', $n['order'] === ['slider', 'faq', 'contacts', 'hero', 'buttons', 'countdown', 'notice', 'content', 'cards', 'stats', 'news', 'docs'], implode(',', $n['order']));
+check('normalize: order dedup + unknown dropped + missing inserted after nearest known', $n['order'] === ['slider', 'faq', 'contacts', 'partners', 'hero', 'buttons', 'countdown', 'notice', 'content', 'cards', 'stats', 'news', 'docs'], implode(',', $n['order']));
 check('normalize: old blocks keep relative order', vis($n['order']) === ['faq', 'hero', 'countdown', 'content', 'stats', 'docs']);
 check('normalize: hidden only known', !in_array('bogus', $n['hidden'], true) && vis($n['hidden']) === ['docs'], implode(',', $n['hidden']));
 check('normalize: missing new components become hidden', !array_diff(WPD_Page_Editor::OPT_IN, $n['hidden']));
@@ -227,7 +227,7 @@ do_action('add_meta_boxes', 'post', get_post($pid));
 check('panel registered for post', isset($GLOBALS['wp_meta_boxes']['post']['normal']['high']['wpd_page_blocks']));
 ob_start(); WPD_Page_Editor::meta_box_html(get_post($pid)); $mb = ob_get_clean();
 check('panel: nonce field', has($mb, 'name="wpd_page_nonce"'));
-check('panel: 12 order rows', substr_count($mb, 'name="wpd_page[order][]"') === 12);
+check('panel: 13 order rows', substr_count($mb, 'name="wpd_page[order][]"') === 13);
 check('panel: saved order first = faq', strpos($mb, 'value="faq"') < strpos($mb, 'value="hero"'));
 check('panel: countdown unchecked', !preg_match('/name="wpd_page\[show\]\[countdown\]" value="1" checked/', $mb));
 check('panel: hero title value escaped', has($mb, 'value="Свой заголовок O&#039;Reilly"'));

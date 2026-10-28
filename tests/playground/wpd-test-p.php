@@ -33,7 +33,7 @@ check('no shortcodes', !shortcode_exists('wpd_registration') && !shortcode_exist
 $reg = WP_Block_Type_Registry::get_instance();
 check('no blocks wpd/registration, wpd/cabinet', !$reg->is_registered('wpd/registration') && !$reg->is_registered('wpd/cabinet'));
 $wpd_blocks = array_filter(array_keys($reg->get_all_registered()), function ($n) { return strpos($n, 'wpd/') === 0; });
-check('11 wpd blocks left', count($wpd_blocks) === 11, implode(',', $wpd_blocks));
+check('12 wpd blocks (2.9.0: + partners)', count($wpd_blocks) === 12, implode(',', $wpd_blocks));
 check('no application post type', !post_type_exists('wpd_application'));
 check('participant role not re-created', get_role('wpd_participant') === null);
 check('no registration hooks', !has_action('admin_post_wpd_reg_export') && !has_action('admin_post_wpd_reg_status') && !has_filter('show_admin_bar', ['WPD_Registration', 'admin_bar']));

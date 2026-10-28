@@ -114,12 +114,67 @@
      * Корневой контейнер с CSS-переменными из общих настроек. Второй аргумент — className или
      * { className, attributes } (для блоков со своим размером иконок).
      */
+    /*
+     * 2.9.0: шрифты из атрибутов блока — CSS-переменные контейнера и классы шрифтов элементов, как WPD_Blocks::with_font_attrs().
+     * Название чистится так же, как на сервере.
+     */
+    function cleanFont(v) {
+        return String(v || '').replace(/[^\p{L}\p{N} ,'"\-_]/gu, '').trim();
+    }
+
+    function fontVars(slug, a) {
+        var out = { vars: {}, classes: [] };
+        var defs = (data.fontAttrs || {})[slug] || {};
+        if (!a) {
+            return out;
+        }
+        Object.keys(defs).forEach(function (attr) {
+            var font = cleanFont(a[attr]);
+            if (!font) {
+                return;
+            }
+            defs[attr].set.forEach(function (pair) {
+                out.vars[pair[0]] = font;
+                if (pair[1] && out.classes.indexOf(pair[1]) < 0) {
+                    out.classes.push(pair[1]);
+                }
+            });
+        });
+        return out;
+    }
+
+    /* Панель «Шрифты» у каждого блока: поля с подсказками своих шрифтов, сервисов и Google Fonts */
+    function FontPanel(slug, a, set) {
+        var defs = (data.fontAttrs || {})[slug] || {};
+        var keys = Object.keys(defs);
+        if (!keys.length) {
+            return null;
+        }
+        var listId = 'wpd-font-list-' + slug;
+        var used = keys.filter(function (k) { return !!a[k]; }).length;
+        return el(c.PanelBody, { title: 'Шрифты' + (used ? ' (' + used + ')' : ''), initialOpen: false, className: 'wpd-ed-fonts' },
+            el('datalist', { id: listId }, (data.fontList || []).map(function (f) { return el('option', { key: f, value: f }); })),
+            keys.map(function (k) {
+                return el(c.TextControl, {
+                    key: k, label: defs[k].label, value: a[k] || '', list: listId, autoComplete: 'off',
+                    placeholder: 'Как на странице',
+                    onChange: function (v) { var o = {}; o[k] = v; set(o); }
+                });
+            }),
+            el('p', { className: 'components-base-control__help' },
+                'Пусто — шрифт страницы или общих настроек. Например: "Golos Text", sans-serif. Свои файлы шрифтов и ссылки на сервисы — в общих настройках, вкладка «Оформление», раздел «Свои шрифты».')
+        );
+    }
+
     function Wrapper(slug, opts) {
         var className = opts && typeof opts === 'object' ? opts.className : opts;
-        var own = opts && typeof opts === 'object' ? iconVars(slug, opts.attributes) : {};
+        var attrs = opts && typeof opts === 'object' ? opts.attributes : null;
+        var fonts = fontVars(slug, attrs);
+        var own = Object.assign({}, attrs ? iconVars(slug, attrs) : {}, fonts.vars);
         var ownStyle = Object.keys(own).map(function (k) { return k + ':' + own[k] + ';'; }).join('');
         var style = Object.assign({}, data.vars, own);
-        var cls = 'wpd-page wpd-page--block wpd-page--editor wpd-page--' + slug + (data.pageClass ? ' ' + data.pageClass : '');
+        var cls = 'wpd-page wpd-page--block wpd-page--editor wpd-page--' + slug + (data.pageClass ? ' ' + data.pageClass : '')
+            + (fonts.classes.length ? ' ' + fonts.classes.join(' ') : '');
         var base = { className: cls, style: style };
         if (ownStyle) {
             // Предпросмотр своего оформления страницы (wpd-admin.js) заменяет style контейнера и добавляет это значение
@@ -299,6 +354,29 @@
         if (pad) { cls.push('wpd-hero--pad'); style['--wpd-hero-pad'] = pad + 'px'; }
         if (twidth) { cls.push('wpd-hero--text-w'); style['--wpd-hero-text-w'] = twidth + 'px'; }
 
+        // 2.9.0: логотип; на тёмном фоне — вариант для тёмного фона (как WPD_Renderer::hero_logo_html)
+        var logoPos = pick(a.logoPos, ho.logoPos, 'above');
+        var darkBg = isBgImage
+            ? overlay >= 20 && !(hex(a.overlayColor) && isLight(a.overlayColor))
+            : (bg ? !isLight(bg) : (variant === 'dark' || variant === 'gradient'));
+        var logoSrc = (darkBg && a.logoDarkUrl) ? a.logoDarkUrl : (a.logoUrl || a.logoDarkUrl || '');
+        var logoEl = null;
+        if (logoSrc) {
+            cls.push('wpd-hero--logo-' + logoPos);
+            style['--wpd-hero-logo-h'] = Math.max(16, Math.min(240, parseInt(a.logoHeight, 10) || 56)) + 'px';
+            logoEl = el('div', { className: 'wpd-hero__logo' }, el('img', { className: 'wpd-hero__logo-img', src: logoSrc, alt: a.logoAlt || '' }));
+        }
+        function logoMedia(key, label) {
+            return el('div', { className: 'wpd-ed-media-control' },
+                a[key] ? el('img', { src: a[key], alt: '' }) : null,
+                el(Media, {
+                    label: a[key] ? 'Заменить' : label, allowedTypes: ['image'],
+                    onSelect: function (m) { var o = {}; o[key] = m.url; if (key === 'logoUrl' && !a.logoAlt && m.alt) { o.logoAlt = m.alt; } set(o); }
+                }),
+                a[key] ? el(c.Button, { variant: 'link', isDestructive: true, onClick: function () { var o = {}; o[key] = ''; set(o); } }, 'Убрать') : null
+            );
+        }
+
         // Таймер внутри блока: предпросмотр по датам из настроек (как блок «Обратный отсчёт» по умолчанию)
         var cd = data.blocks['wpd/countdown'] ? defaults('wpd/countdown') : {};
         var timerPreview = a.showCountdown
@@ -470,18 +548,43 @@
                         onChange: function (v) { set({ imageAlt: v }); }
                     })
                 ),
+                el(c.PanelBody, { title: 'Логотип', initialOpen: false },
+                    el(c.BaseControl, { label: 'Логотип', id: 'wpd-hero-logo', help: 'PNG, WebP или SVG с прозрачным фоном. SVG загружают только администраторы.' }, logoMedia('logoUrl', 'Выбрать логотип')),
+                    el(c.BaseControl, { label: 'Логотип для тёмного фона', id: 'wpd-hero-logo-dark', help: 'Стили «Тёмный» и «Градиент», тёмный свой цвет, фото с затемнением. Пусто — основной.' }, logoMedia('logoDarkUrl', 'Выбрать вариант')),
+                    el(c.SelectControl, {
+                        label: 'Расположение', value: logoPos, options: opts(ho.logoPos),
+                        onChange: function (v) { set({ logoPos: v }); }
+                    }),
+                    el(c.RangeControl, {
+                        label: 'Высота логотипа, px', value: parseInt(a.logoHeight, 10) || 56, min: 16, max: 240, step: 2,
+                        onChange: function (v) { set({ logoHeight: typeof v === 'number' ? v : 56 }); }
+                    }),
+                    el(c.TextControl, {
+                        label: 'Описание логотипа (alt)', value: a.logoAlt || '',
+                        help: 'Например, название организации. Пусто — декоративный.',
+                        onChange: function (v) { set({ logoAlt: v }); }
+                    }),
+                    el(c.TextControl, {
+                        label: 'Ссылка с логотипа', type: 'url', value: a.logoLink || '', placeholder: 'https://…',
+                        onChange: function (v) { set({ logoLink: v }); }
+                    })
+                ),
                 ResetPanel('wpd/hero', set)
             ),
             Wrapper('hero', { className: props.className, attributes: a },
                 el('section', { className: cls.join(' '), style: style },
                     el('div', { className: 'wpd-hero__inner' },
                         el('div', { className: 'wpd-hero__text' },
+                            logoEl && logoPos === 'above' ? logoEl : null,
                             (sel || a.badge) ? el('span', { className: 'wpd-badge' + (a.badge ? '' : ' is-empty') },
                                 el(Inline, { value: a.badge, placeholder: 'Метка', label: 'Метка над заголовком', onChange: function (v) { set({ badge: v }); } })
                             ) : null,
-                            el('h1', { className: 'wpd-hero__title' },
-                                el(Plain, { value: a.title, single: true, placeholder: 'Заголовок', onChange: function (v) { set({ title: v }); } })
-                            ),
+                            (function () {
+                                var title = el('h1', { className: 'wpd-hero__title' },
+                                    el(Plain, { value: a.title, single: true, placeholder: 'Заголовок', onChange: function (v) { set({ title: v }); } })
+                                );
+                                return logoEl && logoPos === 'beside' ? el('div', { className: 'wpd-hero__heading' }, logoEl, title) : title;
+                            })(),
                             (sel || a.lead) ? el('p', { className: 'wpd-hero__lead' },
                                 el(Plain, { value: a.lead, placeholder: 'Текст под заголовком', onChange: function (v) { set({ lead: v }); } })
                             ) : null,
@@ -779,7 +882,7 @@
                 LookPanels('countdown', a, set),
                 ResetPanel('wpd/countdown', set)
             ),
-            Wrapper('countdown', props.className,
+            Wrapper('countdown', { className: props.className, attributes: a },
                 el('div', { className: look.className + (valSize ? ' wpd-countdown--size' : ''), style: look.style },
                     el('div', { className: 'wpd-countdown__main' },
                         el('p', { className: 'wpd-countdown__label' },
@@ -824,7 +927,7 @@
                 LookPanels('stats', a, set),
                 ResetPanel('wpd/stats', set)
             ),
-            Wrapper('stats', props.className,
+            Wrapper('stats', { className: props.className, attributes: a },
                 el('section', { className: look.className, style: look.style },
                     (sel || title) ? el('h2', { className: 'wpd-h2' + (title ? '' : ' is-empty') },
                         el(Plain, { value: title, single: true, placeholder: 'Заголовок блока (необязательно)', onChange: function (v) { set({ title: v }); } })
@@ -995,7 +1098,7 @@
                 LookPanels('faq', a, set),
                 ResetPanel('wpd/faq', set)
             ),
-            Wrapper('faq', props.className,
+            Wrapper('faq', { className: props.className, attributes: a },
                 el('section', { className: look.className, style: look.style },
                     el('h2', { className: 'wpd-h2' },
                         el(Plain, { value: a.title, single: true, placeholder: 'Заголовок блока', onChange: function (v) { set({ title: v }); } })
@@ -1127,7 +1230,7 @@
                 LookPanels('slider', a, set),
                 ResetPanel('wpd/slider', set)
             ),
-            Wrapper('slider', props.className,
+            Wrapper('slider', { className: props.className, attributes: a },
                 el('section', { className: look.className, style: look.style },
                     items.length ? el('div', { className: 'wpd-slider__track wpd-ed-stack' }, items.map(function (it, i) {
                         return el('div', { key: i, className: 'wpd-slide' + (it.image ? '' : ' wpd-slide--noimg') + itemFlags(it) },
@@ -1420,7 +1523,7 @@
                 LookPanels('cards', a, set),
                 ResetPanel('wpd/cards', set)
             ),
-            Wrapper('cards', props.className,
+            Wrapper('cards', { className: props.className, attributes: a },
                 el('section', { className: look.className, style: look.style },
                     (sel || a.title) ? el('h2', { className: 'wpd-h2' + (a.title ? '' : ' is-empty') },
                         el(Plain, { value: a.title, single: true, placeholder: 'Заголовок блока (необязательно)', onChange: function (v) { set({ title: v }); } })
@@ -1533,7 +1636,7 @@
                 LookPanels('notice', a, set),
                 ResetPanel('wpd/notice', set)
             ),
-            Wrapper('notice', props.className,
+            Wrapper('notice', { className: props.className, attributes: a },
                 el('section', { className: look.className, style: look.style }, media, body)
             )
         );
@@ -1599,6 +1702,11 @@
         var showIcons = !!lookValue('contacts', a, 'showIcons');
         var buttonText = lookValue('contacts', a, 'buttonText');
         var look = blockLook('contacts', a, 'wpd-contacts' + (showIcons ? '' : ' wpd-contacts--noicons'));
+        // 2.9.0: логотип — встроенный, свой или без него (как WPD_Renderer::contact_logo_url)
+        var logoMode = (data.contactLogoOptions || {})[a.logo] ? a.logo : 'auto';
+        var soft = / wpd-style-soft( |$)/.test(' ' + (data.pageClass || ''));
+        var logoSrc = logoMode === 'custom' ? (a.logoUrl || '') : (logoMode === 'builtin' || (logoMode === 'auto' && soft) ? (data.builtinLogo || '') : '');
+        var logoH = parseInt(a.logoHeight, 10) || 0;
 
         function row(cls, icon, fields) {
             return el('li', { className: 'wpd-contacts__' + cls },
@@ -1632,6 +1740,25 @@
                 el(c.PanelBody, { title: 'Иконки' },
                     IconSizeControl('contacts', a, set)
                 ),
+                el(c.PanelBody, { title: 'Логотип', initialOpen: false },
+                    el(c.SelectControl, {
+                        label: 'Логотип', value: logoMode,
+                        options: Object.keys(data.contactLogoOptions || {}).map(function (k) { return { value: k, label: data.contactLogoOptions[k] }; }),
+                        onChange: function (v) { set({ logo: v }); }
+                    }),
+                    logoMode === 'custom' ? el('div', { className: 'wpd-ed-media-control' },
+                        a.logoUrl ? el('img', { src: a.logoUrl, alt: '' }) : null,
+                        el(Media, { label: a.logoUrl ? 'Заменить логотип' : 'Выбрать логотип', allowedTypes: ['image'], onSelect: function (m) { set({ logoUrl: m.url }); } })
+                    ) : null,
+                    logoMode === 'custom' ? el(c.TextControl, {
+                        label: 'Или адрес логотипа (URL)', type: 'url', value: a.logoUrl || '',
+                        onChange: function (v) { set({ logoUrl: v }); }
+                    }) : null,
+                    logoMode !== 'none' ? el(c.RangeControl, {
+                        label: 'Высота логотипа, px', value: logoH, min: 0, max: 200, step: 2, help: '0 — по умолчанию.',
+                        onChange: function (v) { set({ logoHeight: typeof v === 'number' ? v : 0 }); }
+                    }) : null
+                ),
                 LookPanels('contacts', a, set),
                 ResetPanel('wpd/contacts', set)
             ),
@@ -1640,7 +1767,9 @@
                     (sel || a.title) ? el('h2', { className: 'wpd-h2' },
                         el(Plain, { value: a.title, single: true, placeholder: 'Заголовок блока', onChange: function (v) { set({ title: v }); } })
                     ) : null,
-                    (sel || any) ? el('div', { className: 'wpd-contacts__box' },
+                    (sel || any) ? el('div', { className: 'wpd-contacts__box' + (logoSrc ? ' wpd-contacts__box--logo' : '') },
+                        logoSrc ? el('div', { className: 'wpd-contacts__logo', style: logoH ? { '--wpd-contacts-logo-h': Math.max(24, logoH) + 'px' } : undefined },
+                            el('img', { className: 'wpd-contacts__logo-img', src: logoSrc, alt: '' })) : null,
                         el('ul', { className: 'wpd-contacts__list' },
                             (sel || a.org) ? row('org', 'building', el('span', { className: a.orgUrl ? 'wpd-ed-link' : '' }, field('org', 'Название организации'))) : null,
                             (sel || a.address || a.city) ? row('address', 'location-alt', [
@@ -1653,6 +1782,90 @@
                         ),
                         ((a.page || a.email) && buttonText) ? el('span', { className: 'wpd-btn wpd-contacts__btn' }, buttonText + ' →') : null
                     ) : Empty('Контакты не заполнены — на сайте блок не выводится.')
+                )
+            )
+        );
+    }
+
+    /* ---------- 2.9.0: Логотипы партнёров ---------- */
+
+    function PartnersEdit(props) {
+        var a = props.attributes;
+        var set = props.setAttributes;
+        var sel = props.isSelected;
+        var items = list(a.items);
+        var setItems = function (v) { set({ items: v }); };
+        var po = data.partnersOptions || {};
+        var layout = a.layout === 'strip' ? 'strip' : 'grid';
+        var cols = parseInt(a.columns, 10) || 0;
+        var h = Math.max(24, Math.min(200, parseInt(a.logoHeight, 10) || 64));
+        var Toggle = c.ToggleControl || c.CheckboxControl;
+        var opts = function (o) { return Object.keys(o || {}).map(function (k) { return { value: k, label: o[k] }; }); };
+        var cls = ['wpd-partners', 'wpd-partners--' + layout];
+        if (a.grayscale) { cls.push('wpd-partners--gray'); }
+        if (a.cards) { cls.push('wpd-partners--cards'); }
+        if (a.showNames) { cls.push('wpd-partners--names'); }
+        var style = { '--wpd-pt-h': h + 'px' };
+        if (layout === 'grid' && cols >= 2 && cols <= 6) { cls.push('wpd-partners--cols'); style['--wpd-pt-cols'] = cols; }
+
+        function itemFields(it, i) {
+            var patch = function (o) { setItems(updateItem(items, i, o)); };
+            return el('div', { className: 'wpd-ed-item-fields' },
+                el(c.TextControl, { label: 'Ссылка', type: 'url', value: it.url || '', placeholder: 'https://…', onChange: function (v) { patch({ url: v }); } }),
+                el(Toggle, { label: 'В новой вкладке', checked: !!it.new_tab, onChange: function (v) { patch({ new_tab: v ? 1 : 0 }); } }),
+                el(Toggle, { label: 'Скрыть на сайте', checked: !!it.hidden, onChange: function (v) { patch({ hidden: v ? 1 : 0 }); } })
+            );
+        }
+
+        return el(Fragment, null,
+            el(be.InspectorControls, null,
+                el(c.PanelBody, { title: 'Раскладка' },
+                    el(c.SelectControl, { label: 'Раскладка', value: layout, options: opts(po.layout), onChange: function (v) { set({ layout: v }); } }),
+                    layout === 'grid'
+                        ? el(c.SelectControl, { label: 'Колонок в сетке', value: a.columns || '', options: opts(po.columns), onChange: function (v) { set({ columns: v }); } })
+                        : el(c.SelectControl, {
+                            label: 'Прокрутка ленты', value: a.speed || 'normal', options: opts(po.speed),
+                            help: 'На сайте лента прокручивается сама и останавливается при наведении. В редакторе — без движения.',
+                            onChange: function (v) { set({ speed: v }); }
+                        }),
+                    el(c.RangeControl, { label: 'Высота логотипов, px', value: h, min: 24, max: 200, step: 2, onChange: function (v) { set({ logoHeight: typeof v === 'number' ? v : 64 }); } })
+                ),
+                el(c.PanelBody, { title: 'Вид' },
+                    el(Toggle, { label: 'Чёрно-белые, цвет при наведении', checked: !!a.grayscale, onChange: function (v) { set({ grayscale: !!v }); } }),
+                    el(Toggle, { label: 'Логотипы на карточках', checked: !!a.cards, onChange: function (v) { set({ cards: !!v }); } }),
+                    el(Toggle, { label: 'Подписи под логотипами', checked: !!a.showNames, onChange: function (v) { set({ showNames: !!v }); } })
+                ),
+                ResetPanel('wpd/partners', set)
+            ),
+            Wrapper('partners', { className: props.className, attributes: a },
+                el('section', { className: cls.join(' '), style: style },
+                    (sel || a.title) ? el('h2', { className: 'wpd-h2' + (a.title ? '' : ' is-empty') },
+                        el(Plain, { value: a.title, single: true, placeholder: 'Заголовок блока (необязательно)', onChange: function (v) { set({ title: v }); } })
+                    ) : null,
+                    items.length ? el('div', { className: 'wpd-partners__viewport' }, el('ul', { className: 'wpd-partners__list' }, items.map(function (it, i) {
+                        var patch = function (o) { setItems(updateItem(items, i, o)); };
+                        return el('li', { key: i, className: 'wpd-partners__item' + itemFlags(it) },
+                            el('div', { className: 'wpd-partners__link' },
+                                it.logo ? el('img', { className: 'wpd-partners__logo', src: it.logo, alt: it.name || '' }) : null,
+                                (it.logo && (a.showNames || sel)) || !it.logo ? el('span', { className: it.logo ? 'wpd-partners__name' : 'wpd-partners__text' },
+                                    el(Plain, { value: it.name, single: true, placeholder: 'Название', label: 'Название партнёра', onChange: function (v) { patch({ name: v }); } })
+                                ) : null,
+                                sel ? el('div', { className: 'wpd-ed-row' },
+                                    el(Media, {
+                                        label: it.logo ? 'Заменить логотип' : 'Логотип', allowedTypes: ['image'],
+                                        onSelect: function (m) { patch({ logo: m.url, name: it.name || m.alt || m.title || '' }); }
+                                    })
+                                ) : null
+                            ),
+                            it.hidden ? el('div', { className: 'wpd-ed-hint wpd-ed-state' }, 'Скрыт на сайте') : null,
+                            sel ? itemFields(it, i) : null,
+                            sel ? el(Tools, { index: i, items: items, onChange: setItems }) : null
+                        );
+                    }))) : Empty('Нет логотипов — на сайте блок не выводится.'),
+                    sel ? el(AddButton, {
+                        label: 'Добавить партнёра',
+                        onClick: function () { setItems(items.concat([{ logo: '', name: '', url: '', new_tab: 0, hidden: 0 }])); }
+                    }) : null
                 )
             )
         );
@@ -1671,8 +1884,19 @@
         cards: CardsEdit,
         notice: NoticeEdit,
         news: NewsEdit,
-        contacts: ContactsEdit
+        contacts: ContactsEdit,
+        partners: PartnersEdit
     };
+
+    // 2.9.0: у всех блоков — панель «Шрифты» в настройках блока
+    function withFonts(slug, Edit) {
+        return function (props) {
+            return el(Fragment, null,
+                el(Edit, props),
+                el(be.InspectorControls, null, FontPanel(slug, props.attributes, props.setAttributes))
+            );
+        };
+    }
 
     Object.keys(data.blocks).forEach(function (name) {
         var def = data.blocks[name];
@@ -1690,7 +1914,7 @@
             attributes: def.attributes,
             supports: { html: false, align: ['wide', 'full'] },
             example: {},
-            edit: editors[slug],
+            edit: withFonts(slug, editors[slug]),
             save: function () {
                 return null;
             }

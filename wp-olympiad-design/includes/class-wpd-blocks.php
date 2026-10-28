@@ -61,7 +61,30 @@ class WPD_Blocks
             'iconSizes' => self::icon_sizes_data($o),
             'buttonsSettings' => self::buttons_settings_data($o),
             'lookSettings'    => self::look_settings_data($o),
+            'fontList'        => WPD_Settings::font_suggestions($o),
         ]) . ');', 'before');
+
+        // 2.9.0: свои шрифты страницы — в холсте редактора (стиль wpd-editor загружается и во фрейм холста)
+        if (wp_style_is('wpd-editor', 'registered')) {
+            $faces = WPD_Renderer::page_font_assets($o, function ($handle, $src) {
+                wp_register_style($handle, $src, [], null); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+                $style = wp_styles()->query('wpd-editor');
+                if ($style && !in_array($handle, $style->deps, true)) {
+                    $style->deps[] = $handle;
+                }
+            });
+            $google = WPD_Settings::google_fonts_url($o);
+            if ($google !== '' && $google !== WPD_Settings::google_fonts_url(WPD_Settings::get_global())) {
+                wp_register_style('wpd-google-fonts-page', $google, [], null); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+                $style = wp_styles()->query('wpd-editor');
+                if ($style && !in_array('wpd-google-fonts-page', $style->deps, true)) {
+                    $style->deps[] = 'wpd-google-fonts-page';
+                }
+            }
+            if ($faces !== '') {
+                wp_add_inline_style('wpd-editor', $faces);
+            }
+        }
     }
 
     /**
@@ -71,7 +94,7 @@ class WPD_Blocks
     {
         $o = WPD_Settings::get();
 
-        return [
+        return self::add_font_attrs([
             'hero' => [
                 'title'       => 'Олимпиада: главный блок',
                 'description' => 'Метка, крупный заголовок, текст, две кнопки с иконками, таймер и изображение справа, слева или фоном.',
@@ -115,6 +138,13 @@ class WPD_Blocks
                     'textWidth'     => ['type' => 'integer', 'default' => (int) $o['hero_text_width']],
                     // 2.5.0
                     'buttonIconSize' => ['type' => 'integer', 'default' => (int) $o['hero_button_icon_size']],
+                    // 2.9.0: логотип
+                    'logoUrl'     => ['type' => 'string', 'default' => (string) $o['hero_logo']],
+                    'logoDarkUrl' => ['type' => 'string', 'default' => (string) $o['hero_logo_dark']],
+                    'logoPos'     => ['type' => 'string', 'default' => (string) $o['hero_logo_pos']],
+                    'logoHeight'  => ['type' => 'integer', 'default' => (int) $o['hero_logo_height']],
+                    'logoAlt'     => ['type' => 'string', 'default' => (string) $o['hero_logo_alt']],
+                    'logoLink'    => ['type' => 'string', 'default' => (string) $o['hero_logo_url']],
                 ],
                 'render'      => [__CLASS__, 'render_hero'],
             ],
@@ -258,10 +288,33 @@ class WPD_Blocks
                     'page'    => ['type' => 'string', 'default' => (string) $o['contact_page']],
                     'code'    => ['type' => 'string', 'default' => (string) $o['contact_code']],
                     'iconSize' => ['type' => 'integer', 'default' => (int) $o['contacts_icon_size']],
+                    // 2.9.0: логотип
+                    'logo'       => ['type' => 'string', 'default' => (string) $o['contact_logo']],
+                    'logoUrl'    => ['type' => 'string', 'default' => (string) $o['contact_logo_url']],
+                    'logoHeight' => ['type' => 'integer', 'default' => (int) $o['contact_logo_height']],
                 ] + self::look_attr_defs('contacts', $o),
                 'render'      => [__CLASS__, 'render_contacts'],
             ],
-        ];
+            // 2.9.0
+            'partners' => [
+                'title'       => 'Олимпиада: логотипы партнёров',
+                'description' => 'Логотипы организаторов и партнёров со ссылками: сетка или бегущая лента, чёрно-белые с цветом при наведении.',
+                'icon'        => 'groups',
+                'keywords'    => ['партнёры', 'логотипы', 'спонсоры', 'partners'],
+                'attributes'  => [
+                    'title'      => ['type' => 'string', 'default' => (string) $o['partners_title']],
+                    'items'      => ['type' => 'array', 'default' => array_values((array) $o['partners'])],
+                    'layout'     => ['type' => 'string', 'default' => (string) $o['partners_layout']],
+                    'columns'    => ['type' => 'string', 'default' => (string) $o['partners_columns']],
+                    'speed'      => ['type' => 'string', 'default' => (string) $o['partners_speed']],
+                    'logoHeight' => ['type' => 'integer', 'default' => (int) $o['partners_height']],
+                    'grayscale'  => ['type' => 'boolean', 'default' => (bool) $o['partners_gray']],
+                    'cards'      => ['type' => 'boolean', 'default' => (bool) $o['partners_cards']],
+                    'showNames'  => ['type' => 'boolean', 'default' => (bool) $o['partners_names']],
+                ],
+                'render'      => [__CLASS__, 'render_partners'],
+            ],
+        ]);
     }
 
     public static function register(): void
@@ -326,6 +379,7 @@ class WPD_Blocks
                 'imageFit'      => WPD_Settings::field_map()['hero_image_fit']['options'],
                 'imageStyle'    => WPD_Settings::field_map()['hero_image_style']['options'],
                 'verticalAlign' => WPD_Settings::field_map()['hero_valign']['options'],
+                'logoPos'       => WPD_Settings::field_map()['hero_logo_pos']['options'],
             ],
             'palette'     => [$o['primary'], $o['accent'], $o['dark'], $o['text'], $o['bg']],
             'settingsUrl' => WPD_Settings::url(),
@@ -347,6 +401,16 @@ class WPD_Blocks
             'categories'  => is_admin() ? self::categories() : [],
             'noticeLayouts' => WPD_Settings::field_map()['notice_layout']['options'],
             'newsLayouts'   => WPD_Settings::field_map()['news_layout']['options'],
+            // 2.9.0: шрифты блоков, подсказки названий, логотипы
+            'fontAttrs'     => self::font_attrs_data(array_keys($defs)),
+            'fontList'      => WPD_Settings::font_suggestions($o),
+            'contactLogoOptions' => WPD_Settings::field_map()['contact_logo']['options'],
+            'builtinLogo'   => WPD_URL . WPD_Renderer::LOGO_IMAGE,
+            'partnersOptions'    => [
+                'layout'  => WPD_Settings::field_map()['partners_layout']['options'],
+                'columns' => WPD_Settings::field_map()['partners_columns']['options'],
+                'speed'   => WPD_Settings::field_map()['partners_speed']['options'],
+            ],
         ]) . ';', 'before');
 
         if (function_exists('register_block_pattern')) {
@@ -453,7 +517,76 @@ class WPD_Blocks
                 $classes[] = $class;
             }
         }
-        return WPD_Renderer::wrap($inner, implode(' ', $classes), $o);
+        return WPD_Renderer::wrap($inner, implode(' ', $classes), self::with_font_attrs($o ?? WPD_Settings::get(), $a, $slug));
+    }
+
+    /** Атрибуты шрифтов блоков (2.9.0): атрибут → поля настроек, которые он заменяет. */
+    const FONT_ATTRS = [
+        'fontText'    => ['font'],
+        'fontHeading' => ['font_heading'],
+        'fontButtons' => ['font_button'],
+        'fontNumbers' => ['font_numbers'],
+    ];
+
+    /** Какие атрибуты шрифтов есть у блока (2.9.0). У главного блока шрифт заголовков задаёт и шрифт его заголовка. */
+    public static function font_attrs(string $slug): array
+    {
+        $out = ['fontText' => self::FONT_ATTRS['fontText'], 'fontHeading' => self::FONT_ATTRS['fontHeading']];
+        if ($slug === 'hero') {
+            $out['fontHeading'] = ['font_heading', 'font_hero'];
+        }
+        if (in_array($slug, ['hero', 'countdown', 'buttons', 'notice', 'contacts', 'slider', 'cards'], true)) {
+            $out['fontButtons'] = self::FONT_ATTRS['fontButtons'];
+        }
+        if (in_array($slug, ['hero', 'countdown', 'stats'], true)) {
+            $out['fontNumbers'] = self::FONT_ATTRS['fontNumbers'];
+        }
+        return $out;
+    }
+
+    /** Добавляет атрибуты шрифтов (пусто — как на странице) ко всем блокам. */
+    private static function add_font_attrs(array $defs): array
+    {
+        foreach ($defs as $slug => $def) {
+            foreach (array_keys(self::font_attrs($slug)) as $attr) {
+                $defs[$slug]['attributes'][$attr] = ['type' => 'string', 'default' => ''];
+            }
+        }
+        return $defs;
+    }
+
+    /** Шрифты из атрибутов блока: непустое значение заменяет настройку страницы или общую. */
+    public static function with_font_attrs(array $o, array $a, string $slug): array
+    {
+        foreach (self::font_attrs($slug) as $attr => $keys) {
+            if (!isset($a[$attr]) || !is_scalar($a[$attr])) {
+                continue;
+            }
+            $font = (string) WPD_Settings::sanitize_value('font_heading', (string) $a[$attr]);
+            if ($font === '') {
+                continue;
+            }
+            foreach ($keys as $key) {
+                $o[$key] = $font;
+            }
+        }
+        return $o;
+    }
+
+    /** Описание атрибутов шрифтов для редактора: блок → атрибут → [подпись, CSS-переменные и классы]. */
+    public static function font_attrs_data(?array $slugs = null): array
+    {
+        $labels = ['fontText' => 'Основной шрифт', 'fontHeading' => 'Шрифт заголовков', 'fontButtons' => 'Шрифт кнопок', 'fontNumbers' => 'Шрифт цифр'];
+        $vars   = ['font' => ['--wpd-font', ''], 'font_heading' => ['--wpd-font-heading', '']] + WPD_Settings::ELEMENT_FONTS;
+        $out    = [];
+        foreach ($slugs ?? array_keys(self::definitions()) as $slug) {
+            foreach (self::font_attrs($slug) as $attr => $keys) {
+                $out[$slug][$attr] = ['label' => $labels[$attr], 'set' => array_map(function ($k) use ($vars) {
+                    return $vars[$k];
+                }, $keys)];
+            }
+        }
+        return $out;
     }
 
     /**
@@ -732,6 +865,12 @@ class WPD_Blocks
             'padding'         => self::num($a, 'padding', $o['hero_padding']),
             'valign'          => self::str($a, 'verticalAlign', $o['hero_valign']),
             'text_width'      => self::num($a, 'textWidth', $o['hero_text_width']),
+            'logo'            => self::str($a, 'logoUrl', $o['hero_logo']),
+            'logo_dark'       => self::str($a, 'logoDarkUrl', $o['hero_logo_dark']),
+            'logo_pos'        => self::str($a, 'logoPos', $o['hero_logo_pos']),
+            'logo_height'     => self::num($a, 'logoHeight', $o['hero_logo_height']),
+            'logo_alt'        => self::str($a, 'logoAlt', $o['hero_logo_alt']),
+            'logo_url'        => self::str($a, 'logoLink', $o['hero_logo_url']),
         ]), $a, 'hero', $o);
     }
 
@@ -858,6 +997,28 @@ class WPD_Blocks
             $args[$key] = self::str($a, $key, (string) $o[$opt]);
         }
         $args['org_url'] = self::str($a, 'orgUrl', (string) $o['contact_org_url']);
+        // 2.9.0: логотип блока
+        $mode = self::str($a, 'logo', (string) $o['contact_logo']);
+        $o['contact_logo'] = in_array($mode, ['auto', 'builtin', 'custom', 'none'], true) ? $mode : 'auto';
+        $o['contact_logo_url'] = esc_url_raw(self::str($a, 'logoUrl', (string) $o['contact_logo_url']));
+        $o['contact_logo_height'] = max(0, min(200, self::num($a, 'logoHeight', (int) $o['contact_logo_height'])));
         return self::wrap(WPD_Renderer::contacts_html($o, $args), $a, 'contacts', $o);
+    }
+
+    public static function render_partners($a): string
+    {
+        $a = is_array($a) ? $a : [];
+        $o = WPD_Settings::get();
+        return self::wrap(WPD_Renderer::partners_html($o, [
+            'title'   => self::str($a, 'title', (string) $o['partners_title']),
+            'items'   => self::items($a, (array) $o['partners']),
+            'layout'  => self::str($a, 'layout', (string) $o['partners_layout']),
+            'columns' => self::str($a, 'columns', (string) $o['partners_columns']),
+            'speed'   => self::str($a, 'speed', (string) $o['partners_speed']),
+            'height'  => self::num($a, 'logoHeight', (int) $o['partners_height']),
+            'gray'    => self::flag($a, 'grayscale', $o['partners_gray']),
+            'cards'   => self::flag($a, 'cards', $o['partners_cards']),
+            'names'   => self::flag($a, 'showNames', $o['partners_names']),
+        ]), $a, 'partners', $o);
     }
 }

@@ -72,11 +72,11 @@ foreach ($expect as $key => $e) {
     check("ICON_SIZES $key: var, bounds, default", ($sizes[$key]['var'] ?? '') === $e[2] && $sizes[$key]['min'] === $e[3] && $sizes[$key]['max'] === $e[1] && $sizes[$key]['default'] === $e[4]);
 }
 check('ICON_SIZES: exactly four', array_keys($sizes) === array_keys($expect));
-check('232 fields', count($map) === 232, (string) count($map));
+check('253 fields', count($map) === 253, (string) count($map));
 check('hero size right after second button icon', array_search('hero_button_icon_size', $keys, true) === array_search('hero_button2_icon', $keys, true) + 1);
 check('docs size after docs list', array_search('docs_icon_size', $keys, true) === array_search('docs', $keys, true) + 1);
 check('buttons size after buttons list', array_search('buttons_icon_size', $keys, true) === array_search('buttons', $keys, true) + 1);
-check('contacts size last on contacts tab', array_search('contacts_icon_size', $keys, true) === array_search('contact_logo_url', $keys, true) + 1);
+check('contacts size last on contacts tab', array_search('contacts_icon_size', $keys, true) === array_search('contact_logo_height', $keys, true) + 1);
 $defaults = WPD_Settings::defaults();
 check('defaults: all 0', $defaults['buttons_icon_size'] === 0 && $defaults['contacts_icon_size'] === 0 && $defaults['hero_button_icon_size'] === 0 && $defaults['docs_icon_size'] === 0);
 
@@ -209,7 +209,7 @@ check('css: docs box and label scale', has($css, 'width: var(--wpd-icon-doc, 44p
 check('css: no fixed icon sizes left', !preg_match('/(qbtn__icon|contacts__icon|btn__icon|doc__icon)[^{]*\{[^}]*(width|font-size):\s*\d+px/', $css));
 $js = file_get_contents(WPD_DIR . 'assets/js/wpd-blocks.js');
 check('blocks js: icon size control and vars', has($js, 'function IconSizeControl') && has($js, 'function iconVars') && has($js, "'data-wpd-style'"));
-check('blocks js: four blocks use own vars', substr_count($js, '{ className: props.className, attributes: a }') === 4);
+check('blocks js: all eleven canvas blocks pass attributes (2.9.0: fonts)', substr_count($js, '{ className: props.className, attributes: a }') === 11);
 check('blocks js: controls in four blocks', substr_count($js, "IconSizeControl('") === 4);
 $ajs = file_get_contents(WPD_DIR . 'assets/js/wpd-admin.js');
 check('admin js: page preview keeps block value', has($ajs, "lastPreview.style + (el.getAttribute('data-wpd-style') || '')"));

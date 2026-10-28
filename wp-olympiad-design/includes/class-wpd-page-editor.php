@@ -54,10 +54,10 @@ class WPD_Page_Editor
     public static function groups(): array
     {
         return [
-            'page'     => ['title' => 'Оформление страницы', 'sections' => ['colors', 'look', 'behavior'], 'extra' => ['google_fonts', 'docs_icon_size'],
-                           'desc' => 'Стиль оформления, палитра и цвета, шрифты, размеры, кнопки, тени, ширина и отступы, заголовок темы, размер значков документов.'],
-            'hero'     => ['title' => 'Главный блок: кнопки, изображение, вид', 'sections' => ['hero', 'hero_image', 'hero_look'], 'extra' => [],
-                           'desc' => 'Вторая кнопка и иконки, таймер в блоке, положение, подгонка и рамка изображения, затемнение, цвета, высота, отступы, выравнивание, размер заголовка, размер иконок на кнопках.'],
+            'page'     => ['title' => 'Оформление страницы', 'sections' => ['colors', 'look', 'fonts', 'behavior'], 'extra' => ['google_fonts', 'docs_icon_size'],
+                           'desc' => 'Стиль оформления, палитра и цвета, шрифты (свои файлы, сервисы, шрифты заголовка, кнопок и цифр), размеры, кнопки, тени, ширина и отступы, заголовок темы, размер значков документов.'],
+            'hero'     => ['title' => 'Главный блок: кнопки, изображение, вид', 'sections' => ['hero', 'hero_image', 'hero_look', 'hero_logo'], 'extra' => [],
+                           'desc' => 'Логотип, вторая кнопка и иконки, таймер в блоке, положение, подгонка и рамка изображения, затемнение, цвета, высота, отступы, выравнивание, размер заголовка, размер иконок на кнопках.'],
             'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features', 'countdown_look'], 'extra' => [],
                            'desc' => 'Свои даты, подписи и кнопка таймера, часовой пояс, поиск по FAQ, анимация чисел, вид таймера.'],
             // 2.7.0: раскладка и вид статистики, документов и FAQ (содержимое списков — в панелях выше)
@@ -74,6 +74,8 @@ class WPD_Page_Editor
             'notice'   => ['title' => 'Объявление', 'sections' => ['notice', 'notice_look'], 'extra' => [], 'desc' => 'Свой текст, изображение, цвет, ссылка и кнопка, даты показа, вид.'],
             'news'     => ['title' => 'Новости', 'sections' => ['news', 'news_look'], 'extra' => [], 'desc' => 'Своя рубрика, количество и вид, колонки, что показывать в карточках, цвета.'],
             'contacts' => ['title' => 'Контакты', 'sections' => ['contacts', 'contacts_look'], 'extra' => [], 'desc' => 'Свои адрес, телефон, e-mail, организация, логотип, кнопка, размер иконок, колонки и вид.'],
+            'partners' => ['title' => 'Логотипы партнёров', 'sections' => ['partners', 'partners_look'], 'extra' => [],
+                           'desc' => 'Свои логотипы со ссылками, сетка или лента, высота, чёрно-белые логотипы, карточки, подписи.'],
         ];
     }
 
@@ -227,6 +229,7 @@ class WPD_Page_Editor
             'docs'      => 'Документы',
             'faq'       => 'Частые вопросы',
             'contacts'  => 'Контакты',
+            'partners'  => 'Логотипы партнёров',
         ];
     }
 
@@ -234,7 +237,7 @@ class WPD_Page_Editor
      * Компоненты 1.5.0. Пока страница не сохранила их видимость явно, они скрыты:
      * иначе после обновления плагина на уже оформленных страницах внезапно появились бы новые блоки.
      */
-    const OPT_IN = ['slider', 'buttons', 'notice', 'cards', 'news', 'contacts'];
+    const OPT_IN = ['slider', 'buttons', 'notice', 'cards', 'news', 'contacts', 'partners'];
 
     public static function defaults(): array
     {
@@ -796,6 +799,8 @@ class WPD_Page_Editor
             'news'      => 'последние записи',
             'contacts'  => $o['contact_org'] !== '' || $o['contact_address'] !== '' || $o['contact_phone'] !== '' || $o['contact_email'] !== ''
                 ? 'из общих настроек' : 'не заполнены в общих настройках',
+            'partners'  => count(array_filter($o['partners'], function ($r) { return empty($r['hidden']); }))
+                ? count(array_filter($o['partners'], function ($r) { return empty($r['hidden']); })) . ' лог. из общих настроек' : 'нет логотипов в общих настройках',
         ];
 
 
@@ -804,7 +809,7 @@ class WPD_Page_Editor
                 $notes[$part] = 'свой вид для этой страницы';
             }
         }
-        foreach (['slider', 'buttons', 'cards', 'notice', 'news', 'contacts'] as $part) {
+        foreach (['slider', 'buttons', 'cards', 'notice', 'news', 'contacts', 'partners'] as $part) {
             if (isset($p['ov'][$part])) {
                 $notes[$part] = 'своё для этой страницы';
             }

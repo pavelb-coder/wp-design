@@ -12,7 +12,7 @@ class WPD_Renderer
 
     /** Шорткоды плагина: по ним определяем, нужен ли CSS на странице. */
     const SHORTCODES = ['wpd_page', 'wpd_hero', 'wpd_stats', 'wpd_docs', 'wpd_faq', 'wpd_countdown',
-        'wpd_slider', 'wpd_buttons', 'wpd_cards', 'wpd_notice', 'wpd_news', 'wpd_contacts'];
+        'wpd_slider', 'wpd_buttons', 'wpd_cards', 'wpd_notice', 'wpd_news', 'wpd_contacts', 'wpd_partners'];
 
     /** Компоненты (1.5.0), которым нужны иконки Dashicons на сайте. */
     const ICON_PARTS = ['buttons', 'contacts'];
@@ -39,7 +39,7 @@ class WPD_Renderer
         add_shortcode('wpd_docs', [__CLASS__, 'sc_docs']);
         add_shortcode('wpd_faq', [__CLASS__, 'sc_faq']);
         add_shortcode('wpd_countdown', [__CLASS__, 'sc_countdown']);
-        foreach (['slider', 'buttons', 'cards', 'notice', 'news', 'contacts'] as $part) {
+        foreach (['slider', 'buttons', 'cards', 'notice', 'news', 'contacts', 'partners'] as $part) {
             add_shortcode('wpd_' . $part, function () use ($part) {
                 return self::part_shortcode($part);
             });
@@ -123,6 +123,8 @@ class WPD_Renderer
                 return self::news_html($o);
             case 'contacts':
                 return self::contacts_html($o);
+            case 'partners':
+                return self::partners_html($o);
         }
         return '';
     }
@@ -209,6 +211,13 @@ class WPD_Renderer
             'padding'         => $o['hero_padding'],
             'valign'          => $o['hero_valign'],
             'text_width'      => $o['hero_text_width'],
+            // 2.9.0: логотип
+            'logo'            => $o['hero_logo'],
+            'logo_dark'       => $o['hero_logo_dark'],
+            'logo_pos'        => $o['hero_logo_pos'],
+            'logo_height'     => $o['hero_logo_height'],
+            'logo_alt'        => $o['hero_logo_alt'],
+            'logo_url'        => $o['hero_logo_url'],
         ], array_filter($args, function ($v) {
             return $v !== null;
         }));
@@ -314,14 +323,27 @@ class WPD_Renderer
             $vars .= '--wpd-hero-text-w:' . $twidth . 'px;';
         }
 
+        // 2.9.0: логотип над заголовком или рядом с ним; на тёмном фоне — свой вариант, если задан
+        $logo = self::hero_logo_html($a, $style, $bg, $image !== '' && $position === 'background', $overlay);
+        $logo_pos = $pick($a['logo_pos'], ['above', 'beside'], 'above');
+        if ($logo !== '') {
+            $classes[] = 'wpd-hero--logo-' . $logo_pos;
+            $vars .= '--wpd-hero-logo-h:' . max(16, min(240, (int) $a['logo_height'] ?: 56)) . 'px;';
+        }
+
         $html = '<section class="' . esc_attr(implode(' ', $classes)) . '"' . ($vars !== '' ? ' style="' . esc_attr($vars) . '"' : '') . '>'
             . '<div class="wpd-hero__inner"><div class="wpd-hero__text">';
+
+        if ($logo !== '' && $logo_pos === 'above') {
+            $html .= $logo;
+        }
 
         if ($a['badge'] !== '') {
             $html .= '<span class="wpd-badge">' . esc_html($a['badge']) . '</span>';
         }
 
-        $html .= '<h1 class="wpd-hero__title">' . esc_html($a['title']) . '</h1>';
+        $title = '<h1 class="wpd-hero__title">' . esc_html($a['title']) . '</h1>';
+        $html .= $logo !== '' && $logo_pos === 'beside' ? '<div class="wpd-hero__heading">' . $logo . $title . '</div>' : $title;
 
         if ($a['lead'] !== '') {
             $html .= '<p class="wpd-hero__lead">' . nl2br(esc_html($a['lead'])) . '</p>';
@@ -376,6 +398,36 @@ class WPD_Renderer
     /**
      * Светлый ли цвет (#rrggbb, #rgb): на нём нужен тёмный текст. Считается по относительной яркости WCAG.
      */
+    /**
+     * Логотип главного блока (2.9.0). Тёмный фон: стили «Тёмный» и «Градиент», тёмный свой цвет фона,
+     * фоновое изображение с затемнением (кроме светлого цвета затемнения).
+     */
+    private static function hero_logo_html(array $a, string $style, string $bg, bool $bg_image, int $overlay): string
+    {
+        $light = esc_url((string) $a['logo']);
+        $dark_logo = esc_url((string) $a['logo_dark']);
+        if ($light === '' && $dark_logo === '') {
+            return '';
+        }
+        if ($bg_image) {
+            $ocolor = (string) sanitize_hex_color((string) $a['overlay_color']);
+            $dark = $overlay >= 20 && ($ocolor === '' || !self::is_light_color($ocolor));
+        } elseif ($bg !== '') {
+            $dark = !self::is_light_color($bg);
+        } else {
+            $dark = in_array($style, ['dark', 'gradient'], true);
+        }
+        $src = $dark && $dark_logo !== '' ? $dark_logo : ($light !== '' ? $light : $dark_logo);
+        $alt = trim((string) $a['logo_alt']);
+        $img = '<img class="wpd-hero__logo-img" src="' . $src . '" alt="' . esc_attr($alt) . '">';
+        $url = trim((string) $a['logo_url']);
+        if ($url !== '' && esc_url($url) !== '') {
+            $img = '<a class="wpd-hero__logo-link"' . self::link_attrs($url, self::is_external($url))
+                . ($alt === '' ? ' aria-label="Сайт организации"' : '') . '>' . $img . '</a>';
+        }
+        return '<div class="wpd-hero__logo' . ($dark && $dark_logo !== '' ? ' wpd-hero__logo--dark' : '') . '">' . $img . '</div>';
+    }
+
     public static function is_light_color(string $hex): bool
     {
         $hex = ltrim($hex, '#');
@@ -1415,7 +1467,9 @@ class WPD_Renderer
             if ($v['org_url'] !== '' && esc_url($v['org_url']) !== '') {
                 $logo_html = '<a class="wpd-contacts__logo-link"' . self::link_attrs($v['org_url'], self::is_external($v['org_url'])) . '>' . $logo_html . '</a>';
             }
-            $logo_html = '<div class="wpd-contacts__logo">' . $logo_html . '</div>';
+            // 2.9.0: своя высота логотипа
+            $lh = (int) ($o['contact_logo_height'] ?? 0);
+            $logo_html = '<div class="wpd-contacts__logo"' . ($lh > 0 ? ' style="--wpd-contacts-logo-h:' . max(24, min(200, $lh)) . 'px"' : '') . '>' . $logo_html . '</div>';
         }
 
         $button = '';
@@ -1446,6 +1500,90 @@ class WPD_Renderer
             default: // auto
                 return $o['design_style'] === 'soft' ? WPD_URL . self::LOGO_IMAGE : '';
         }
+    }
+
+    /** Длительность прокрутки ленты партнёров на один логотип, секунды (2.9.0). */
+    const PARTNERS_SPEED = ['slow' => 4.5, 'normal' => 3, 'fast' => 1.8];
+
+    /**
+     * Логотипы партнёров (2.9.0): сетка или лента в одну строку с бесконечной прокруткой (CSS),
+     * чёрно-белые с цветом при наведении, на карточках, с подписями.
+     *
+     * @param array $args title, items, layout, columns, height, speed, gray, cards, names (null — из настроек)
+     */
+    public static function partners_html(array $o, array $args = []): string
+    {
+        $items = self::arg($args, 'items', $o['partners']);
+        $rows  = [];
+        foreach (is_array($items) ? $items : [] as $row) {
+            if (!is_array($row) || !empty($row['hidden'])) {
+                continue;
+            }
+            $logo = esc_url(trim((string) ($row['logo'] ?? '')));
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($logo === '' && $name === '') {
+                continue;
+            }
+            $rows[] = ['logo' => $logo, 'name' => $name, 'url' => trim((string) ($row['url'] ?? '')), 'new_tab' => !empty($row['new_tab'])];
+        }
+        if (!$rows) {
+            return '';
+        }
+        $layout  = self::arg($args, 'layout', $o['partners_layout']) === 'strip' ? 'strip' : 'grid';
+        $columns = (int) self::arg($args, 'columns', $o['partners_columns']);
+        $height  = max(24, min(200, (int) self::arg($args, 'height', $o['partners_height']) ?: 64));
+        $speed   = (string) self::arg($args, 'speed', $o['partners_speed']);
+        $speed   = isset(self::PARTNERS_SPEED[$speed]) || $speed === 'none' ? $speed : 'normal';
+        $names   = !empty(self::arg($args, 'names', $o['partners_names']));
+        $title   = trim((string) self::arg($args, 'title', $o['partners_title']));
+
+        $classes = ['wpd-partners', 'wpd-partners--' . $layout];
+        foreach (['gray' => 'partners_gray', 'cards' => 'partners_cards'] as $mod => $key) {
+            if (!empty(self::arg($args, $mod, $o[$key]))) {
+                $classes[] = 'wpd-partners--' . $mod;
+            }
+        }
+        if ($names) {
+            $classes[] = 'wpd-partners--names';
+        }
+        $style = '--wpd-pt-h:' . $height . 'px;';
+        if ($layout === 'grid' && $columns >= 2 && $columns <= 6) {
+            $classes[] = 'wpd-partners--cols';
+            $style .= '--wpd-pt-cols:' . $columns . ';';
+        }
+        $marquee = $layout === 'strip' && $speed !== 'none' && count($rows) > 1;
+        if ($marquee) {
+            $classes[] = 'wpd-partners--marquee';
+            $style .= '--wpd-pt-dur:' . round(count($rows) * self::PARTNERS_SPEED[$speed], 1) . 's;';
+        }
+
+        $item = function (array $r, bool $clone) use ($names): string {
+            $inner = $r['logo'] !== ''
+                ? '<img class="wpd-partners__logo" src="' . $r['logo'] . '" alt="' . esc_attr($clone ? '' : $r['name']) . '" loading="lazy">'
+                    . ($names && $r['name'] !== '' ? '<span class="wpd-partners__name">' . esc_html($r['name']) . '</span>' : '')
+                : '<span class="wpd-partners__text">' . esc_html($r['name']) . '</span>';
+            if ($r['url'] !== '' && esc_url($r['url']) !== '') {
+                $inner = '<a class="wpd-partners__link"' . self::link_attrs($r['url'], $r['new_tab'] || self::is_external($r['url']))
+                    . ($clone ? ' tabindex="-1"' : '') . '>' . $inner . '</a>';
+            } else {
+                $inner = '<span class="wpd-partners__link">' . $inner . '</span>';
+            }
+            return '<li class="wpd-partners__item"' . ($clone ? ' aria-hidden="true"' : '') . '>' . $inner . '</li>';
+        };
+        $list = '';
+        foreach ($rows as $r) {
+            $list .= $item($r, false);
+        }
+        if ($marquee) {
+            // Вторая копия для бесконечной прокрутки: скрыта от программ чтения с экрана и клавиатуры
+            foreach ($rows as $r) {
+                $list .= $item($r, true);
+            }
+        }
+
+        return '<section class="' . esc_attr(implode(' ', $classes)) . '" style="' . esc_attr($style) . '">'
+            . ($title !== '' ? '<h2 class="wpd-h2">' . esc_html($title) . '</h2>' : '')
+            . '<div class="wpd-partners__viewport"><ul class="wpd-partners__list">' . $list . '</ul></div></section>';
     }
 
     /* ---------------------------------------------------------------
@@ -1724,9 +1862,19 @@ class WPD_Renderer
             wp_register_style('wpd-google-fonts', $fonts, [], null); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- версия ломает адрес API
             $deps[] = 'wpd-google-fonts';
         }
+        // 2.9.0: таблицы стилей шрифтовых сервисов
+        foreach (WPD_Settings::font_link_urls($o) as $i => $link) {
+            wp_register_style('wpd-font-link-' . $i, $link, [], null); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+            $deps[] = 'wpd-font-link-' . $i;
+        }
         wp_register_style('wpd-design', WPD_URL . 'assets/css/wpd.css', $deps, WPD_VERSION);
         wp_register_script('wpd-design', WPD_URL . 'assets/js/wpd.js', [], WPD_VERSION, true);
         $css = trim(str_replace('<', '', (string) $o['custom_css']));
+        // 2.9.0: свои файлы шрифтов — @font-face перед своим CSS
+        $faces = WPD_Settings::font_face_css($o);
+        if ($faces !== '') {
+            $css = trim($faces . $css);
+        }
         // 2.3.0: у оформленных страниц в стиле «Мягкий градиент» фон всей страницы — цвет «Фон страницы»
         $bg = (string) sanitize_hex_color((string) $o['bg']);
         if ($o['design_style'] === 'soft' && $bg !== '') {
@@ -1769,6 +1917,8 @@ class WPD_Renderer
             if ($fonts !== '' && $fonts !== WPD_Settings::google_fonts_url(WPD_Settings::get_global())) {
                 wp_enqueue_style('wpd-google-fonts-page', $fonts, [], null); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
             }
+            // 2.9.0: свои шрифты страницы — то, чего нет в общих настройках
+            $css .= self::page_font_assets($o, 'wp_enqueue_style');
         }
         $page_css = trim(str_replace('<', '', $p['page_css']));
         if ($page_css !== '') {
@@ -1777,6 +1927,25 @@ class WPD_Renderer
         if ($css !== '') {
             wp_add_inline_style('wpd-design', $css);
         }
+    }
+
+    /**
+     * Шрифты своего оформления страницы (2.9.0): подключает таблицы стилей сервисов, которых нет в общих настройках,
+     * и возвращает правила @font-face, отличные от общих.
+     *
+     * @param callable $enqueue функция подключения стиля (handle, src, deps, ver)
+     */
+    public static function page_font_assets(array $o, callable $enqueue): string
+    {
+        $global = WPD_Settings::get_global();
+        $known  = WPD_Settings::font_link_urls($global);
+        foreach (WPD_Settings::font_link_urls($o) as $i => $link) {
+            if (!in_array($link, $known, true)) {
+                $enqueue('wpd-font-link-page-' . $i, $link, [], null);
+            }
+        }
+        $faces = WPD_Settings::font_face_css($o);
+        return $faces !== '' && $faces !== WPD_Settings::font_face_css($global) ? $faces : '';
     }
 
     /**
