@@ -20,7 +20,7 @@ class WPD_Page_Editor
     /** Списки, которые можно задать для страницы, и ключи их строк. */
     const LISTS = [
         'stats' => ['num', 'label', 'icon', 'color', 'hidden', 'from', 'to'],
-        'docs'  => ['title', 'url', 'desc', 'badge', 'type', 'color', 'new_tab', 'download', 'hidden', 'from', 'to', 'src', 'nf'],
+        'docs'  => ['title', 'url', 'desc', 'badge', 'type', 'color', 'new_tab', 'download', 'hidden', 'from', 'to'],
         'faq'   => ['q', 'a', 'open', 'hidden', 'from', 'to'],
     ];
 
@@ -187,8 +187,6 @@ class WPD_Page_Editor
             'faq_mode'   => $m['faq_mode'],
             'docs_title' => $m['docs_title'],
             'faq_title'  => $m['faq_title'],
-            'docs_nf'      => $m['docs_nf'],
-            'docs_nf_auto' => $m['docs_nf_auto'],
             'stats'      => $m['stats'],
             'docs'       => $m['docs'],
             'faq'        => $m['faq'],
@@ -258,9 +256,6 @@ class WPD_Page_Editor
             'docs_mode'  => 'global',
             'docs_title' => '',
             'docs'       => [],
-            // 2.8.0: подпапка сетевой папки для своего списка документов и её автообновление
-            'docs_nf'      => '',
-            'docs_nf_auto' => 0,
             'faq_mode'   => 'global',
             'faq_title'  => '',
             'faq'        => [],
@@ -338,10 +333,9 @@ class WPD_Page_Editor
             $out[$list . '_mode'] = ($raw[$list . '_mode'] ?? '') === 'custom' ? 'custom' : 'global';
             $out[$list]           = WPD_Renderer::clean_items(is_array($raw[$list] ?? null) ? $raw[$list] : [], $keys);
         }
-        foreach (['docs_title', 'faq_title', 'docs_nf'] as $key) {
+        foreach (['docs_title', 'faq_title'] as $key) {
             $out[$key] = isset($raw[$key]) && is_scalar($raw[$key]) ? (string) $raw[$key] : '';
         }
-        $out['docs_nf_auto'] = empty($raw['docs_nf_auto']) ? 0 : 1;
 
         // 2.4.0: переопределения общих настроек по группам (только известные группы и поля), вид блоков, свой CSS
         $ov = is_array($raw['ov'] ?? null) ? $raw['ov'] : [];
@@ -401,8 +395,6 @@ class WPD_Page_Editor
         $out['faq_mode']   = $norm['faq_mode'];
         $out['docs_title'] = sanitize_text_field($norm['docs_title']);
         $out['faq_title']  = sanitize_text_field($norm['faq_title']);
-        $out['docs_nf']      = WPD_Smb::clean_rel(sanitize_text_field($norm['docs_nf']));
-        $out['docs_nf_auto'] = $norm['docs_nf_auto'];
 
         // 2.7.0: строки списков очищаются так же, как в общих настройках (с метками, цветами, скрытием и датами)
         foreach (array_keys(self::LISTS) as $list) {
@@ -714,10 +706,6 @@ class WPD_Page_Editor
         ]);
         wp_enqueue_style('wpd-admin', WPD_URL . 'assets/css/wpd-admin.css', ['wpd-settings'], WPD_VERSION);
         wp_enqueue_script('wpd-admin', WPD_URL . 'assets/js/wpd-admin.js', ['jquery', 'jquery-ui-sortable', 'wp-api-fetch', 'wpd-settings'], WPD_VERSION, true);
-        // 2.8.0: «Импортировать сейчас» из сетевой папки в своём списке документов
-        if (class_exists('WPD_Netfolder') && WPD_Netfolder::enabled()) {
-            wp_enqueue_script('wpd-netfolder', WPD_URL . 'assets/js/wpd-netfolder.js', ['wp-api-fetch', 'wpd-admin'], WPD_VERSION, true);
-        }
 
         $o = WPD_Settings::get_global();
         $post_id = isset($_GET['post']) ? absint($_GET['post']) : (int) get_the_ID(); // phpcs:ignore WordPress.Security.NonceVerification
@@ -1160,28 +1148,8 @@ class WPD_Page_Editor
             echo '<p class="description">В ответе разрешены теги a, strong, em, br. Пустой список — блок не выводится.</p>';
         } else {
             echo '<p class="description">Ссылка — PDF или страница. Файл можно выбрать из медиатеки. Строки без ссылки не выводятся.</p>';
-            self::netfolder_box($p);
         }
         echo '</div></div></details>';
-    }
-
-    /** 2.8.0: импорт своего списка документов из сетевой папки. */
-    private static function netfolder_box(array $p): void
-    {
-        if (!class_exists('WPD_Netfolder') || !WPD_Netfolder::enabled()) {
-            return;
-        }
-        $nf = WPD_Netfolder::editor_data();
-        echo '<div class="wpd-pe__nf" data-wpd-nf-page>';
-        echo '<p class="wpd-pe__nf-title"><strong>Сетевая папка</strong></p>';
-        printf('<p><label>Подпапка<br><input type="text" name="wpd_page[docs_nf]" value="%1$s" class="regular-text" placeholder="Пусто — корень папки" data-wpd-nf-sub></label><br>'
-            . '<span class="description">Относительно %2$s, например <code>Итоги 2026</code>.</span></p>',
-            esc_attr((string) $p['docs_nf']), esc_html($nf['root'] !== '' ? $nf['root'] : 'адреса из настроек'));
-        printf('<p><label><input type="checkbox" name="wpd_page[docs_nf_auto]" value="1"%1$s data-wpd-nf-auto> Обновлять по расписанию</label>%2$s</p>',
-            checked(!empty($p['docs_nf_auto']), true, false),
-            $nf['auto'] ? ' <span class="description">(' . esc_html($nf['schedule']) . ')</span>' : ' <span class="description">— расписание выключено в настройках</span>');
-        echo '<p><button type="button" class="button" data-wpd-nf-import>Импортировать сейчас</button> <span class="spinner" data-wpd-nf-spin></span></p>';
-        echo '<p class="description" data-wpd-nf-msg aria-live="polite"></p></div>';
     }
 
     /**
@@ -1258,14 +1226,6 @@ class WPD_Page_Editor
             . '<span class="wpd-pe__dates">показывать с ' . $text('from', 'Показывать с', 'datetime-local')
             . ' до ' . $text('to', 'Показывать до', 'datetime-local') . '</span>';
         $flagged = $val('hidden') === '1' || $val('from') !== '' || $val('to') !== '';
-        if ($list === 'docs') {
-            // 2.8.0: строка из сетевой папки — путь к файлу и отметка «нет в папке»
-            $fields .= '<input type="hidden" name="' . $name('src') . '" value="' . esc_attr($val('src')) . '" data-wpd-field="src">'
-                . '<input type="hidden" name="' . $name('nf') . '" value="' . esc_attr($val('nf')) . '" data-wpd-field="nf">';
-            if ($val('src') !== '') {
-                $more = '<span class="wpd-pe__src">Из сетевой папки: ' . esc_html($val('src')) . ($val('nf') === '1' ? ' — <strong>нет в папке</strong>' : '') . '</span>' . $more;
-            }
-        }
 
         return '<div class="wpd-pe__row' . ($flagged ? ' is-flagged' : '') . '">' . $fields . $tools
             . '<details class="wpd-pe__more"><summary>Ещё</summary><div class="wpd-pe__more-body">' . $more . '</div></details></div>';

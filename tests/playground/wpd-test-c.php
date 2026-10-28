@@ -44,7 +44,8 @@ check('pre: legacy application and participant exist', $app > 0 && !is_wp_error(
 
 define('WP_UNINSTALL_PLUGIN', true);
 global $wpdb;
-// 2.8.0: сетевая папка — настройки, индекс, журнал, расписание, отметки вложений, кеш файлов для ссылок
+// Бывшая сетевая папка (2.8.0, убрана в 2.10.0): если очистка не закончилась, uninstall удаляет всё — настройки, индекс,
+// журнал, расписание, скопированные файлы медиатеки, кеш файлов для ссылок — и отметки самой очистки
 update_option('wpd_netfolder', ['enabled' => 1, 'schedule' => 'hourly']);
 update_option('wpd_nf_index', ['x' => ['rel' => 'a.pdf']], false);
 update_option('wpd_nf_log', [['time' => time(), 'text' => 'x']], false);
@@ -56,14 +57,16 @@ $nf_cache = wp_upload_dir(null, false)['basedir'] . '/wpd-nf-cache';
 wp_mkdir_p($nf_cache);
 file_put_contents($nf_cache . '/0123456789abcdef01234567.pdf', 'x');
 file_put_contents($nf_cache . '/.htaccess', 'Deny from all');
+update_option('wpd_nf_removed_state', ['posts' => 0]);
+update_option('wpd_nf_removed_notice', 1);
 include WP_PLUGIN_DIR . '/wp-olympiad-design/uninstall.php';
 wp_cache_flush();
 check('uninstall: option deleted', get_option('wpd_settings', 'GONE') === 'GONE');
-check('uninstall: netfolder options deleted (2.8.0)', get_option('wpd_netfolder', 'GONE') === 'GONE' && get_option('wpd_nf_index', 'GONE') === 'GONE' && get_option('wpd_nf_log', 'GONE') === 'GONE');
+check('uninstall: former netfolder options deleted', get_option('wpd_netfolder', 'GONE') === 'GONE' && get_option('wpd_nf_index', 'GONE') === 'GONE' && get_option('wpd_nf_log', 'GONE') === 'GONE');
 check('uninstall: netfolder schedule cleared', wp_next_scheduled('wpd_nf_sync') === false);
-check('uninstall: attachment kept, nf meta removed', get_post($nf_att) !== null && get_post_meta($nf_att, '_wpd_nf_src', true) === '' && get_post_meta($nf_att, '_wpd_nf_sig', true) === '');
+check('uninstall: copied attachment deleted (2.10.0)', get_post($nf_att) === null);
+check('uninstall: cleanup marks deleted (2.10.0)', get_option('wpd_nf_removed', 'GONE') === 'GONE' && get_option('wpd_nf_removed_state', 'GONE') === 'GONE' && get_option('wpd_nf_removed_notice', 'GONE') === 'GONE');
 check('uninstall: link cache removed', !is_dir($nf_cache));
-wp_delete_attachment($nf_att, true);
 check('uninstall: meta deleted', get_post_meta($pid, '_wpd_enabled', true) === '');
 check('uninstall: REST guard option deleted (2.6.0)', get_option('wpd_rest_stray', 'GONE') === 'GONE');
 check('uninstall: page panel meta deleted', get_post_meta($pid, '_wpd_page', true) === '');

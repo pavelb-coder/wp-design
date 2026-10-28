@@ -961,56 +961,6 @@
 
     /* ---------- Документы ---------- */
 
-    /*
-     * 2.8.0: импорт документов блока из сетевой папки — подпапка, автообновление по расписанию и кнопка «Импортировать сейчас».
-     * Строки из папки обновляются по пути файла (src), свои правки названия, подписи и меток сохраняются.
-     */
-    function NetfolderPanel(props) {
-        var nf = data.netfolder || {};
-        var a = props.attributes;
-        var set = props.setAttributes;
-        var st = wp.element.useState({ busy: false, msg: '', error: false });
-        var state = st[0];
-        var setState = st[1];
-        if (!nf.enabled) {
-            return null;
-        }
-        var run = function () {
-            if (!wp.apiFetch) {
-                setState({ busy: false, msg: 'Модуль запросов редактора недоступен.', error: true });
-                return;
-            }
-            setState({ busy: true, msg: '', error: false });
-            wp.apiFetch({
-                path: '/wpd/v1/netfolder/import', method: 'POST',
-                data: { target: 'items', post_id: data.postId || 0, sub: a.nfFolder || '', items: list(a.items) }
-            }).then(function (res) {
-                set({ items: res.rows || [] });
-                var errors = res.report && res.report.errors ? Object.keys(res.report.errors) : [];
-                setState({
-                    busy: false, error: errors.length > 0,
-                    msg: (res.message || 'Готово.') + (errors.length ? ' ' + errors.map(function (k) { return k + ': ' + res.report.errors[k]; }).join('; ') : '')
-                });
-            }).catch(function (e) {
-                setState({ busy: false, msg: (e && e.message) || 'Не удалось импортировать.', error: true });
-            });
-        };
-        return el(c.PanelBody, { title: 'Сетевая папка', initialOpen: !!(a.nfFolder || a.nfAuto) },
-            el(c.TextControl, {
-                label: 'Подпапка', value: a.nfFolder || '', placeholder: 'Пусто — корень папки',
-                help: 'Относительно ' + (nf.root || 'адреса из настроек') + ', например «Итоги 2026».',
-                onChange: function (v) { set({ nfFolder: v }); }
-            }),
-            el(c.ToggleControl, {
-                label: 'Обновлять по расписанию', checked: !!a.nfAuto,
-                help: nf.auto ? 'Расписание: ' + String(nf.schedule || '').toLowerCase() + '. Список в записи обновляется сам.' : 'Расписание выключено в настройках сетевой папки.',
-                onChange: function (v) { set({ nfAuto: !!v }); }
-            }),
-            el(c.Button, { variant: 'secondary', isBusy: state.busy, disabled: state.busy, onClick: run, className: 'wpd-ed-nf-run' }, 'Импортировать сейчас'),
-            state.msg ? el('p', { className: 'wpd-ed-nf-msg' + (state.error ? ' is-error' : ''), role: 'status' }, state.msg) : null
-        );
-    }
-
     function DocsEdit(props) {
         var a = props.attributes;
         var set = props.setAttributes;
@@ -1025,7 +975,6 @@
                 el(c.PanelBody, { title: 'Значки' },
                     IconSizeControl('docs', a, set, 'Размер значков, px')
                 ),
-                el(NetfolderPanel, { attributes: a, setAttributes: set }),
                 LookPanels('docs', a, set),
                 ResetPanel('wpd/docs', set)
             ),
@@ -1063,8 +1012,6 @@
                                 Badge(it.badge, 'inline')
                             ),
                             ItemState(it),
-                            (sel && it.src) ? el('div', { className: 'wpd-ed-hint wpd-ed-src' },
-                                'Из сетевой папки: ' + it.src + (String(it.nf) === '1' ? ' — нет в папке' : '')) : null,
                             sel ? el(ItemMore, {
                                 it: it, patch: patch, fields: ['badge', 'type', 'color', 'new_tab', 'download'], colorLabel: 'Цвет значка', className: 'wpd-ed-more--docs',
                                 tools: el(Tools, { items: items, index: i, onChange: setItems })

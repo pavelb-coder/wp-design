@@ -101,8 +101,8 @@ check('extra defaults', $D['docs_show_type'] === 1 && $D['news_show_image'] === 
     && $D['news_excerpt_words'] === 20 && $D['faq_single'] === 0 && $D['faq_numbered'] === 0 && $D['docs_new_tab'] === 0);
 check('repeaters: stats, docs, faq', $map['stats']['type'] === 'repeater' && $map['docs']['type'] === 'repeater' && $map['faq']['type'] === 'repeater');
 check('stats row keys', array_keys($map['stats']['fields']) === ['num', 'label', 'icon', 'color', 'hidden', 'from', 'to']);
-// 2.8.0: + служебные src и nf (строки из сетевой папки)
-check('docs row keys', array_slice(array_keys($map['docs']['fields']), 0, 11) === ['title', 'url', 'desc', 'badge', 'type', 'color', 'new_tab', 'download', 'hidden', 'from', 'to']);
+// 2.10.0: служебные src и nf (строки из сетевой папки 2.8.0) убраны
+check('docs row keys', array_keys($map['docs']['fields']) === ['title', 'url', 'desc', 'badge', 'type', 'color', 'new_tab', 'download', 'hidden', 'from', 'to']);
 check('faq row keys', array_keys($map['faq']['fields']) === ['q', 'a', 'open', 'hidden', 'from', 'to']);
 check('slides row: badge, button, hidden, dates', !array_diff(['badge', 'button', 'hidden', 'from', 'to'], array_keys($map['slides']['fields'])));
 check('cards row: icon, badge, more, hidden, dates', !array_diff(['icon', 'badge', 'more', 'hidden', 'from', 'to'], array_keys($map['cards']['fields'])));

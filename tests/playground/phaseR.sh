@@ -91,7 +91,7 @@ t "source page: no styles of other page" "$(all1 "$(hasnt r_src.html 'outline: 2
 rest() { local m=$1 path=$2; shift 2; curl -s -c cjR.txt -b cjR.txt --max-time 120 -o r_rest.json -w "%{http_code}" -X "$m" -H "X-WP-Nonce: $RN" "$@" "$B/?rest_route=$path"; }
 C=$(rest GET "/wpd/v1/page/$ID")
 t "rest export: 200" "$( [ "$C" = "200" ] && echo 1 || echo 0)"
-t "rest export: plugin, version, enabled, ov" "$( [ "$(js r_rest.json 'd["plugin"]=="wp-olympiad-design" and d["version"]>="2.4.0" and d["enabled"] and "page" in d["data"]["ov"]')" = "True" ] && echo 1 || echo 0)"
+t "rest export: plugin, version, enabled, ov" "$( [ "$(js r_rest.json 'd["plugin"]=="wp-olympiad-design" and tuple(map(int,d["version"].split(".")))>=(2,4,0) and d["enabled"] and "page" in d["data"]["ov"]')" = "True" ] && echo 1 || echo 0)"
 cp r_rest.json r_export.json
 C=$(rest POST "/wpd/v1/preview" --data-urlencode "post_id=$ID" --data-urlencode "form=wpd_page[ovg][page]=1&wpd_page[ov][palette]=forest&wpd_page[ov][design_style]=soft")
 t "rest preview: 200 with forest primary" "$( [ "$C" = "200" ] && grep -q '#15803d' r_rest.json && echo 1 || echo 0)"

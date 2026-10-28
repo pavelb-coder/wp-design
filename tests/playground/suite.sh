@@ -19,8 +19,8 @@ p wpd-test-r.php resR1.txt; s phaseR.sh resR2.txt
 p wpd-test-s.php resS1.txt; s phaseS.sh resS2.txt
 p wpd-test-t.php resT1.txt; s phaseT.sh resT2.txt
 p wpd-test-u.php resU1.txt; s phaseU.sh resU2.txt
-p wpd-test-v.php resV1.txt; s phaseV.sh resV2.txt
 p wpd-test-w.php resW1.txt; s phaseW.sh resW2.txt
+p wpd-test-x.php resX1.txt; s phaseX.sh resX2.txt
 (cd /tmp/jsdom && node wpd-js-test.cjs /tmp/pg/f_features.html /home/user/wp-design/wp-olympiad-design/assets/js/wpd.js /tmp/pg/h_components.html > /tmp/pg/resJ.txt 2>&1); echo "== resJ.txt: $(tail -1 resJ.txt)"
 p wpd-test-c.php resC.txt
 echo SUITE_DONE

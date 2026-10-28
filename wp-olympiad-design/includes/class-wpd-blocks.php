@@ -184,9 +184,6 @@ class WPD_Blocks
                     'title' => ['type' => 'string', 'default' => (string) $o['docs_title']],
                     'items' => ['type' => 'array', 'default' => WPD_Settings::docs_items($o['docs'])],
                     'iconSize' => ['type' => 'integer', 'default' => (int) $o['docs_icon_size']],
-                    // 2.8.0: подпапка сетевой папки и автообновление списка по расписанию
-                    'nfFolder' => ['type' => 'string', 'default' => ''],
-                    'nfAuto'   => ['type' => 'boolean', 'default' => false],
                 ] + self::look_attr_defs('docs', $o),
                 'render'      => [__CLASS__, 'render_docs'],
             ],
@@ -395,8 +392,6 @@ class WPD_Blocks
             // 2.7.0: «Раскладка и вид» и свои параметры остальных блоков — описание полей и значения настроек
             'lookOptions'     => self::look_options_data(),
             'lookSettings'    => self::look_settings_data($o),
-            // 2.8.0: импорт документов из сетевой папки
-            'netfolder'       => WPD_Netfolder::editor_data(),
             // Список рубрик нужен только редактору; на сайте лишний запрос не делаем
             'categories'  => is_admin() ? self::categories() : [],
             'noticeLayouts' => WPD_Settings::field_map()['notice_layout']['options'],

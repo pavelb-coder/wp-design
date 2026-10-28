@@ -501,11 +501,6 @@
     opacity: 0.6;
 }
 
-/* 2.8.0: сетевая папка в блоке документов */
-.wpd-ed-nf-msg { margin: 8px 0 0; font-size: 12px; }
-.wpd-ed-nf-msg.is-error { color: #b32d2e; }
-.wpd-ed-src { margin: 2px 0 0 4px; color: #2271b1; }
-
 /* 2.9.0: логотипы партнёров в редакторе — поля под логотипом, лента без движения */
 .wpd-page--editor .wpd-partners__item {
     flex-direction: column;
