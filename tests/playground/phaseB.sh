@@ -80,7 +80,7 @@ for tab in design hero features stats docs faq slider buttons cards notice news 
 done
 t "admin settings page opens"        "$(has settings.html 'nav-tab-active')"
 plain_fields() { grep -oE "name=[\"']wpd_settings\[[a-z0-9_]+\][\"']" "$1" | grep -v '\[_tab\]' | tr "'" '"' | sort -u | wc -l | tr -d ' '; }
-t "283 plain settings fields rendered (+9 repeaters)" "$([ "$(plain_fields settings_all.html)" = "283" ] && echo 1 || echo 0)"
+t "304 plain settings fields rendered (+9 repeaters)" "$([ "$(plain_fields settings_all.html)" = "304" ] && echo 1 || echo 0)"
 for sec in 'Цвета и шрифт' 'Главный блок' 'Возможности' 'Статистика' 'Документы' 'Частые вопросы' 'Поведение'; do t "section: $sec" "$(has settings_all.html "$sec")"; done
 t "shortcode help on page"           "$(has settings_all.html '\[wpd_page\]')"
 

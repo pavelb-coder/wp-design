@@ -3543,3 +3543,188 @@
         background: #fff !important;
     }
 }
+
+/* ---------------------------------------------------------------
+ * 2.12.0: кнопка таймера — кнопки этапов, подпись, иконка, положение, ширина, высота, вид, скругление и цвета.
+ * Классы wpd-cdb--* ставит WPD_Renderer::countdown_button() на корень таймера (и тот же код в редакторе).
+ * ------------------------------------------------------------- */
+.wpd-page .wpd-countdown__actions {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    min-width: 0;
+}
+
+.wpd-page .wpd-countdown__actions[hidden],
+.wpd-page .wpd-countdown__note[hidden] {
+    display: none !important;
+}
+
+.wpd-page .wpd-countdown__note {
+    margin: 0;
+    max-width: 340px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--wpd-muted, #64748b);
+    text-align: right;
+}
+
+.wpd-page .wpd-countdown.wpd-look--ondark .wpd-countdown__note,
+.wpd-page .wpd-hero__countdown .wpd-countdown__note {
+    color: inherit;
+    opacity: 0.8;
+}
+
+.wpd-page .wpd-countdown__link .wpd-countdown__icon.dashicons {
+    width: auto;
+    height: auto;
+    font-size: var(--wpd-cdb-icon, 1.15em);
+    line-height: 1;
+}
+
+/* Положение и ширина */
+.wpd-page .wpd-countdown.wpd-cdb:is(.wpd-cdb--below, .wpd-cdb--center, .wpd-cdb--full) .wpd-countdown__main {
+    flex-basis: 100%;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--below {
+    justify-content: flex-start;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--below .wpd-countdown__actions {
+    align-items: flex-start;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--below .wpd-countdown__note {
+    text-align: left;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--center {
+    justify-content: center;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--center .wpd-countdown__actions {
+    align-items: center;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--center .wpd-countdown__note {
+    text-align: center;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--full > :is(.wpd-countdown__link, .wpd-countdown__actions) {
+    flex: 1 1 100%;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--full .wpd-countdown__actions {
+    align-items: stretch;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--full .wpd-countdown__link.wpd-btn {
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+    .wpd-page .wpd-countdown:not(.wpd-cdb--center) .wpd-countdown__actions {
+        align-items: flex-start;
+    }
+
+    .wpd-page .wpd-countdown:not(.wpd-cdb--center) .wpd-countdown__note {
+        text-align: left;
+    }
+}
+
+/* Высота и скругление */
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--h .wpd-countdown__link.wpd-btn {
+    min-height: var(--wpd-cdb-h);
+    padding-top: 0;
+    padding-bottom: 0;
+    box-sizing: border-box;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--r-none .wpd-countdown__link.wpd-btn { border-radius: 0; }
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--r-small .wpd-countdown__link.wpd-btn { border-radius: 6px; }
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--r-large .wpd-countdown__link.wpd-btn { border-radius: 16px; }
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--r-pill .wpd-countdown__link.wpd-btn { border-radius: 999px; }
+
+/* Вид: мягкая заливка, контур, текстовая ссылка (цвет текста сохраняется и при наведении) */
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--soft .wpd-countdown__link.wpd-btn,
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--soft .wpd-countdown__link.wpd-btn:is(:hover, :focus) {
+    background: color-mix(in srgb, var(--wpd-cdb-bg, var(--wpd-primary)) 14%, transparent);
+    color: var(--wpd-cdb-fg, var(--wpd-primary));
+    border: 0;
+    box-shadow: none;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--outline .wpd-countdown__link.wpd-btn,
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--outline .wpd-countdown__link.wpd-btn:is(:hover, :focus) {
+    background: transparent;
+    color: var(--wpd-cdb-fg, var(--wpd-primary));
+    border: 2px solid var(--wpd-cdb-bd, currentColor);
+    box-shadow: none;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--outline .wpd-countdown__link.wpd-btn:is(:hover, :focus) {
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--link .wpd-countdown__link.wpd-btn,
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--link .wpd-countdown__link.wpd-btn:is(:hover, :focus) {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--wpd-cdb-fg, var(--wpd-primary));
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transform: none;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--link .wpd-countdown__link.wpd-btn:is(:hover, :focus) {
+    text-decoration-thickness: 2px;
+}
+
+/* На тёмном фоне (тёмный таймер, тёмный главный блок) контур, заливка и ссылка по умолчанию белые */
+.wpd-page .wpd-countdown.wpd-look--ondark.wpd-cdb:is(.wpd-cdb--soft, .wpd-cdb--outline, .wpd-cdb--link) .wpd-countdown__link.wpd-btn,
+.wpd-page .wpd-hero:not(.wpd-hero--light):not(.wpd-hero--fg-dark):not(.wpd-hero--soft) .wpd-countdown.wpd-cdb:is(.wpd-cdb--soft, .wpd-cdb--outline, .wpd-cdb--link) .wpd-countdown__link.wpd-btn {
+    color: var(--wpd-cdb-fg, #fff);
+}
+
+.wpd-page .wpd-countdown.wpd-look--ondark.wpd-cdb.wpd-cdb--soft .wpd-countdown__link.wpd-btn,
+.wpd-page .wpd-hero:not(.wpd-hero--light):not(.wpd-hero--fg-dark):not(.wpd-hero--soft) .wpd-countdown.wpd-cdb.wpd-cdb--soft .wpd-countdown__link.wpd-btn {
+    background: color-mix(in srgb, var(--wpd-cdb-bg, #fff) 16%, transparent);
+}
+
+/* Свои цвета: фон (у вида «как кнопки сайта»), текст, рамка */
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--bg:not(.wpd-cdb--soft):not(.wpd-cdb--outline):not(.wpd-cdb--link) .wpd-countdown__link.wpd-btn {
+    background: var(--wpd-cdb-bg);
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--fg .wpd-countdown__link.wpd-btn,
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--fg .wpd-countdown__link.wpd-btn:is(:hover, :focus) {
+    color: var(--wpd-cdb-fg);
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--bd:not(.wpd-cdb--link) .wpd-countdown__link.wpd-btn {
+    border: 2px solid var(--wpd-cdb-bd);
+}
+
+/* Цвета при наведении */
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--hbg .wpd-countdown__link.wpd-btn:is(:hover, :focus-visible) {
+    background: var(--wpd-cdb-hbg);
+    filter: none;
+}
+
+.wpd-page .wpd-countdown.wpd-cdb.wpd-cdb--hfg .wpd-countdown__link.wpd-btn:is(:hover, :focus-visible) {
+    color: var(--wpd-cdb-hfg);
+}
+
+@media print {
+    .wpd-page .wpd-countdown__actions {
+        display: none !important;
+    }
+}

@@ -24,7 +24,10 @@
         var doneText = box.getAttribute('data-done') || '';
         var out = box.querySelector('.wpd-countdown__value');
         var labelEl = box.querySelector('.wpd-countdown__label');
-        var link = box.querySelector('.wpd-countdown__link');
+        // 2.12.0: кнопки этапов — data-when="before" / без атрибута (этап) / "after"; подпись и обёртка видны вместе с кнопкой
+        var links = box.querySelectorAll('.wpd-countdown__link');
+        var actions = box.querySelector('.wpd-countdown__actions');
+        var note = box.querySelector('.wpd-countdown__note');
         if (isNaN(start) || !out) {
             return;
         }
@@ -40,7 +43,8 @@
             return days + ' дн. ' + hours + ' ч ' + pad(mins) + ' мин ' + pad(secs) + ' сек';
         }
 
-        // До начала → до окончания (если задано) → текст «прошло». Кнопка — только между началом и окончанием.
+        // До начала → до окончания (если задано) → текст «прошло». Кнопка этапа — только между началом и окончанием,
+        // кнопка «до начала» — до начала, «после окончания» — после окончания.
         // Тики привязаны к целым секундам до цели, поэтому смена этапа происходит ровно в момент начала/окончания.
         var timer = null;
         function tick() {
@@ -52,8 +56,19 @@
                 labelEl.textContent = text;
                 labelEl.hidden = text === '';
             }
-            if (link) {
-                link.hidden = !(now >= start && (isNaN(end) || now < end));
+            var any = false;
+            for (var i = 0; i < links.length; i++) {
+                var when = links[i].getAttribute('data-when') || 'stage';
+                var show = when === 'before' ? now < start
+                    : (when === 'after' ? !isNaN(end) && now >= end : now >= start && (isNaN(end) || now < end));
+                links[i].hidden = !show;
+                any = any || show;
+            }
+            if (actions) {
+                actions.hidden = !any;
+            }
+            if (note) {
+                note.hidden = !any;
             }
             if (phase === 'done') {
                 out.textContent = doneText;

@@ -72,7 +72,7 @@ foreach ($expect as $key => $e) {
     check("ICON_SIZES $key: var, bounds, default", ($sizes[$key]['var'] ?? '') === $e[2] && $sizes[$key]['min'] === $e[3] && $sizes[$key]['max'] === $e[1] && $sizes[$key]['default'] === $e[4]);
 }
 check('ICON_SIZES: exactly four', array_keys($sizes) === array_keys($expect));
-check('292 fields', count($map) === 292, (string) count($map));
+check('313 fields', count($map) === 313, (string) count($map));
 check('hero size right after second button icon', array_search('hero_button_icon_size', $keys, true) === array_search('hero_button2_icon', $keys, true) + 1);
 check('docs size after docs list', array_search('docs_icon_size', $keys, true) === array_search('docs', $keys, true) + 1);
 check('buttons size after buttons list', array_search('buttons_icon_size', $keys, true) === array_search('buttons', $keys, true) + 1);

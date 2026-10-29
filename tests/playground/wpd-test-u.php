@@ -405,7 +405,7 @@ check('metabox: groups stats/docs/faq', has($mb, 'data-wpd-ovg="stats"') && has(
 
 /* 9. Данные редактора */
 $ls = WPD_Blocks::look_settings_data();
-check('editor lookSettings: nine blocks', array_keys($ls) === array_keys(WPD_Settings::LOOK_BLOCKS));
+check('editor lookSettings: nine blocks + hero timer (2.12.0)', array_keys($ls) === array_merge(array_keys(WPD_Settings::LOOK_BLOCKS), ['heroCountdown']), implode(',', array_keys($ls)));
 check('editor lookSettings: types', $ls['docs']['showType'] === true && $ls['news']['excerptWords'] === 20 && $ls['stats']['gap'] === 20 && $ls['contacts']['buttonText'] === 'Связаться',
     json_encode($ls['docs']));
 $lo = WPD_Blocks::look_options_data();

@@ -111,6 +111,7 @@ class WPD_Settings
             'hero_look'  => 'Вид главного блока',
             'hero_logo'  => 'Логотип',
             'features' => 'Возможности',
+            'countdown_button' => 'Кнопка таймера: этапы, вид и поведение',
             'countdown_look' => 'Вид таймера',
             'stats'    => 'Статистика',
             'stats_look' => 'Раскладка и вид',
@@ -145,7 +146,7 @@ class WPD_Settings
         return [
             'design'   => ['title' => 'Оформление', 'sections' => ['colors', 'look', 'fonts', 'behavior', 'code']],
             'hero'     => ['title' => 'Главный блок', 'sections' => ['hero', 'hero_image', 'hero_look', 'hero_logo']],
-            'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features', 'countdown_look']],
+            'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features', 'countdown_button', 'countdown_look']],
             'stats'    => ['title' => 'Статистика', 'sections' => ['stats', 'stats_look']],
             'docs'     => ['title' => 'Документы', 'sections' => ['docs', 'docs_look']],
             'faq'      => ['title' => 'Частые вопросы', 'sections' => ['faq', 'faq_look']],
@@ -365,6 +366,45 @@ class WPD_Settings
             'countdown_link_url'  => ['label' => 'Ссылка кнопки', 'type' => 'url', 'section' => 'features', 'default' => '',
                                       'desc' => 'Например, платформа с заданиями. Кнопка видна только между началом и окончанием (без даты окончания — после начала). Пусто — кнопки нет.'],
             'countdown_link_new_tab' => ['label' => 'Кнопка в новой вкладке', 'type' => 'checkbox', 'section' => 'features', 'default' => 1],
+            // 2.12.0: кнопка таймера — кнопки других этапов, иконка, поведение, вид и цвета
+            'countdown_before_text' => ['label' => 'Текст кнопки до начала', 'type' => 'text', 'section' => 'countdown_button', 'default' => 'Регистрация'],
+            'countdown_before_url'  => ['label' => 'Ссылка кнопки до начала', 'type' => 'url', 'section' => 'countdown_button', 'default' => '',
+                                        'desc' => 'Например, регистрация. Кнопка видна до начала, с началом её сменяет кнопка этапа. Пусто — кнопки нет.'],
+            'countdown_after_text'  => ['label' => 'Текст кнопки после окончания', 'type' => 'text', 'section' => 'countdown_button', 'default' => 'Результаты'],
+            'countdown_after_url'   => ['label' => 'Ссылка кнопки после окончания', 'type' => 'url', 'section' => 'countdown_button', 'default' => '',
+                                        'desc' => 'Например, результаты. Видна после окончания — нужна дата окончания. Пусто — кнопки нет.'],
+            'countdown_btn_icon'     => ['label' => 'Иконка кнопки', 'type' => 'select', 'section' => 'countdown_button', 'default' => 'arrow',
+                                         'options' => ['arrow' => 'Стрелка →', 'none' => 'Без иконки'] + self::icons()],
+            'countdown_btn_icon_pos' => ['label' => 'Положение иконки', 'type' => 'select', 'section' => 'countdown_button', 'default' => 'right',
+                                         'options' => ['right' => 'Справа от текста', 'left' => 'Слева от текста'],
+                                         'desc' => 'Стрелка всегда справа.'],
+            'countdown_btn_icon_size' => ['label' => 'Размер иконки, px', 'type' => 'number', 'section' => 'countdown_button', 'default' => 0, 'min' => 0, 'max' => 48,
+                                          'desc' => '0 — по размеру текста. От 10 до 48.'],
+            'countdown_btn_download' => ['label' => 'Скачивать файл по ссылке', 'type' => 'checkbox', 'section' => 'countdown_button', 'default' => 0,
+                                         'desc' => 'Атрибут download: браузер сохраняет файл, а не открывает его (для файлов этого сайта).'],
+            'countdown_btn_nofollow' => ['label' => 'Не передавать вес ссылке (nofollow)', 'type' => 'checkbox', 'section' => 'countdown_button', 'default' => 0],
+            'countdown_btn_title'    => ['label' => 'Подсказка при наведении', 'type' => 'text', 'section' => 'countdown_button', 'default' => '',
+                                         'desc' => 'Атрибут title. Пусто — без подсказки.'],
+            'countdown_btn_note'     => ['label' => 'Подпись под кнопкой', 'type' => 'text', 'section' => 'countdown_button', 'default' => '',
+                                         'desc' => 'Например, «Вход по логину из письма». Видна вместе с кнопкой любого этапа.'],
+            'countdown_btn_style'    => ['label' => 'Вид кнопки', 'type' => 'select', 'section' => 'countdown_button', 'default' => 'auto',
+                                         'options' => ['auto' => 'Как кнопки сайта', 'soft' => 'Мягкая заливка', 'outline' => 'Контур', 'link' => 'Текстовая ссылка']],
+            'countdown_btn_radius'   => ['label' => 'Скругление кнопки', 'type' => 'select', 'section' => 'countdown_button', 'default' => 'auto',
+                                         'options' => ['auto' => 'Как кнопки сайта', 'none' => 'Без скругления', 'small' => 'Небольшое', 'large' => 'Крупное', 'pill' => 'Таблетка']],
+            'countdown_btn_width'    => ['label' => 'Ширина кнопки', 'type' => 'select', 'section' => 'countdown_button', 'default' => 'auto',
+                                         'options' => ['auto' => 'По тексту', 'full' => 'На всю ширину (под таймером)']],
+            'countdown_btn_pos'      => ['label' => 'Положение кнопки', 'type' => 'select', 'section' => 'countdown_button', 'default' => 'right',
+                                         'options' => ['right' => 'Справа от таймера', 'below' => 'Под таймером', 'center' => 'Под таймером по центру'],
+                                         'desc' => 'На узких экранах кнопка всегда под таймером.'],
+            'countdown_btn_height'   => ['label' => 'Высота кнопки, px', 'type' => 'number', 'section' => 'countdown_button', 'default' => 0, 'min' => 0, 'max' => 80,
+                                         'desc' => '0 — по умолчанию. От 32 до 80. Размер текста кнопки — в «Виде таймера».'],
+            'countdown_btn_bg'       => ['label' => 'Цвет фона кнопки', 'type' => 'color_opt', 'section' => 'countdown_button', 'default' => '',
+                                         'desc' => 'Пусто — как у кнопок сайта. У контура и мягкой заливки — основной цвет.'],
+            'countdown_btn_color'    => ['label' => 'Цвет текста кнопки', 'type' => 'color_opt', 'section' => 'countdown_button', 'default' => ''],
+            'countdown_btn_border'   => ['label' => 'Цвет рамки кнопки', 'type' => 'color_opt', 'section' => 'countdown_button', 'default' => '',
+                                         'desc' => 'Пусто — без рамки (у контура — цвет текста).'],
+            'countdown_btn_hover'    => ['label' => 'Цвет фона при наведении', 'type' => 'color_opt', 'section' => 'countdown_button', 'default' => ''],
+            'countdown_btn_hover_color' => ['label' => 'Цвет текста при наведении', 'type' => 'color_opt', 'section' => 'countdown_button', 'default' => ''],
             'faq_search'        => ['label' => 'Поиск по вопросам FAQ', 'type' => 'checkbox', 'section' => 'features', 'default' => 1,
                                     'desc' => 'Поле поиска появляется, когда вопросов четыре и больше.'],
             'stats_animate'     => ['label' => 'Анимация чисел статистики', 'type' => 'checkbox', 'section' => 'features', 'default' => 1,
@@ -1974,6 +2014,23 @@ class WPD_Settings
                 <li>Где задаются: общие настройки (разделы «Раскладка и вид», «Вид» на вкладках блоков), группы панели
                     «Блоки олимпиады» для одной страницы, боковая панель блока «Олимпиада: …» (разделы «Раскладка и вид»,
                     «Цвета», «Размеры текстов»). Числа 0 в блоке — как в настройках.</li>
+            </ul>
+
+            <h2>Кнопка таймера (2.12.0)</h2>
+            <ul style="list-style:disc;margin-left:20px">
+                <li><strong>Кнопки этапов</strong>: кроме кнопки на время этапа можно задать кнопку <em>до начала</em> (например,
+                    «Регистрация») и кнопку <em>после окончания</em> (например, «Результаты», нужна дата окончания). В каждый момент
+                    видна одна кнопка — та, что относится к текущему этапу; смена происходит на лету. Пустая ссылка — кнопки нет.</li>
+                <li><strong>Иконка и поведение</strong>: стрелка «→», любая иконка слева или справа от текста либо без иконки,
+                    размер иконки; скачивание файла (download), nofollow, подсказка при наведении, подпись под кнопкой.
+                    «Открывать в новой вкладке» действует на все кнопки таймера.</li>
+                <li><strong>Вид и цвета</strong>: как кнопки сайта, мягкая заливка, контур или текстовая ссылка; скругление; ширина
+                    (по тексту или на всю ширину); положение (справа, под таймером, под таймером по центру); высота; цвета фона,
+                    текста, рамки и цвета при наведении. Размер текста кнопки — в разделе «Вид таймера».</li>
+                <li>Где задаются: вкладка «Таймер и эффекты», раздел «Кнопка таймера»; группа «Таймер и эффекты» панели
+                    «Блоки олимпиады» для одной страницы; боковая панель блока «Олимпиада: обратный отсчёт» (разделы «Кнопки до начала
+                    и после окончания», «Кнопка таймера: вид и цвета», «Кнопка таймера: иконка и поведение») и блока
+                    «Олимпиада: главный блок» при включённом таймере (там же текст и ссылка кнопки этапа).</li>
             </ul>
 
             <h2>«Ответ не является допустимым ответом JSON»</h2>

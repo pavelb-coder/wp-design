@@ -485,14 +485,19 @@
 
         // Таймер внутри блока: предпросмотр по датам из настроек (как блок «Обратный отсчёт» по умолчанию)
         var cd = data.blocks['wpd/countdown'] ? defaults('wpd/countdown') : {};
+        // 2.12.0: кнопка этапа с параметрами кнопки таймера (атрибуты блока или настройки)
+        var cdBtn = cdButtonLook('heroCountdown', a);
+        var cdLinkOn = !!(lookValue('heroCountdown', a, 'cdLinkUrl') && lookValue('heroCountdown', a, 'cdLinkText'));
+        var cdStage = cdLinkOn ? cdButtonEl(cdBtn, lookValue('heroCountdown', a, 'cdLinkText')) : null;
         var timerPreview = a.showCountdown
             ? el('div', { className: 'wpd-hero__countdown' },
                 cd.date
-                    ? el('div', { className: 'wpd-countdown' },
+                    ? el('div', { className: 'wpd-countdown' + cdBtn.className, style: cdBtn.style },
                         el('div', { className: 'wpd-countdown__main' },
                             el('p', { className: 'wpd-countdown__label' }, cd.label || ''),
                             el('p', { className: 'wpd-countdown__value' }, formatDate(cd.date))
-                        ))
+                        ),
+                        cdStage && cdBtn.note ? el('div', { className: 'wpd-countdown__actions' }, cdStage, el('p', { className: 'wpd-countdown__note' }, cdBtn.note)) : cdStage)
                     : (sel ? el('p', { className: 'wpd-ed-hint' }, 'Дата таймера не задана — укажите её в общих настройках, вкладка «Таймер и эффекты».') : null))
             : null;
 
@@ -692,6 +697,7 @@
                         onChange: function (v) { set({ logoLink: v }); }
                     })
                 ),
+                a.showCountdown ? LookPanels('heroCountdown', a, set, true) : null,
                 ResetPanel('wpd/hero', set)
             ),
             Wrapper('hero', { className: props.className, attributes: a },
@@ -850,7 +856,7 @@
     }
 
     /* Боковая панель: «Параметры блока», «Раскладка и вид», «Цвета» — по описанию полей из data.lookOptions */
-    function LookPanels(slug, a, set) {
+    function LookPanels(slug, a, set, only) {
         var opts = lookOpts(slug);
         var conf = (data.lookSettings || {})[slug] || {};
         var put = function (attr, v) { var o = {}; o[attr] = v; set(o); };
@@ -901,11 +907,74 @@
         var extra = group('extra');
         var look = group('look');
         var colors = group('colors');
-        return [
+        // 2.12.0: кнопка таймера — этапы, вид и цвета, иконка и поведение
+        var btnTitles = {
+            btn_phases: slug === 'heroCountdown' ? 'Кнопка таймера: этапы' : 'Кнопки до начала и после окончания',
+            btn_look: 'Кнопка таймера: вид и цвета',
+            btn_more: 'Кнопка таймера: иконка и поведение'
+        };
+        var btnPanels = Object.keys(btnTitles).map(function (g) {
+            var list = group(g);
+            return list.length ? el(c.PanelBody, { key: 'wpd-' + g, title: btnTitles[g], initialOpen: false, className: 'wpd-ed-look-panel-' + g }, list) : null;
+        });
+        if (only) {
+            return btnPanels;
+        }
+        return btnPanels.concat([
             extra.length ? el(c.PanelBody, { key: 'wpd-x', title: 'Параметры блока', initialOpen: false, className: 'wpd-ed-look-panel-extra' }, extra) : null,
             look.length ? el(c.PanelBody, { key: 'wpd-l', title: 'Раскладка и вид', initialOpen: false, className: 'wpd-ed-look-panel-layout' }, look) : null,
             colors.length ? el(c.PanelBody, { key: 'wpd-c', title: 'Цвета', initialOpen: false, className: 'wpd-ed-look-panel-colors' }, colors) : null
-        ];
+        ]);
+    }
+
+    /*
+     * 2.12.0: кнопка таймера — классы и переменные корня таймера, иконка и подпись, как WPD_Renderer::countdown_button().
+     * slug: 'countdown' (блок таймера) или 'heroCountdown' (таймер главного блока).
+     */
+    function cdButtonLook(slug, a) {
+        var opts = lookOpts(slug);
+        var sel = function (attr, def) {
+            var o = opts[attr];
+            var v = String(lookValue(slug, a, attr));
+            return o && o.options && Object.prototype.hasOwnProperty.call(o.options, v) ? v : def;
+        };
+        var cls = [];
+        var st = {};
+        var v = sel('cdBtnStyle', 'auto');
+        if (v !== 'auto') { cls.push('wpd-cdb--' + v); }
+        v = sel('cdBtnRadius', 'auto');
+        if (v !== 'auto') { cls.push('wpd-cdb--r-' + v); }
+        if (sel('cdBtnWidth', 'auto') === 'full') { cls.push('wpd-cdb--full'); }
+        v = sel('cdBtnPos', 'right');
+        if (v !== 'right') { cls.push('wpd-cdb--' + v); }
+        v = lookPx(slug, a, 'cdBtnHeight', 32, 80);
+        if (v) { cls.push('wpd-cdb--h'); st['--wpd-cdb-h'] = v + 'px'; }
+        [['cdBtnBg', 'bg'], ['cdBtnColor', 'fg'], ['cdBtnBorder', 'bd'], ['cdBtnHover', 'hbg'], ['cdBtnHoverColor', 'hfg']].forEach(function (p) {
+            var col = hexColor(lookValue(slug, a, p[0]));
+            if (col) { cls.push('wpd-cdb--' + p[1]); st['--wpd-cdb-' + p[1]] = col; }
+        });
+        var icon = sel('cdBtnIcon', 'arrow');
+        v = lookPx(slug, a, 'cdBtnIconSize', 10, 48);
+        if (v && icon !== 'none') { cls.push('wpd-cdb--icon'); st['--wpd-cdb-icon'] = v + 'px'; }
+        var pos = icon === 'arrow' ? 'right' : sel('cdBtnIconPos', 'right');
+        if (icon !== 'arrow' && icon !== 'none' && pos === 'left') { cls.push('wpd-cdb--icon-left'); }
+        return {
+            className: cls.length ? ' wpd-cdb ' + cls.join(' ') : '', style: st, icon: icon, iconPos: pos,
+            note: String(lookValue(slug, a, 'cdBtnNote') || ''), title: String(lookValue(slug, a, 'cdBtnTitle') || '')
+        };
+    }
+
+    /* 2.12.0: кнопка таймера на холсте — текст (можно править на месте) с иконкой или стрелкой */
+    function cdButtonEl(btn, text, extraClass) {
+        var icon = btn.icon !== 'arrow' && btn.icon !== 'none'
+            ? el('span', { key: 'i', className: 'wpd-countdown__icon dashicons dashicons-' + btn.icon, 'aria-hidden': 'true' }) : null;
+        var parts = [el('span', { key: 't' }, text)];
+        if (btn.icon === 'arrow') {
+            parts.push(' \u2192');
+        } else if (icon) {
+            parts = btn.iconPos === 'left' ? [icon].concat(parts) : parts.concat([icon]);
+        }
+        return el('span', { className: 'wpd-btn wpd-countdown__link' + (extraClass || ''), title: btn.title || undefined }, parts);
     }
 
     /* Иконка элемента: необязательная */
@@ -1005,6 +1074,19 @@
         var endValid = shownEnd !== '' && (a.end || '') > (a.date || '');
         var valSize = lookPx('countdown', a, 'valueSize', 14, 64);
         var look = blockLook('countdown', a, 'wpd-countdown', valSize ? { '--wpd-bl-val': valSize + 'px' } : null);
+        var btn = cdButtonLook('countdown', a);
+        var beforeOn = !!(lookValue('countdown', a, 'cdBeforeUrl') && lookValue('countdown', a, 'cdBeforeText'));
+        var afterOn = !!(endValid && lookValue('countdown', a, 'cdAfterUrl') && lookValue('countdown', a, 'cdAfterText'));
+        var stageBtn = a.linkUrl ? cdButtonEl(btn, el(Inline, { value: a.linkText, placeholder: 'Текст кнопки', onChange: function (v) { set({ linkText: v }); } })) : null;
+        var otherBtns = [];
+        if (beforeOn) { otherBtns.push('до начала — «' + lookValue('countdown', a, 'cdBeforeText') + '»'); }
+        if (afterOn) { otherBtns.push('после окончания — «' + lookValue('countdown', a, 'cdAfterText') + '»'); }
+        var actions = stageBtn && !btn.note && !otherBtns.length ? stageBtn
+            : ((stageBtn || otherBtns.length) ? el('div', { className: 'wpd-countdown__actions' },
+                stageBtn,
+                btn.note ? el('p', { className: 'wpd-countdown__note' }, btn.note) : null,
+                otherBtns.length ? el('p', { className: 'wpd-ed-hint wpd-ed-cd-phases' }, 'Кнопки: ' + otherBtns.join(', ') + '.') : null
+            ) : null);
         var dateField = function (label, key, help) {
             return el(c.TextControl, {
                 label: label, type: 'datetime-local', help: help,
@@ -1039,7 +1121,7 @@
                 ResetPanel('wpd/countdown', set)
             ),
             Wrapper('countdown', { className: props.className, attributes: a },
-                el('div', { className: look.className + (valSize ? ' wpd-countdown--size' : ''), style: look.style },
+                el('div', { className: look.className + (valSize ? ' wpd-countdown--size' : '') + btn.className, style: Object.assign({}, look.style, btn.style) },
                     el('div', { className: 'wpd-countdown__main' },
                         el('p', { className: 'wpd-countdown__label' },
                             el(Plain, { value: a.label, single: true, placeholder: 'Подпись до начала', onChange: function (v) { set({ label: v }); } })
@@ -1054,10 +1136,7 @@
                             el('p', { className: 'wpd-countdown__value' }, shownEnd)
                         ) : null
                     ),
-                    a.linkUrl ? el('span', { className: 'wpd-btn wpd-countdown__link' },
-                        el(Inline, { value: a.linkText, placeholder: 'Текст кнопки', onChange: function (v) { set({ linkText: v }); } }),
-                        ' \u2192'
-                    ) : null
+                    actions
                 )
             )
         );

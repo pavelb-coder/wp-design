@@ -73,7 +73,7 @@ foreach ($other as $k => $d) {
 check('hero/buttons/partners: new fields, sections, ranges, default 0', $bad === [], implode(',', $bad));
 $n_new = 0;
 foreach ($new_look as $keys) { $n_new += count($keys); }
-check('39 new fields, 292 total', $n_new + count($other) === 39 && count($map) === 292, (string) count($map));
+check('39 new fields, 313 total', $n_new + count($other) === 39 && count($map) === 313, (string) count($map));
 check('no bg field for notice, but notice_bg_tr', !isset($map['notice_bg']) && isset($map['notice_bg_tr']));
 check('countdown has no title/item size', !isset($map['countdown_title_size']) && !isset($map['countdown_item_size']));
 $ranges = true;

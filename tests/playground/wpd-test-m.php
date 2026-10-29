@@ -62,7 +62,7 @@ $count_tab = function (string $tab) use ($keys, $field_tab): int { return count(
 
 /* 1. Поля, подразделы, значения по умолчанию */
 check('version 1.9.0', version_compare(WPD_VERSION, '1.9.0', '>='));
-check('292 fields', count($map) === 292, (string) count($map));
+check('313 fields', count($map) === 313, (string) count($map));
 check('design tab: colors, look, fonts, behavior, code', $tabs['design']['sections'] === ['colors', 'look', 'fonts', 'behavior', 'code']);
 check('hero tab: 4 subsections (2.9.0: logo)', $tabs['hero']['sections'] === ['hero', 'hero_image', 'hero_look', 'hero_logo']);
 check('subsection titles', $secs['code'] === 'Шрифты Google и свой CSS' && $secs['hero'] === 'Текст и кнопки' && $secs['hero_image'] === 'Изображение' && $secs['hero_look'] === 'Вид главного блока');

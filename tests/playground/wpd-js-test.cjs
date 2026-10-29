@@ -237,6 +237,35 @@ function fakeLayout(w, sizes) {
         w.close();
     }
 
+    // 10b. Кнопки этапов таймера (2.12.0): до начала, этап, после окончания; обёртка с подписью скрывается без кнопок
+    {
+        const iso = (ms) => new Date(Date.now() + ms).toISOString();
+        const page = (start, end, links) => '<!doctype html><html><body><div class="wpd-page">'
+            + '<div class="wpd-countdown" data-target="' + start + '" data-end="' + end + '" data-end-label="До окончания"'
+            + ' data-label="До начала" data-done="Завершено" data-phase="before">'
+            + '<div class="wpd-countdown__main"><p class="wpd-countdown__label">До начала</p><p class="wpd-countdown__value">дата</p></div>'
+            + '<div class="wpd-countdown__actions">'
+            + (links.indexOf('before') >= 0 ? '<a class="wpd-btn wpd-countdown__link wpd-countdown__link--before" data-when="before" href="https://example.com/reg">Регистрация</a>' : '')
+            + '<a class="wpd-btn wpd-countdown__link" href="https://example.com/tasks" hidden>К заданиям</a>'
+            + (links.indexOf('after') >= 0 ? '<a class="wpd-btn wpd-countdown__link wpd-countdown__link--after" data-when="after" href="https://example.com/res" hidden>Результаты</a>' : '')
+            + '<p class="wpd-countdown__note">Подпись</p></div></div></div></body></html>';
+        const vis = (w) => [...w.document.querySelectorAll('.wpd-countdown__link')].map((a) => (a.getAttribute('data-when') || 'stage') + (a.hidden ? '-' : '+')).join(' ');
+        const wrap = (w) => !w.document.querySelector('.wpd-countdown__actions').hidden;
+        let w = await load(page(iso(1300), iso(3300), ['before', 'after']), { noIO: true });
+        check('phase buttons: before start only before button', vis(w) === 'before+ stage- after-' && wrap(w), vis(w));
+        await wait(1800);
+        check('phase buttons: stage replaces before button live', vis(w) === 'before- stage+ after-' && wrap(w), vis(w));
+        await wait(2200);
+        check('phase buttons: after end only after button', vis(w) === 'before- stage- after+' && wrap(w), vis(w));
+        w.close();
+        w = await load(page(iso(-7200000), iso(-3600000), ['before']), { noIO: true });
+        check('phase buttons: no visible button -> wrapper with note hidden', vis(w) === 'before- stage-' && !wrap(w), vis(w) + ' ' + wrap(w));
+        w.close();
+        w = await load(page(iso(-3600000), iso(3600000), []), { noIO: true });
+        check('phase buttons: stage only, wrapper visible', vis(w) === 'stage+' && wrap(w), vis(w));
+        w.close();
+    }
+
     // 9. Слайдер и карусель новостей (1.5.0)
     if (compHtml) {
         const layout = { track: 1000, slider: 1000, news: 340 };

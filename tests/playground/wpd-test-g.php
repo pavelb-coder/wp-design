@@ -34,7 +34,7 @@ foreach ($tabs as $id => $t) {
     $per_tab[$id] = count(array_filter(WPD_Settings::field_map(), function ($f) use ($t) { return in_array($f['section'], $t['sections'], true); }));
 }
 check('fields per tab (2.11.0)',
-    $per_tab === ['design' => 35, 'hero' => 45, 'features' => 22, 'stats' => 15, 'docs' => 18, 'faq' => 16, 'slider' => 19, 'buttons' => 19, 'cards' => 18, 'notice' => 20, 'news' => 23, 'contacts' => 30, 'partners' => 12, 'help' => 0], json_encode($per_tab));
+    $per_tab === ['design' => 35, 'hero' => 45, 'features' => 43, 'stats' => 15, 'docs' => 18, 'faq' => 16, 'slider' => 19, 'buttons' => 19, 'cards' => 18, 'notice' => 20, 'news' => 23, 'contacts' => 30, 'partners' => 12, 'help' => 0], json_encode($per_tab));
 check('help tab is last', array_key_last($tabs) === 'help');
 
 /* 2. Адреса */
@@ -62,7 +62,7 @@ check('tab stats: color kept', $s['primary'] === '#0f766e');
 check('tab stats: checkboxes of other tabs kept', $s['countdown_enabled'] === 1 && $s['faq_search'] === 1 && $s['hide_title'] === 1);
 check('tab stats: hero text kept', $s['badge'] === 'Метка');
 check('_tab not stored', !array_key_exists('_tab', $s));
-check('all 292 keys returned', count($s) === 292);
+check('all 313 keys returned', count($s) === 313);
 
 $s = WPD_Settings::sanitize(['_tab' => 'features', 'faq_search' => '1', 'countdown_date' => '2031-01-01T10:00']);
 check('tab features: unchecked checkbox -> 0', $s['countdown_enabled'] === 0 && $s['stats_animate'] === 0);
@@ -88,7 +88,7 @@ WPD_Settings::flush_cache();
 update_option('wpd_settings', ['_tab' => 'hero', 'badge' => 'Финал', 'hero_style' => 'light']);
 $saved = get_option('wpd_settings');
 check('first save through tab: badge stored', ($saved['badge'] ?? '') === 'Финал');
-check('first save through tab: others defaults', ($saved['primary'] ?? '') === '#1d4ed8' && count($saved) === 292);
+check('first save through tab: others defaults', ($saved['primary'] ?? '') === '#1d4ed8' && count($saved) === 313);
 update_option('wpd_settings', ['_tab' => 'docs', 'docs' => 'A|https://example.com/a.pdf', 'docs_title' => 'Файлы']);
 $saved = get_option('wpd_settings');
 check('second save other tab: hero kept', $saved['badge'] === 'Финал' && $saved['hero_style'] === 'light');

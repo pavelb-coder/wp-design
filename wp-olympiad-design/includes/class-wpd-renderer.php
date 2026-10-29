@@ -550,6 +550,8 @@ class WPD_Renderer
     /**
      * Обратный отсчёт: до начала, затем (если задана дата окончания) до окончания, затем текст «прошло».
      * Кнопка-ссылка видна только между началом и окончанием (без даты окончания — после начала).
+     * 2.12.0: необязательные кнопки до начала (countdown_before_*) и после окончания (countdown_after_*), подпись под кнопкой,
+     * иконка, download, nofollow, подсказка, вид, скругление, ширина, положение, высота и цвета (countdown_btn_*).
      * Этап определяется на сервере (страница без JavaScript сразу верная), скрипт переключает этапы на лету.
      *
      * @param array $args enabled, date, label, end, end_label, done, link_text, link_url, link_new_tab
@@ -614,7 +616,9 @@ class WPD_Renderer
         $look = self::block_look($o, 'countdown');
         $val  = self::px($o, 'countdown_value_size', 14, 64);
         $style = $look['style'] . ($val ? '--wpd-bl-val:' . $val . 'px;' : '');
-        $html = '<div class="wpd-countdown' . esc_attr(self::look_class($look) . ($val ? ' wpd-countdown--size' : '')) . '"'
+        $cdb   = self::countdown_button($o);
+        $style .= $cdb['style'];
+        $html = '<div class="wpd-countdown' . esc_attr(self::look_class($look) . ($val ? ' wpd-countdown--size' : '') . $cdb['class']) . '"'
             . ($style !== '' ? ' style="' . esc_attr($style) . '"' : '')
             . ' data-target="' . esc_attr($dt->format(DATE_ATOM)) . '"'
             . ($end_dt ? ' data-end="' . esc_attr($end_dt->format(DATE_ATOM)) . '"' : '')
@@ -625,12 +629,133 @@ class WPD_Renderer
         $html .= '<p class="wpd-countdown__label"' . ($shown_label === '' ? ' hidden' : '') . '>' . esc_html($shown_label) . '</p>';
         $html .= '<p class="wpd-countdown__value">' . esc_html($shown_value) . '</p>';
         $html .= '</div>';
+        // 2.12.0: кнопки этапов (до начала, во время этапа, после окончания), подпись, иконка и поведение
+        $btn   = $cdb;
+        $links = [];
+        $b_url = esc_url((string) ($o['countdown_before_url'] ?? ''));
+        $b_txt = (string) ($o['countdown_before_text'] ?? '');
+        if ($b_url !== '' && $b_txt !== '') {
+            $links[] = self::countdown_link('before', $b_url, $b_txt, $l_new, $btn, $now < $start);
+        }
         if ($has_link) {
-            $html .= '<a class="wpd-btn wpd-countdown__link" href="' . $link_url . '"'
-                . ($l_new ? ' target="_blank" rel="noopener noreferrer"' : '')
-                . ($link_open ? '' : ' hidden') . '>' . esc_html($l_text) . ' &rarr;</a>';
+            $links[] = self::countdown_link('', $link_url, $l_text, $l_new, $btn, $link_open);
+        }
+        $a_url = esc_url((string) ($o['countdown_after_url'] ?? ''));
+        $a_txt = (string) ($o['countdown_after_text'] ?? '');
+        if ($end_dt && $a_url !== '' && $a_txt !== '') {
+            $links[] = self::countdown_link('after', $a_url, $a_txt, $l_new, $btn, $now >= $end_dt->getTimestamp());
+        }
+        if ($links) {
+            $any = false;
+            foreach ($links as $l) {
+                $any = $any || $l[1];
+            }
+            $items = implode('', array_column($links, 0));
+            if (count($links) > 1 || $btn['note'] !== '') {
+                // несколько кнопок или подпись — в общей обёртке (видна, пока видна хотя бы одна кнопка)
+                $note  = $btn['note'] !== '' ? '<p class="wpd-countdown__note"' . ($any ? '' : ' hidden') . '>' . esc_html($btn['note']) . '</p>' : '';
+                $items = '<div class="wpd-countdown__actions"' . ($any ? '' : ' hidden') . '>' . $items . $note . '</div>';
+            }
+            $html .= $items;
         }
         return $html . '</div>';
+    }
+
+    /**
+     * 2.12.0: кнопка таймера — классы и CSS-переменные корня таймера, иконка, атрибуты ссылки, подпись.
+     * Значения по умолчанию не добавляют ни классов, ни атрибутов: разметка как в 1.6.0–2.11.0.
+     *
+     * @return array{class:string,style:string,icon:string,icon_pos:string,download:bool,nofollow:bool,title:string,note:string}
+     */
+    public static function countdown_button(array $o): array
+    {
+        $map  = WPD_Settings::field_map();
+        $pick = function (string $key) use ($o, $map): string {
+            $v = (string) ($o[$key] ?? '');
+            return array_key_exists($v, $map[$key]['options']) ? $v : (string) $map[$key]['default'];
+        };
+        $cls   = [];
+        $style = '';
+        foreach (['countdown_btn_style' => '', 'countdown_btn_radius' => 'r-'] as $key => $prefix) {
+            $v = $pick($key);
+            if ($v !== 'auto') {
+                $cls[] = 'wpd-cdb--' . $prefix . $v;
+            }
+        }
+        if ($pick('countdown_btn_width') === 'full') {
+            $cls[] = 'wpd-cdb--full';
+        }
+        $pos = $pick('countdown_btn_pos');
+        if ($pos !== 'right') {
+            $cls[] = 'wpd-cdb--' . $pos;
+        }
+        $h = self::px($o, 'countdown_btn_height', 32, 80);
+        if ($h) {
+            $cls[]  = 'wpd-cdb--h';
+            $style .= '--wpd-cdb-h:' . $h . 'px;';
+        }
+        $colors = ['countdown_btn_bg' => 'bg', 'countdown_btn_color' => 'fg', 'countdown_btn_border' => 'bd',
+                   'countdown_btn_hover' => 'hbg', 'countdown_btn_hover_color' => 'hfg'];
+        foreach ($colors as $key => $suffix) {
+            $c = (string) sanitize_hex_color((string) ($o[$key] ?? ''));
+            if ($c !== '') {
+                $cls[]  = 'wpd-cdb--' . $suffix;
+                $style .= '--wpd-cdb-' . $suffix . ':' . $c . ';';
+            }
+        }
+        $icon = $pick('countdown_btn_icon');
+        $isz  = self::px($o, 'countdown_btn_icon_size', 10, 48);
+        if ($isz && $icon !== 'none') {
+            $cls[]  = 'wpd-cdb--icon';
+            $style .= '--wpd-cdb-icon:' . $isz . 'px;';
+        }
+        $icon_pos = $icon === 'arrow' ? 'right' : $pick('countdown_btn_icon_pos');
+        if ($icon !== 'arrow' && $icon !== 'none' && $icon_pos === 'left') {
+            $cls[] = 'wpd-cdb--icon-left';
+        }
+        return [
+            'class'    => $cls ? ' wpd-cdb ' . implode(' ', $cls) : '',
+            'style'    => $style,
+            'icon'     => $icon,
+            'icon_pos' => $icon_pos,
+            'download' => !empty($o['countdown_btn_download']),
+            'nofollow' => !empty($o['countdown_btn_nofollow']),
+            'title'    => sanitize_text_field((string) ($o['countdown_btn_title'] ?? '')),
+            'note'     => sanitize_text_field((string) ($o['countdown_btn_note'] ?? '')),
+        ];
+    }
+
+    /**
+     * 2.12.0: одна кнопка таймера. $when: '' — кнопка этапа (как в 1.6.0, без data-when), 'before' или 'after'.
+     *
+     * @return array{0:string,1:bool} разметка и видимость сейчас
+     */
+    private static function countdown_link(string $when, string $url, string $text, bool $new_tab, array $btn, bool $visible): array
+    {
+        $rel = $new_tab ? 'noopener noreferrer' : '';
+        if ($btn['nofollow']) {
+            $rel = trim($rel . ' nofollow');
+        }
+        $icon = '';
+        if ($btn['icon'] !== 'arrow' && $btn['icon'] !== 'none') {
+            self::enqueue_icons();
+            $icon = '<span class="wpd-countdown__icon dashicons dashicons-' . esc_attr($btn['icon']) . '" aria-hidden="true"></span>';
+        }
+        $label = esc_html($text);
+        if ($btn['icon'] === 'arrow') {
+            $label .= ' &rarr;';
+        } elseif ($icon !== '') {
+            $label = $btn['icon_pos'] === 'left' ? $icon . $label : $label . $icon;
+        }
+        $html = '<a class="wpd-btn wpd-countdown__link' . ($when !== '' ? ' wpd-countdown__link--' . $when : '') . '"'
+            . ($when !== '' ? ' data-when="' . $when . '"' : '')
+            . ' href="' . $url . '"'
+            . ($new_tab ? ' target="_blank"' : '')
+            . ($rel !== '' ? ' rel="' . esc_attr($rel) . '"' : '')
+            . ($btn['download'] ? ' download' : '')
+            . ($btn['title'] !== '' ? ' title="' . esc_attr($btn['title']) . '"' : '')
+            . ($visible ? '' : ' hidden') . '>' . $label . '</a>';
+        return [$html, $visible];
     }
 
     /**

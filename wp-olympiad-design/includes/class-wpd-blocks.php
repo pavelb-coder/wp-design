@@ -152,7 +152,7 @@ class WPD_Blocks
                     'badgeSize'      => ['type' => 'integer', 'default' => 0],
                     'leadSize'       => ['type' => 'integer', 'default' => 0],
                     'buttonSize'     => ['type' => 'integer', 'default' => 0],
-                ],
+                ] + self::attr_defs(self::hero_countdown_attrs(), $o),
                 'render'      => [__CLASS__, 'render_hero'],
             ],
             'countdown' => [
@@ -759,6 +759,56 @@ class WPD_Blocks
         'contacts'  => ['buttonText' => 'contacts_button_text', 'showIcons' => 'contacts_show_icons'],
     ];
 
+    /** 2.12.0: кнопка таймера — атрибут → поле настроек (у блока таймера и у главного блока). */
+    const CD_BTN_ATTRS = [
+        'cdBeforeText'    => 'countdown_before_text',
+        'cdBeforeUrl'     => 'countdown_before_url',
+        'cdAfterText'     => 'countdown_after_text',
+        'cdAfterUrl'      => 'countdown_after_url',
+        'cdBtnIcon'       => 'countdown_btn_icon',
+        'cdBtnIconPos'    => 'countdown_btn_icon_pos',
+        'cdBtnIconSize'   => 'countdown_btn_icon_size',
+        'cdBtnDownload'   => 'countdown_btn_download',
+        'cdBtnNofollow'   => 'countdown_btn_nofollow',
+        'cdBtnTitle'      => 'countdown_btn_title',
+        'cdBtnNote'       => 'countdown_btn_note',
+        'cdBtnStyle'      => 'countdown_btn_style',
+        'cdBtnRadius'     => 'countdown_btn_radius',
+        'cdBtnWidth'      => 'countdown_btn_width',
+        'cdBtnPos'        => 'countdown_btn_pos',
+        'cdBtnHeight'     => 'countdown_btn_height',
+        'cdBtnBg'         => 'countdown_btn_bg',
+        'cdBtnColor'      => 'countdown_btn_color',
+        'cdBtnBorder'     => 'countdown_btn_border',
+        'cdBtnHover'      => 'countdown_btn_hover',
+        'cdBtnHoverColor' => 'countdown_btn_hover_color',
+    ];
+
+    /** 2.12.0: кнопка этапа таймера в главном блоке (у блока таймера это linkText, linkUrl, linkNewTab). */
+    const HERO_CD_LINK_ATTRS = [
+        'cdLinkText'   => 'countdown_link_text',
+        'cdLinkUrl'    => 'countdown_link_url',
+        'cdLinkNewTab' => 'countdown_link_new_tab',
+    ];
+
+    /** 2.12.0: атрибуты таймера главного блока — кнопка этапа и все параметры кнопки. */
+    public static function hero_countdown_attrs(): array
+    {
+        return self::HERO_CD_LINK_ATTRS + self::CD_BTN_ATTRS;
+    }
+
+    /** 2.12.0: группа боковой панели для поля кнопки таймера: этапы, вид и цвета, иконка и поведение. */
+    public static function countdown_button_group(string $key): string
+    {
+        if (preg_match('/^countdown_(before|after|link)_/', $key)) {
+            return 'btn_phases';
+        }
+        if (preg_match('/^countdown_btn_(style|radius|width|pos|height|bg|color|border|hover|hover_color)$/', $key)) {
+            return 'btn_look';
+        }
+        return 'btn_more';
+    }
+
     /** Атрибуты «Раскладки и вида» и своих параметров блока: атрибут → поле настроек. */
     public static function look_attrs(string $slug): array
     {
@@ -766,7 +816,8 @@ class WPD_Blocks
         foreach (WPD_Settings::LOOK_BLOCKS[$slug] ?? [] as $k) {
             $out[self::LOOK_ATTR_NAMES[$k]] = $slug . '_' . $k;
         }
-        return $out + (self::LOOK_EXTRA_ATTRS[$slug] ?? []);
+        $out += self::LOOK_EXTRA_ATTRS[$slug] ?? [];
+        return $slug === 'countdown' ? $out + self::CD_BTN_ATTRS : $out;
     }
 
     /** Тип атрибута по типу поля настроек. */
@@ -784,9 +835,15 @@ class WPD_Blocks
     /** Определения атрибутов «Раскладки и вида» блока; значения по умолчанию — текущие настройки. */
     private static function look_attr_defs(string $slug, array $o): array
     {
+        return self::attr_defs(self::look_attrs($slug), $o);
+    }
+
+    /** Определения атрибутов по карте «атрибут → поле настроек»; значения по умолчанию — текущие настройки. */
+    private static function attr_defs(array $attrs, array $o): array
+    {
         $map = WPD_Settings::field_map();
         $out = [];
-        foreach (self::look_attrs($slug) as $attr => $key) {
+        foreach ($attrs as $attr => $key) {
             $out[$attr] = ['type' => self::attr_type($map[$key]['type']), 'default' => self::attr_value($map[$key]['type'], $o[$key])];
         }
         return $out;
@@ -814,6 +871,10 @@ class WPD_Blocks
                 $out[$slug][$attr] = self::attr_value($map[$key]['type'], $o[$key]);
             }
         }
+        // 2.12.0: таймер главного блока
+        foreach (self::hero_countdown_attrs() as $attr => $key) {
+            $out['heroCountdown'][$attr] = self::attr_value($map[$key]['type'], $o[$key]);
+        }
         return $out;
     }
 
@@ -825,22 +886,32 @@ class WPD_Blocks
     {
         $map = WPD_Settings::field_map();
         $out = [];
+        $describe = function (array $f, string $group): array {
+            $d = ['label' => $f['label'], 'type' => $f['type'], 'group' => $group, 'help' => (string) ($f['desc'] ?? '')];
+            if ($f['type'] === 'select') {
+                $d['options'] = $f['options'];
+            } elseif ($f['type'] === 'number') {
+                $d['min'] = (int) $f['min'];
+                $d['max'] = (int) $f['max'];
+            }
+            return $d;
+        };
         foreach (array_keys(WPD_Settings::LOOK_BLOCKS) as $slug) {
             foreach (self::look_attrs($slug) as $attr => $key) {
-                $f = $map[$key];
                 $generic = substr($key, strlen($slug) + 1);
-                $group = in_array($generic, WPD_Settings::LOOK_BLOCKS[$slug], true)
-                    ? (in_array($generic, ['bg', 'bg_tr', 'accent', 'text_color'], true) ? 'colors' : 'look')
-                    : 'extra';
-                $d = ['label' => $f['label'], 'type' => $f['type'], 'group' => $group, 'help' => (string) ($f['desc'] ?? '')];
-                if ($f['type'] === 'select') {
-                    $d['options'] = $f['options'];
-                } elseif ($f['type'] === 'number') {
-                    $d['min'] = (int) $f['min'];
-                    $d['max'] = (int) $f['max'];
+                if (isset(self::CD_BTN_ATTRS[$attr])) {
+                    $group = self::countdown_button_group($key);
+                } else {
+                    $group = in_array($generic, WPD_Settings::LOOK_BLOCKS[$slug], true)
+                        ? (in_array($generic, ['bg', 'bg_tr', 'accent', 'text_color'], true) ? 'colors' : 'look')
+                        : 'extra';
                 }
-                $out[$slug][$attr] = $d;
+                $out[$slug][$attr] = $describe($map[$key], $group);
             }
+        }
+        // 2.12.0: таймер главного блока — те же поля кнопки и кнопка этапа
+        foreach (self::hero_countdown_attrs() as $attr => $key) {
+            $out['heroCountdown'][$attr] = $describe($map[$key], self::countdown_button_group($key));
         }
         return $out;
     }
@@ -851,9 +922,17 @@ class WPD_Blocks
      */
     public static function with_look_attrs(array $o, array $a, string $slug): array
     {
-        $o   = self::section_under($o, $a, $slug);
+        return self::apply_attr_map(self::section_under($o, $a, $slug), $a, self::look_attrs($slug));
+    }
+
+    /**
+     * Подставляет атрибуты блока в настройки по карте «атрибут → поле настроек» (правила — как в with_look_attrs();
+     * ссылки проверяет рендерер через esc_url()).
+     */
+    public static function apply_attr_map(array $o, array $a, array $attrs): array
+    {
         $map = WPD_Settings::field_map();
-        foreach (self::look_attrs($slug) as $attr => $key) {
+        foreach ($attrs as $attr => $key) {
             if (!array_key_exists($attr, $a) || !is_scalar($a[$attr])) {
                 continue;
             }
@@ -898,6 +977,7 @@ class WPD_Blocks
     {
         $a = is_array($a) ? $a : [];
         $o = self::with_icon_size(WPD_Settings::get(), $a, 'buttonIconSize', 'hero_button_icon_size');
+        $o = self::apply_attr_map($o, $a, self::hero_countdown_attrs()); // 2.12.0: кнопка таймера в блоке
         return self::wrap(WPD_Renderer::hero_html($o, [
             'title'       => self::str($a, 'title', $o['hero_title']),
             'lead'        => self::str($a, 'lead', $o['hero_text']),
