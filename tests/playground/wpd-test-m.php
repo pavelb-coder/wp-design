@@ -62,11 +62,11 @@ $count_tab = function (string $tab) use ($keys, $field_tab): int { return count(
 
 /* 1. Поля, подразделы, значения по умолчанию */
 check('version 1.9.0', version_compare(WPD_VERSION, '1.9.0', '>='));
-check('253 fields', count($map) === 253, (string) count($map));
+check('292 fields', count($map) === 292, (string) count($map));
 check('design tab: colors, look, fonts, behavior, code', $tabs['design']['sections'] === ['colors', 'look', 'fonts', 'behavior', 'code']);
 check('hero tab: 4 subsections (2.9.0: logo)', $tabs['hero']['sections'] === ['hero', 'hero_image', 'hero_look', 'hero_logo']);
 check('subsection titles', $secs['code'] === 'Шрифты Google и свой CSS' && $secs['hero'] === 'Текст и кнопки' && $secs['hero_image'] === 'Изображение' && $secs['hero_look'] === 'Вид главного блока');
-check('design 35 fields, hero 40', $count_tab('design') === 35 && $count_tab('hero') === 40, $count_tab('design') . '/' . $count_tab('hero'));
+check('design 35 fields, hero 45', $count_tab('design') === 35 && $count_tab('hero') === 45, $count_tab('design') . '/' . $count_tab('hero'));
 check('8 new look fields in look', count(array_filter($look_new, function ($k) use ($map) { return $map[$k]['section'] === 'look'; })) === 8);
 check('fonts and css in code section', $map['google_fonts']['section'] === 'code' && $map['custom_css']['section'] === 'code' && $map['google_fonts']['type'] === 'fonts' && $map['custom_css']['type'] === 'css');
 check('14 new hero fields on hero tab', count(array_filter($hero_new, function ($k) use ($field_tab) { return $field_tab($k) === 'hero'; })) === 14);

@@ -300,6 +300,9 @@ class WPD_Settings
                              'desc' => 'Светлый вариант подходит для страниц, где много текста и мало иллюстраций. «Мягкий градиент» — прозрачный фон с цветными пятнами и крупный заголовок прописными, как на макете Кванториума.'],
             'hero_bg'         => ['label' => 'Свой цвет фона', 'type' => 'color_opt', 'section' => 'hero_look', 'default' => '',
                                   'desc' => 'Заменяет фон стиля. Цвет текста подбирается автоматически (светлый или тёмный). Пусто — фон стиля.'],
+            // 2.11.0: прозрачность фона
+            'hero_bg_tr'      => ['label' => 'Прозрачность фона, %', 'type' => 'number', 'section' => 'hero_look', 'default' => 0, 'min' => 0, 'max' => 100,
+                                  'desc' => '0 — непрозрачный, 100 — полностью прозрачный: сквозь фон видно страницу. Действует на свой цвет фона и фон стилей «Тёмный», «Градиент» и «Светлый»; у фонового изображения — «Затемнение», «Мягкий градиент» прозрачен и так.'],
             'hero_badge_color' => ['label' => 'Цвет метки', 'type' => 'color_opt', 'section' => 'hero_look', 'default' => '',
                                   'desc' => 'Фон метки над заголовком; цвет её текста подбирается сам. Пусто — акцентный цвет.'],
             'hero_title_color' => ['label' => 'Цвет заголовка', 'type' => 'color_opt', 'section' => 'hero_look', 'default' => '',
@@ -334,6 +337,15 @@ class WPD_Settings
                                    'desc' => 'Необязательно. Сайт организации открывается в новой вкладке.'],
             'hero_title_size' => ['label' => 'Размер заголовка', 'type' => 'select', 'section' => 'hero_look', 'default' => 'normal',
                                   'options' => ['small' => 'Меньше', 'normal' => 'Обычный', 'large' => 'Крупнее']],
+            // 2.11.0: размеры текстов главного блока
+            'hero_title_px'    => ['label' => 'Размер заголовка, px', 'type' => 'number', 'section' => 'hero_look', 'default' => 0, 'min' => 0, 'max' => 96,
+                                   'desc' => '0 — по выбору «Размер заголовка». От 20 до 96; на телефоне — не больше 11 % ширины экрана.'],
+            'hero_badge_size'  => ['label' => 'Размер метки, px', 'type' => 'number', 'section' => 'hero_look', 'default' => 0, 'min' => 0, 'max' => 24,
+                                   'desc' => '0 — по умолчанию (13 px). От 10 до 24.'],
+            'hero_lead_size'   => ['label' => 'Размер текста под заголовком, px', 'type' => 'number', 'section' => 'hero_look', 'default' => 0, 'min' => 0, 'max' => 32,
+                                   'desc' => '0 — по умолчанию (18 px). От 12 до 32.'],
+            'hero_button_size' => ['label' => 'Размер текста кнопок, px', 'type' => 'number', 'section' => 'hero_look', 'default' => 0, 'min' => 0, 'max' => 28,
+                                   'desc' => '0 — как у остальных кнопок. От 12 до 28.'],
 
             // Возможности
             'countdown_enabled' => ['label' => 'Обратный отсчёт', 'type' => 'checkbox', 'section' => 'features', 'default' => 0,
@@ -517,6 +529,8 @@ class WPD_Settings
             // 2.6.0: раскладка
             'buttons_title'          => ['label' => 'Заголовок блока', 'type' => 'text', 'section' => 'buttons_layout', 'default' => '',
                                          'desc' => 'Пусто — без заголовка.'],
+            'buttons_title_size'     => ['label' => 'Размер заголовка блока, px', 'type' => 'number', 'section' => 'buttons_layout', 'default' => 0, 'min' => 0, 'max' => 72,
+                                         'desc' => '0 — как у остальных заголовков блоков. От 16 до 72; на телефоне — не больше 10 % ширины экрана.'],
             'buttons_columns'        => ['label' => 'Колонок на компьютере', 'type' => 'select', 'section' => 'buttons_layout', 'default' => '',
                                          'options' => ['' => 'Автоматически', '2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6'],
                                          'desc' => 'Автоматически — сколько поместится (плитка не уже 140 px). В виде «Компактные» не действует.'],
@@ -538,8 +552,12 @@ class WPD_Settings
                                          'options' => ['' => 'Как в оформлении', 'none' => 'Без скругления', 'small' => 'Небольшое (6 px)', 'medium' => 'Среднее (12 px)', 'large' => 'Большое (20 px)', 'pill' => 'Полное']],
             'buttons_text_size'      => ['label' => 'Размер текста, px', 'type' => 'number', 'section' => 'buttons_look', 'default' => 0, 'min' => 0, 'max' => 28,
                                          'desc' => '0 — по умолчанию. От 11 до 28.'],
+            'buttons_small_size'     => ['label' => 'Размер подписей и меток, px', 'type' => 'number', 'section' => 'buttons_look', 'default' => 0, 'min' => 0, 'max' => 24,
+                                         'desc' => 'Подпись под текстом плитки и метка в углу. 0 — по умолчанию. От 10 до 24.'],
             'buttons_bg'             => ['label' => 'Фон плиток', 'type' => 'color_opt', 'section' => 'buttons_look', 'default' => '',
                                          'desc' => 'Пусто — по заливке. Тёмный фон делает текст белым.'],
+            'buttons_bg_tr'          => ['label' => 'Прозрачность фона плиток, %', 'type' => 'number', 'section' => 'buttons_look', 'default' => 0, 'min' => 0, 'max' => 100,
+                                         'desc' => '0 — непрозрачный, 100 — полностью прозрачный. Действует на свой фон, цвета отдельных плиток и фон заливки.'],
             'buttons_icon_color'     => ['label' => 'Цвет иконок', 'type' => 'color_opt', 'section' => 'buttons_look', 'default' => '',
                                          'desc' => 'Пусто — основной цвет.'],
             'buttons_text_color'     => ['label' => 'Цвет текста', 'type' => 'color_opt', 'section' => 'buttons_look', 'default' => ''],
@@ -648,6 +666,13 @@ class WPD_Settings
             'partners_cards'   => ['label' => 'Логотипы на карточках', 'type' => 'checkbox', 'section' => 'partners_look', 'default' => 1,
                                    'desc' => 'Белые карточки со скруглением; выключено — логотипы прямо на фоне.'],
             'partners_names'   => ['label' => 'Подписи под логотипами', 'type' => 'checkbox', 'section' => 'partners_look', 'default' => 0],
+            // 2.11.0
+            'partners_title_size' => ['label' => 'Размер заголовка блока, px', 'type' => 'number', 'section' => 'partners_look', 'default' => 0, 'min' => 0, 'max' => 72,
+                                      'desc' => '0 — как у остальных заголовков блоков. От 16 до 72; на телефоне — не больше 10 % ширины экрана.'],
+            'partners_small_size' => ['label' => 'Размер подписей, px', 'type' => 'number', 'section' => 'partners_look', 'default' => 0, 'min' => 0, 'max' => 24,
+                                      'desc' => 'Подписи под логотипами и названия без логотипа. 0 — по умолчанию. От 10 до 24.'],
+            'partners_bg_tr'      => ['label' => 'Прозрачность фона карточек, %', 'type' => 'number', 'section' => 'partners_look', 'default' => 0, 'min' => 0, 'max' => 100,
+                                      'desc' => 'Для логотипов на карточках. 0 — непрозрачный, 100 — полностью прозрачный.'],
         ];
     }
 
@@ -656,16 +681,28 @@ class WPD_Settings
      * Поле настроек — «<блок>_<параметр>», секция — «<блок>_look».
      */
     const LOOK_BLOCKS = [
-        'stats'     => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
-        'docs'      => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
-        'faq'       => ['gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
-        'cards'     => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
-        'news'      => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
-        'notice'    => ['align', 'variant', 'radius', 'text_size', 'accent', 'text_color'],
-        'slider'    => ['align', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
-        'countdown' => ['align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
-        'contacts'  => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'text_size', 'bg', 'accent', 'text_color'],
+        'stats'     => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'title_size', 'text_size', 'bg', 'bg_tr', 'accent', 'text_color'],
+        'docs'      => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'title_size', 'text_size', 'small_size', 'bg', 'bg_tr', 'accent', 'text_color'],
+        'faq'       => ['gap', 'align', 'variant', 'radius', 'title_size', 'item_size', 'text_size', 'bg', 'bg_tr', 'accent', 'text_color'],
+        'cards'     => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'title_size', 'item_size', 'text_size', 'small_size', 'bg', 'bg_tr', 'accent', 'text_color'],
+        'news'      => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'title_size', 'item_size', 'text_size', 'small_size', 'bg', 'bg_tr', 'accent', 'text_color'],
+        'notice'    => ['align', 'variant', 'radius', 'item_size', 'text_size', 'small_size', 'bg_tr', 'accent', 'text_color'],
+        'slider'    => ['align', 'radius', 'item_size', 'text_size', 'small_size', 'bg', 'bg_tr', 'accent', 'text_color'],
+        'countdown' => ['align', 'variant', 'radius', 'text_size', 'small_size', 'bg', 'bg_tr', 'accent', 'text_color'],
+        'contacts'  => ['columns', 'columns_mobile', 'gap', 'align', 'variant', 'radius', 'title_size', 'item_size', 'text_size', 'small_size', 'bg', 'bg_tr', 'accent', 'text_color'],
     ];
+
+    /**
+     * 2.11.0: размеры текстов «Раскладки и вида» — что называется заголовками элементов (item_size)
+     * и второстепенным текстом (small_size) у каждого блока. Границы, px: [минимум на сайте, максимум поля].
+     */
+    const LOOK_TEXT = [
+        'item'  => ['faq' => 'вопросов', 'cards' => 'заголовков карточек', 'news' => 'заголовков новостей', 'notice' => 'заголовка объявления',
+                    'slider' => 'заголовков слайдов', 'contacts' => 'названия организации'],
+        'small' => ['docs' => 'подписей и меток', 'cards' => 'меток и ссылок «Подробнее»', 'news' => 'дат и ссылок', 'notice' => 'текста над заголовком и кнопки',
+                    'slider' => 'меток и кнопок слайдов', 'countdown' => 'текста кнопки', 'contacts' => 'текста кнопки'],
+    ];
+    const LOOK_TEXT_RANGE = ['title_size' => [16, 72], 'item_size' => [12, 48], 'text_size' => [11, 28], 'small_size' => [10, 24]];
 
     /** Скругления «Раскладки и вида», px. */
     const LOOK_RADIUS = ['none' => 0, 'small' => 6, 'medium' => 12, 'large' => 20];
@@ -720,7 +757,25 @@ class WPD_Settings
                         break;
                     case 'text_size':
                         $f = ['label' => 'Размер текста, px', 'type' => 'number', 'default' => 0, 'min' => 0, 'max' => 28,
-                              'desc' => '0 — по умолчанию. От 11 до 28; заголовки внутри элементов меняются пропорционально.'];
+                              'desc' => '0 — по умолчанию. От 11 до 28; заголовки внутри элементов меняются пропорционально, если для них не задан свой размер.'];
+                        break;
+                    // 2.11.0: размеры заголовка блока, заголовков элементов и второстепенного текста
+                    case 'title_size':
+                        $f = ['label' => 'Размер заголовка блока, px', 'type' => 'number', 'default' => 0, 'min' => 0, 'max' => 72,
+                              'desc' => '0 — как у остальных заголовков блоков. От 16 до 72; на телефоне — не больше 10 % ширины экрана.'];
+                        break;
+                    case 'item_size':
+                        $f = ['label' => 'Размер ' . self::LOOK_TEXT['item'][$slug] . ', px', 'type' => 'number', 'default' => 0, 'min' => 0, 'max' => 48,
+                              'desc' => '0 — по умолчанию (или пропорционально размеру текста). От 12 до 48.'];
+                        break;
+                    case 'small_size':
+                        $f = ['label' => 'Размер ' . self::LOOK_TEXT['small'][$slug] . ', px', 'type' => 'number', 'default' => 0, 'min' => 0, 'max' => 24,
+                              'desc' => '0 — по умолчанию. От 10 до 24.'];
+                        break;
+                    case 'bg_tr':
+                        $f = ['label' => 'Прозрачность фона ' . ($slug === 'slider' ? 'подписи' : $what) . ', %', 'type' => 'number', 'default' => 0, 'min' => 0, 'max' => 100,
+                              'desc' => '0 — непрозрачный, 100 — полностью прозрачный. Действует на свой цвет фона, а без него — на фон вида'
+                                  . ($slug === 'cards' ? ' и цвета карточек.' : ($slug === 'notice' ? ' и «Цвет фона» объявления.' : ($slug === 'slider' ? ' (затемнение подписи, фон слайдов без картинки).' : ' (белые карточки, заливка, оттенок).')))];
                         break;
                     case 'bg':
                         $f = ['label' => $slug === 'slider' ? 'Фон подписи слайда' : 'Фон ' . $what, 'type' => 'color_opt', 'default' => '',
@@ -1901,6 +1956,24 @@ class WPD_Settings
                 <li>То же для одной страницы — группы панели «Блоки олимпиады», для блока «Олимпиада: …» — разделы
                     «Параметры блока», «Раскладка и вид» и «Цвета» его боковой панели и поля под элементом на холсте.
                     Значение блока важнее значения страницы, значение страницы — общего; числа 0 — как в настройках.</li>
+            </ul>
+
+            <h2>Прозрачность фонов и размеры текстов (2.11.0)</h2>
+            <ul style="list-style:disc;margin-left:20px">
+                <li><strong>Прозрачность фона, %</strong> — отдельно для каждого фона: главного блока (свой цвет и стили «Тёмный»,
+                    «Градиент», «Светлый»), элементов статистики, документов, вопросов, карточек, новостей, контактов, таймера
+                    и объявления, подписи слайдера, плиток «Кнопки-ссылки» и карточек логотипов партнёров. 0 — непрозрачный,
+                    100 — полностью прозрачный: сквозь фон видно фон страницы. Действует на свой цвет фона, а без него —
+                    на фон вида (белые карточки, заливка, оттенок, цвета карточек). Цвет текста подбирается по тому, что видно.</li>
+                <li><strong>Фон блока с прозрачностью</strong> — в панели «Блоки олимпиады» (кнопка «Вид» у блока) и в разделе
+                    «Фон раздела» боковой панели блока «Олимпиада: …»: цвет под всем блоком вместе с заголовком.</li>
+                <li><strong>Размеры текстов, px</strong> — у каждого блока: заголовок блока, заголовки элементов (вопросы, заголовки
+                    карточек, новостей, слайдов, объявления, название организации), основной текст и второстепенный текст
+                    (подписи, метки, даты, ссылки «Подробнее», текст кнопок). У главного блока — заголовок (точно в px),
+                    метка, текст под заголовком и кнопки. 0 — по умолчанию; на телефоне крупные заголовки уменьшаются по ширине экрана.</li>
+                <li>Где задаются: общие настройки (разделы «Раскладка и вид», «Вид» на вкладках блоков), группы панели
+                    «Блоки олимпиады» для одной страницы, боковая панель блока «Олимпиада: …» (разделы «Раскладка и вид»,
+                    «Цвета», «Размеры текстов»). Числа 0 в блоке — как в настройках.</li>
             </ul>
 
             <h2>«Ответ не является допустимым ответом JSON»</h2>

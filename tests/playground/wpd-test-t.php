@@ -64,12 +64,12 @@ $keys = array_keys($map);
 /* 1. Поля */
 $layout_keys = ['buttons_title', 'buttons_columns', 'buttons_columns_mobile', 'buttons_gap', 'buttons_height', 'buttons_align'];
 $look_keys   = ['buttons_layout', 'buttons_variant', 'buttons_radius', 'buttons_text_size', 'buttons_bg', 'buttons_icon_color', 'buttons_text_color', 'buttons_hover_color'];
-check('fields: 253 in total', count($map) === 253, (string) count($map));
-check('fields: 244 plain + 9 repeaters', count(array_filter($map, function ($f) { return $f['type'] !== 'repeater'; })) === 244);
+check('fields: 292 in total', count($map) === 292, (string) count($map));
+check('fields: 283 plain + 9 repeaters', count(array_filter($map, function ($f) { return $f['type'] !== 'repeater'; })) === 283);
 check('fields: layout section fields', count(array_filter($layout_keys, function ($k) use ($map) { return isset($map[$k]) && $map[$k]['section'] === 'buttons_layout'; })) === 6);
 check('fields: look section fields', count(array_filter($look_keys, function ($k) use ($map) { return isset($map[$k]) && $map[$k]['section'] === 'buttons_look'; })) === 8);
 $pos = array_flip($keys);
-check('fields: new fields right after icon size', $pos['buttons_title'] === $pos['buttons_icon_size'] + 1 && $pos['buttons_hover_color'] === $pos['buttons_icon_size'] + 14);
+check('fields: new fields right after icon size', $pos['buttons_title'] === $pos['buttons_icon_size'] + 1 && $pos['buttons_hover_color'] === $pos['buttons_icon_size'] + 17);
 check('fields: defaults keep old look', $map['buttons_layout']['default'] === 'stack' && $map['buttons_variant']['default'] === 'card'
     && $map['buttons_columns']['default'] === '' && $map['buttons_radius']['default'] === '' && $map['buttons_gap']['default'] === 0
     && $map['buttons_text_size']['default'] === 0 && $map['buttons_bg']['default'] === '' && $map['buttons_title']['default'] === '');

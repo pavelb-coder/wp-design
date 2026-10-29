@@ -66,7 +66,7 @@ foreach (WPD_Settings::LOOK_BLOCKS as $slug => $keys) {
 }
 check('look fields exist for every block', !$missing, implode(',', $missing));
 $look_count = array_sum(array_map('count', WPD_Settings::LOOK_BLOCKS));
-check('look fields: 77', $look_count === 77, (string) $look_count);
+check('look fields: 105 (2.11.0)', $look_count === 105, (string) $look_count);
 $sections = WPD_Settings::sections();
 foreach (['stats_look', 'docs_look', 'cards_look', 'news_look', 'contacts_look'] as $sec) {
     check("section $sec titled «Раскладка и вид»", ($sections[$sec] ?? '') === 'Раскладка и вид');
@@ -315,8 +315,8 @@ check('blocks: look attributes registered', !$attr_missing, implode(',', $attr_m
 $bt = $reg->get_registered('wpd/docs');
 check('blocks: attribute types', $bt->attributes['showType']['type'] === 'boolean' && $bt->attributes['gap']['type'] === 'integer' && $bt->attributes['variant']['type'] === 'string');
 check('blocks: server attributes without defaults', !array_key_exists('default', $bt->attributes['variant']) && !array_key_exists('default', $bt->attributes['showType']));
-check('look_attrs(faq)', WPD_Blocks::look_attrs('faq') === ['gap' => 'faq_gap', 'textAlign' => 'faq_align', 'variant' => 'faq_variant', 'radius' => 'faq_radius', 'textSize' => 'faq_text_size',
-    'bgColor' => 'faq_bg', 'accentColor' => 'faq_accent', 'textColor' => 'faq_text_color', 'openFirst' => 'faq_open_first', 'single' => 'faq_single', 'numbered' => 'faq_numbered']);
+check('look_attrs(faq)', WPD_Blocks::look_attrs('faq') === ['gap' => 'faq_gap', 'textAlign' => 'faq_align', 'variant' => 'faq_variant', 'radius' => 'faq_radius', 'headingSize' => 'faq_title_size', 'itemSize' => 'faq_item_size', 'textSize' => 'faq_text_size',
+    'bgColor' => 'faq_bg', 'bgTransparency' => 'faq_bg_tr', 'accentColor' => 'faq_accent', 'textColor' => 'faq_text_color', 'openFirst' => 'faq_open_first', 'single' => 'faq_single', 'numbered' => 'faq_numbered']);
 $wo = WPD_Blocks::with_look_attrs($o, ['gap' => 0, 'textSize' => 99, 'variant' => 'solid', 'showType' => false, 'newTab' => true, 'bgColor' => '#000', 'unknown' => 'x', 'title' => ['bad']], 'docs');
 check('with_look_attrs: unit', (int) $wo['docs_gap'] === (int) $o['docs_gap'] && (int) $wo['docs_text_size'] === 28 && $wo['docs_variant'] === 'solid'
     && $wo['docs_show_type'] === 0 && $wo['docs_new_tab'] === 1 && $wo['docs_bg'] === '#000' && !isset($wo['unknown']));

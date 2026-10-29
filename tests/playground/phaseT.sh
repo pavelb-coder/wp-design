@@ -126,7 +126,7 @@ t "front: no PHP warnings" "$(grep -qE '<b>(Warning|Notice|Deprecated|Fatal erro
 
 # Экран редактирования
 get "/wp-admin/post.php?post=$ID&action=edit" t_edit.html
-t "edit: buttonsSettings from settings" "$( [ "$(edata t_edit.html buttonsSettings)" = '{"title":"Полезные ссылки","columns":"4","columnsMobile":"1","gap":20,"height":90,"textAlign":"left","layout":"row","variant":"tint","radius":"small","textSize":18,"bgColor":"","iconColor":"#15803d","textColor":"","hoverColor":"#b91c1c"}' ] && echo 1 || echo 0)"
+t "edit: buttonsSettings from settings" "$( [ "$(edata t_edit.html buttonsSettings)" = '{"title":"Полезные ссылки","columns":"4","columnsMobile":"1","gap":20,"height":90,"textAlign":"left","layout":"row","variant":"tint","radius":"small","textSize":18,"bgColor":"","headingSize":0,"smallSize":0,"bgTransparency":0,"iconColor":"#15803d","textColor":"","hoverColor":"#b91c1c"}' ] && echo 1 || echo 0)"
 t "edit: buttonsOptions" "$(inq "$(edata t_edit.html buttonsOptions)" '"layout":{"label":"Вид плиток","options":{"stack":"Иконка сверху"')"
 t "edit: client defaults = settings" "$( [ "$(has t_edit.html '"layout":{"type":"string","default":"row"}')" = 1 ] && [ "$(has t_edit.html '"gap":{"type":"integer","default":20}')" = 1 ] && echo 1 || echo 0)"
 t "edit: page panel fields" "$( [ "$(grep -oE 'id="wpd_pe_ov_buttons_(title|columns|columns_mobile|gap|height|align|layout|variant|radius|text_size|bg|icon_color|text_color|hover_color)"' t_edit.html | sort -u | wc -l)" = "14" ] && echo 1 || echo 0)"

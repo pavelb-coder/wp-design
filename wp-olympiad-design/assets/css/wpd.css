@@ -3365,3 +3365,181 @@
         opacity: 1;
     }
 }
+
+/* ---------------------------------------------------------------
+ * 2.11.0: прозрачность фонов и размеры текстов блоков
+ * ------------------------------------------------------------- */
+
+/* Главный блок: прозрачность фона стилей «Тёмный», «Градиент», «Светлый» (свой цвет — rgba в --wpd-hero-bg) */
+.wpd-page .wpd-hero.wpd-hero--tr:not(.wpd-hero--custom-bg) {
+    background:
+        radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.10), transparent 45%),
+        color-mix(in srgb, var(--wpd-dark) var(--wpd-hero-a, 100%), transparent);
+}
+
+.wpd-page .wpd-hero.wpd-hero--tr.wpd-hero--gradient:not(.wpd-hero--custom-bg) {
+    background:
+        radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.16), transparent 45%),
+        linear-gradient(135deg, color-mix(in srgb, var(--wpd-primary) var(--wpd-hero-a, 100%), transparent) 0%,
+                                color-mix(in srgb, var(--wpd-dark) var(--wpd-hero-a, 100%), transparent) 100%);
+}
+
+.wpd-page .wpd-hero.wpd-hero--tr.wpd-hero--light:not(.wpd-hero--custom-bg) {
+    background: color-mix(in srgb, #fff var(--wpd-hero-a, 100%), transparent);
+}
+
+/* Главный блок: размеры метки, заголовка, текста и кнопок */
+.wpd-page .wpd-hero.wpd-hero--fs-title .wpd-hero__title {
+    font-size: min(var(--wpd-hero-fs-title), 11vw);
+}
+
+.wpd-page .wpd-hero.wpd-hero--fs-badge .wpd-hero__text .wpd-badge {
+    font-size: var(--wpd-hero-fs-badge);
+}
+
+.wpd-page .wpd-hero.wpd-hero--fs-lead .wpd-hero__lead {
+    font-size: var(--wpd-hero-fs-lead);
+}
+
+.wpd-page .wpd-hero.wpd-hero--fs-btn .wpd-hero__actions .wpd-btn {
+    font-size: var(--wpd-hero-fs-btn);
+}
+
+/* Размер заголовка блока */
+.wpd-page :is(.wpd-look.wpd-look--fs-title, .wpd-buttons.wpd-buttons--fs-title, .wpd-partners.wpd-partners--fs-title) .wpd-h2 {
+    font-size: min(var(--wpd-bl-fs-title, var(--wpd-qb-fs-title, var(--wpd-pt-fs-title))), 10vw);
+}
+
+/* Заголовки элементов */
+.wpd-page .wpd-look.wpd-look--fs-item :is(.wpd-faq__q, .wpd-card__title, .wpd-news__title, .wpd-notice__title, .wpd-slide__title, .wpd-contacts__org) {
+    font-size: var(--wpd-bl-fs-item);
+}
+
+/* Второстепенный текст: подписи, метки, даты, ссылки «Подробнее», кнопки */
+.wpd-page .wpd-look.wpd-look--fs-small :is(.wpd-doc__desc, .wpd-it-badge, .wpd-card__more, .wpd-news__date, .wpd-news__more, .wpd-notice__pre,
+    .wpd-notice__actions .wpd-btn, .wpd-slide__badge, .wpd-slide__link, .wpd-countdown__link, .wpd-contacts__box .wpd-btn) {
+    font-size: var(--wpd-bl-fs-small);
+}
+
+.wpd-page .wpd-buttons.wpd-buttons--fs-sub :is(.wpd-qbtn__desc, .wpd-qbtn__badge) {
+    font-size: var(--wpd-qb-fs-sub);
+}
+
+.wpd-page .wpd-partners.wpd-partners--fs-small :is(.wpd-partners__name, .wpd-partners__text) {
+    font-size: var(--wpd-pt-fs-small);
+}
+
+/*
+ * Прозрачность фона элементов без своего цвета: фон вида смешивается с прозрачным (--wpd-bl-bg-a — непрозрачная доля).
+ * По умолчанию и в виде «Карточка» — белый, «Заливка» — основной цвет, «Оттенок» — светлый оттенок основного.
+ */
+.wpd-page .wpd-look.wpd-look--bgtr {
+    --wpd-bl-base: #fff;
+}
+
+.wpd-page .wpd-look.wpd-look--bgtr.wpd-look--solid {
+    --wpd-bl-base: var(--wpd-primary);
+}
+
+.wpd-page .wpd-look.wpd-look--bgtr.wpd-look--tint {
+    --wpd-bl-base: color-mix(in srgb, var(--wpd-primary) 10%, #fff);
+}
+
+.wpd-page .wpd-look.wpd-look--bgtr:not(.wpd-look--outline):not(.wpd-look--plain) :is(.wpd-stat, .wpd-doc, .wpd-faq__item, .wpd-news__item, .wpd-contacts__box),
+.wpd-page .wpd-look.wpd-look--bgtr.wpd-countdown:not(.wpd-look--outline):not(.wpd-look--plain) {
+    background: color-mix(in srgb, var(--wpd-bl-base) var(--wpd-bl-bg-a), transparent) !important;
+}
+
+/* Карточки: цвет карточки (свой или основной) — у варианта по умолчанию, «Заливки» и «Оттенка» */
+.wpd-page .wpd-cards.wpd-look--bgtr:not(.wpd-look--outline):not(.wpd-look--plain):not(.wpd-look--card):not(.wpd-look--tint) :is(.wpd-card, #wpd-none) {
+    background: color-mix(in srgb, var(--wpd-card, var(--wpd-primary)) var(--wpd-bl-bg-a), transparent) !important;
+}
+
+.wpd-page .wpd-cards.wpd-look--bgtr.wpd-look--card :is(.wpd-card, #wpd-none) {
+    background: color-mix(in srgb, #fff var(--wpd-bl-bg-a), transparent) !important;
+}
+
+.wpd-page .wpd-cards.wpd-look--bgtr.wpd-look--tint :is(.wpd-card, #wpd-none) {
+    background: color-mix(in srgb, color-mix(in srgb, var(--wpd-card, var(--wpd-primary)) 12%, #fff) var(--wpd-bl-bg-a), transparent) !important;
+}
+
+/* Объявление: «Цвет фона» объявления или фон вида */
+.wpd-page .wpd-look.wpd-look--bgtr.wpd-notice:not(.wpd-look--outline):not(.wpd-look--plain) {
+    background: color-mix(in srgb, var(--wpd-notice-bg, #eef2ff) var(--wpd-bl-bg-a), transparent) !important;
+}
+
+/* Слайдер: затемнение подписи и фон слайда без картинки */
+.wpd-page .wpd-slider.wpd-look--bgtr .wpd-slide__caption {
+    background: linear-gradient(to top, color-mix(in srgb, rgba(0, 0, 0, 0.72) var(--wpd-bl-bg-a), transparent), rgba(0, 0, 0, 0)) !important;
+}
+
+.wpd-page .wpd-slider.wpd-look--bgtr .wpd-slide--noimg {
+    background: color-mix(in srgb, var(--wpd-primary) var(--wpd-bl-bg-a), transparent);
+}
+
+.wpd-page .wpd-slider.wpd-look--bgtr .wpd-slide--noimg .wpd-slide__caption {
+    background: transparent !important;
+}
+
+/* Кнопки-ссылки: фон плиток (свой, цвет плитки или фон заливки) с прозрачностью */
+.wpd-page .wpd-buttons.wpd-buttons--bgtr .wpd-qbtn {
+    --wpd-qb-base: var(--wpd-qb-bg, #fff);
+    background: color-mix(in srgb, var(--wpd-qb-base) var(--wpd-qb-a), transparent) !important;
+}
+
+.wpd-page .wpd-buttons.wpd-buttons--bgtr.wpd-buttons--solid .wpd-qbtn {
+    --wpd-qb-base: var(--wpd-qb-bg, var(--wpd-primary));
+}
+
+.wpd-page .wpd-buttons.wpd-buttons--bgtr.wpd-buttons--tint .wpd-qbtn {
+    --wpd-qb-base: var(--wpd-qb-bg, color-mix(in srgb, var(--wpd-primary) 10%, #fff));
+}
+
+.wpd-page .wpd-buttons.wpd-buttons--bgtr.wpd-buttons--outline .wpd-qbtn {
+    --wpd-qb-base: var(--wpd-qb-bg, transparent);
+}
+
+/* Логотипы партнёров: карточки с прозрачностью */
+.wpd-page .wpd-partners.wpd-partners--cards.wpd-partners--bgtr .wpd-partners__link {
+    background: color-mix(in srgb, #fff var(--wpd-pt-a), transparent) !important;
+}
+
+/* Фон раздела блока редактора (атрибуты «Фон раздела»): как фон блока в панели «Блоки олимпиады» */
+.wpd-page.wpd-page--block.wpd-sec {
+    padding: clamp(20px, 3vw, 36px);
+    border-radius: var(--wpd-radius);
+    background: var(--wpd-sec-bg) !important;
+}
+
+.wpd-page.wpd-page--block.wpd-sec > :first-child {
+    margin-top: 0;
+}
+
+.wpd-page.wpd-page--block.wpd-sec > :last-child {
+    margin-bottom: 0;
+}
+
+.wpd-page.wpd-page--block.wpd-sec.alignfull {
+    border-radius: 0;
+    padding-left: max(20px, calc(50vw - var(--wpd-width, 1200px) / 2 + 20px));
+    padding-right: max(20px, calc(50vw - var(--wpd-width, 1200px) / 2 + 20px));
+}
+
+.wpd-page.wpd-page--block.wpd-sec--dark {
+    --wpd-heading: #fff;
+    --wpd-text: #e5e7eb;
+    color: #e5e7eb;
+}
+
+.wpd-page.wpd-page--block.wpd-sec--dark .wpd-h2,
+.wpd-page.wpd-page--block.wpd-sec--dark h2,
+.wpd-page.wpd-page--block.wpd-sec--dark h3 {
+    color: #fff;
+}
+
+@media print {
+    .wpd-page .wpd-hero.wpd-hero--tr,
+    .wpd-page.wpd-page--block.wpd-sec {
+        background: #fff !important;
+    }
+}

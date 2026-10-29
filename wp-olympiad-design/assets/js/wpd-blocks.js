@@ -166,15 +166,96 @@
         );
     }
 
+    /* ---------- 2.11.0: прозрачность фонов — те же расчёты, что WPD_Renderer::bg_alpha(), alpha_color(), blend_color() ---------- */
+
+    function rgbOf(hexv) {
+        var m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hexv || '');
+        if (!m) { return null; }
+        var h = m[1].length === 3 ? m[1].replace(/(.)/g, '$1$1') : m[1];
+        return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+    }
+    function bgAlpha(tr) {
+        tr = parseInt(tr, 10);
+        return (100 - (isNaN(tr) ? 0 : Math.max(0, Math.min(100, tr)))) / 100;
+    }
+    function alphaColor(hexv, alpha) {
+        var c = rgbOf(hexv);
+        if (!c) { return ''; }
+        return alpha >= 1 ? hexv : 'rgba(' + c.join(',') + ',' + String(Math.round(Math.max(0, alpha) * 100) / 100) + ')';
+    }
+    function blendColor(hexv, alpha, under) {
+        var t = rgbOf(hexv);
+        var b = rgbOf(under) || [255, 255, 255];
+        if (!t) { return ''; }
+        alpha = Math.max(0, Math.min(1, alpha));
+        return '#' + [0, 1, 2].map(function (i) {
+            var v = Math.round(t[i] * alpha + b[i] * (1 - alpha));
+            return (v < 16 ? '0' : '') + v.toString(16);
+        }).join('');
+    }
+    function pageBg() {
+        return rgbOf((data.vars || {})['--wpd-bg']) ? (data.vars || {})['--wpd-bg'] : '#f1f5f9';
+    }
+    /* Под прозрачными элементами блока: видимый цвет фона раздела или фон страницы (как WPD_Blocks::section_under) */
+    function underBg(a) {
+        var bg = a && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(a.sectionBg || '') ? a.sectionBg : '';
+        return bg ? blendColor(bg, bgAlpha(a.sectionBgTr), pageBg()) : pageBg();
+    }
+    function themeColor(name, def) {
+        var v = (data.vars || {})[name];
+        return rgbOf(v) ? v : def;
+    }
+    /* Число из атрибута; 0 или не задано — значение настроек (data.sizeSettings) */
+    function sizeValue(slug, a, attr) {
+        var v = parseInt(a[attr], 10);
+        return v > 0 ? v : (parseInt(((data.sizeSettings || {})[slug] || {})[attr], 10) || 0);
+    }
+
+    /* Фон раздела (атрибуты sectionBg, sectionBgTr) — как WPD_Blocks::section_look() */
+    function sectionLook(slug, attrs) {
+        var bg = slug !== 'hero' && attrs && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(attrs.sectionBg || '') ? attrs.sectionBg : '';
+        if (!bg) { return { classes: [], vars: {} }; }
+        var alpha = bgAlpha(attrs.sectionBgTr);
+        var seen = alpha < 1 ? blendColor(bg, alpha, pageBg()) : bg;
+        return {
+            classes: ['wpd-sec', isLight(seen) ? 'wpd-sec--light' : 'wpd-sec--dark'],
+            vars: { '--wpd-sec-bg': alpha < 1 ? alphaColor(bg, alpha) : bg }
+        };
+    }
+
+    /* Панель «Фон раздела» — у всех блоков, кроме главного */
+    function SectionPanel(slug, a, set) {
+        if (slug === 'hero' || !a || !Object.prototype.hasOwnProperty.call((data.blocks['wpd/' + slug] || {}).attributes || {}, 'sectionBg')) {
+            return null;
+        }
+        var bg = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(a.sectionBg || '') ? a.sectionBg : '';
+        return el(c.PanelBody, { title: 'Фон раздела', initialOpen: false, className: 'wpd-ed-section-panel' },
+            c.ColorPalette ? el(c.BaseControl, { label: 'Цвет фона раздела', id: 'wpd-sec-bg-' + slug, className: 'wpd-ed-section-bg',
+                help: 'Фон под всем блоком с заголовком, со скруглением и отступами. Цвет текста подбирается сам. Пусто — без фона.' },
+                el(c.ColorPalette, {
+                    colors: (data.palette || []).map(function (col, i) { return { name: 'Цвет ' + (i + 1), color: col }; }),
+                    value: bg || undefined, clearable: true, disableCustomColors: false,
+                    onChange: function (v) { set({ sectionBg: v || '' }); }
+                })
+            ) : el(c.TextControl, { label: 'Цвет фона раздела (#rrggbb)', value: a.sectionBg || '', onChange: function (v) { set({ sectionBg: v }); } }),
+            el(c.RangeControl, {
+                label: 'Прозрачность фона раздела, %', className: 'wpd-ed-section-tr', value: parseInt(a.sectionBgTr, 10) || 0, min: 0, max: 100, step: 5,
+                help: '0 — непрозрачный, 100 — полностью прозрачный: сквозь фон видно страницу.',
+                onChange: function (v) { set({ sectionBgTr: typeof v === 'number' ? v : 0 }); }
+            })
+        );
+    }
+
     function Wrapper(slug, opts) {
         var className = opts && typeof opts === 'object' ? opts.className : opts;
         var attrs = opts && typeof opts === 'object' ? opts.attributes : null;
         var fonts = fontVars(slug, attrs);
-        var own = Object.assign({}, attrs ? iconVars(slug, attrs) : {}, fonts.vars);
+        var sec = sectionLook(slug, attrs);
+        var own = Object.assign({}, attrs ? iconVars(slug, attrs) : {}, fonts.vars, sec.vars);
         var ownStyle = Object.keys(own).map(function (k) { return k + ':' + own[k] + ';'; }).join('');
         var style = Object.assign({}, data.vars, own);
         var cls = 'wpd-page wpd-page--block wpd-page--editor wpd-page--' + slug + (data.pageClass ? ' ' + data.pageClass : '')
-            + (fonts.classes.length ? ' ' + fonts.classes.join(' ') : '');
+            + (fonts.classes.length ? ' ' + fonts.classes.join(' ') : '') + (sec.classes.length ? ' ' + sec.classes.join(' ') : '');
         var base = { className: cls, style: style };
         if (ownStyle) {
             // Предпросмотр своего оформления страницы (wpd-admin.js) заменяет style контейнера и добавляет это значение
@@ -353,6 +434,31 @@
         if (minh) { cls.push('wpd-hero--minh'); style['--wpd-hero-minh'] = minh + 'px'; }
         if (pad) { cls.push('wpd-hero--pad'); style['--wpd-hero-pad'] = pad + 'px'; }
         if (twidth) { cls.push('wpd-hero--text-w'); style['--wpd-hero-text-w'] = twidth + 'px'; }
+        // 2.11.0: прозрачность фона и размеры текстов (как WPD_Renderer::hero_html)
+        var htr = Math.max(0, Math.min(100, sizeValue('hero', a, 'bgTransparency')));
+        if (isBgImage || variant === 'soft') { htr = 0; }
+        var halpha = bgAlpha(htr);
+        if (htr > 0) {
+            cls.push('wpd-hero--tr');
+            style['--wpd-hero-a'] = (100 - htr) + '%';
+            if (bg) {
+                var bgSeen = blendColor(bg, halpha, pageBg());
+                cls = cls.filter(function (x) { return x !== 'wpd-hero--fg-dark' && x !== 'wpd-hero--fg-light'; });
+                cls.splice(cls.indexOf('wpd-hero--custom-bg') + 1, 0, isLight(bgSeen) ? 'wpd-hero--fg-dark' : 'wpd-hero--fg-light');
+                style['--wpd-hero-bg'] = alphaColor(bg, halpha);
+            } else {
+                var hdark = themeColor('--wpd-dark', '#0f172a');
+                var hbase = variant === 'light' ? '#ffffff' : (variant === 'gradient' ? blendColor(themeColor('--wpd-primary', '#1d4ed8'), 0.5, hdark) : hdark);
+                cls.push(isLight(blendColor(hbase, halpha, pageBg())) ? 'wpd-hero--fg-dark' : 'wpd-hero--fg-light');
+            }
+        }
+        [['titlePx', 'title', 20, 96], ['badgeSize', 'badge', 10, 24], ['leadSize', 'lead', 12, 32], ['buttonSize', 'btn', 12, 28]].forEach(function (d) {
+            var n = sizeValue('hero', a, d[0]);
+            if (n > 0) {
+                cls.push('wpd-hero--fs-' + d[1]);
+                style['--wpd-hero-fs-' + d[1]] = Math.max(d[2], Math.min(d[3], n)) + 'px';
+            }
+        });
 
         // 2.9.0: логотип; на тёмном фоне — вариант для тёмного фона (как WPD_Renderer::hero_logo_html)
         var logoPos = pick(a.logoPos, ho.logoPos, 'above');
@@ -438,6 +544,14 @@
                 onChange: function (v) { var o = {}; o[key] = typeof v === 'number' ? v : 0; set(o); }
             });
         }
+        // 2.11.0: число, у которого 0 — как в настройках
+        function setRange(key, label, max, help) {
+            return el(c.RangeControl, {
+                label: label, className: 'wpd-ed-hero-' + key, value: num(a[key], max), min: 0, max: max, step: 1,
+                help: '0 — как в настройках (' + (parseInt(((data.sizeSettings || {}).hero || {})[key], 10) || 0) + '). ' + help,
+                onChange: function (v) { var o = {}; o[key] = typeof v === 'number' ? v : 0; set(o); }
+            });
+        }
 
         return el(Fragment, null,
             el(be.InspectorControls, null,
@@ -447,6 +561,8 @@
                         onChange: function (v) { set({ variant: v }); }
                     }),
                     colorControl,
+                    setRange('bgTransparency', 'Прозрачность фона, %', 100,
+                        '0 — непрозрачный, 100 — полностью прозрачный. Для своего цвета и стилей «Тёмный», «Градиент», «Светлый»; у фонового изображения — «Затемнение».'),
                     el(c.SelectControl, {
                         label: 'Высота', value: height, options: opts(ho.height),
                         onChange: function (v) { set({ height: v }); }
@@ -468,6 +584,13 @@
                     range('minHeight', 'Минимальная высота, px', 900, 10, '0 — по высоте блока.'),
                     range('padding', 'Внутренний отступ, px', 120, 4, '0 — по высоте блока.'),
                     range('textWidth', 'Максимальная ширина текста, px', 1200, 20, '0 — автоматически.')
+                ),
+                // 2.11.0
+                el(c.PanelBody, { title: 'Размеры текстов', initialOpen: false, className: 'wpd-ed-hero-sizes' },
+                    setRange('titlePx', 'Размер заголовка, px', 96, 'От 20 до 96; заменяет выбор «Размер заголовка».'),
+                    setRange('badgeSize', 'Размер метки, px', 24, 'От 10 до 24.'),
+                    setRange('leadSize', 'Размер текста под заголовком, px', 32, 'От 12 до 32.'),
+                    setRange('buttonSize', 'Размер текста кнопок, px', 28, 'От 12 до 28.')
                 ),
                 el(c.PanelBody, { title: 'Цвета текста', initialOpen: false },
                     colorField('badgeColor', 'Цвет метки', 'Фон метки; цвет её текста подбирается сам. Пусто — акцентный цвет.'),
@@ -669,15 +792,28 @@
         if (variant) { cls.push('wpd-look--' + variant); }
         v = sel('radius');
         if (v) { cls.push('wpd-look--radius'); st['--wpd-radius'] = ({ none: 0, small: 6, medium: 12, large: 20 })[v] + 'px'; }
+        // 2.11.0: размеры заголовка блока и заголовков элементов (порядок классов — как в WPD_Settings::LOOK_BLOCKS)
+        v = num('headingSize');
+        if (v) { cls.push('wpd-look--fs-title'); st['--wpd-bl-fs-title'] = Math.max(16, v) + 'px'; }
+        v = num('itemSize');
+        if (v) { cls.push('wpd-look--fs-item'); st['--wpd-bl-fs-item'] = Math.max(12, v) + 'px'; }
         v = num('textSize');
         if (v) { cls.push('wpd-look--fs'); st['--wpd-bl-fs'] = Math.max(11, v) + 'px'; }
+        v = num('smallSize');
+        if (v) { cls.push('wpd-look--fs-small'); st['--wpd-bl-fs-small'] = Math.max(10, v) + 'px'; }
+        var tr = num('bgTransparency');
+        var alpha = bgAlpha(tr);
         var bg = col('bgColor');
-        if (bg) { cls.push('wpd-look--bg'); st['--wpd-bl-bg'] = bg; }
+        if (bg) { cls.push('wpd-look--bg'); st['--wpd-bl-bg'] = tr > 0 ? alphaColor(bg, alpha) : bg; }
+        if (tr > 0 && !bg) { cls.push('wpd-look--bgtr'); st['--wpd-bl-bg-a'] = (100 - tr) + '%'; }
         v = col('accentColor');
         if (v) { cls.push('wpd-look--accent'); st['--wpd-primary'] = v; st['--wpd-accent'] = v; }
         v = col('textColor');
         if (v) { cls.push('wpd-look--color'); st['--wpd-bl-text'] = v; }
-        if (bg) {
+        var seen = tr > 0 ? lookSeenBg(slug, a, bg, variant, col('accentColor'), alpha) : '';
+        if (seen) {
+            cls.push(isDark(seen) ? 'wpd-look--ondark' : 'wpd-look--onlight');
+        } else if (bg) {
             cls.push(isDark(bg) ? 'wpd-look--ondark' : 'wpd-look--onlight');
         } else if (variant === 'solid') {
             cls.push('wpd-look--ondark');
@@ -685,6 +821,26 @@
             cls.push('wpd-look--onlight');
         }
         return { className: base + (cls.length ? ' wpd-look ' + cls.join(' ') : ''), style: st };
+    }
+
+    /* 2.11.0: видимый цвет прозрачного фона элементов — как WPD_Renderer::look_seen_bg() */
+    function lookSeenBg(slug, a, bg, variant, accent, alpha) {
+        var primary = accent || themeColor('--wpd-primary', '#1d4ed8');
+        var base;
+        if (bg) {
+            base = bg;
+        } else if (slug === 'slider' || variant === 'outline' || variant === 'plain') {
+            return '';
+        } else if (variant === 'solid' || (variant === '' && slug === 'cards')) {
+            base = primary;
+        } else if (variant === 'tint') {
+            base = blendColor(primary, 0.1, '#ffffff');
+        } else if (variant === '' && slug === 'notice') {
+            base = hexColor(a.color) || blendColor(primary, 0.08, '#ffffff');
+        } else {
+            base = '#ffffff';
+        }
+        return blendColor(base, alpha, underBg(a));
     }
 
     /* Число из параметра блока в пределах min…max или 0 */
@@ -1280,10 +1436,17 @@
             st['--wpd-qb-fs'] = size + 'px';
             st['--wpd-qb-fs-small'] = Math.max(11, Math.round(size * 0.85)) + 'px';
         }
+        // 2.11.0: размеры заголовка блока и подписей, прозрачность фона плиток
+        var tsize = int('headingSize');
+        if (tsize) { cls.push('wpd-buttons--fs-title'); st['--wpd-qb-fs-title'] = Math.max(16, tsize) + 'px'; }
+        var ssize = int('smallSize');
+        if (ssize) { cls.push('wpd-buttons--fs-sub'); st['--wpd-qb-fs-sub'] = Math.max(10, ssize) + 'px'; }
+        var tr = int('bgTransparency');
+        if (tr) { cls.push('wpd-buttons--bgtr'); st['--wpd-qb-a'] = (100 - tr) + '%'; }
         var bg = hexColor(buttonsValue(a, 'bgColor'));
         if (bg) {
             st['--wpd-qb-bg'] = bg;
-            if (isDark(bg)) { cls.push('wpd-buttons--dark'); }
+            if (isDark(tr ? blendColor(bg, bgAlpha(tr), underBg(a)) : bg)) { cls.push('wpd-buttons--dark'); }
         }
         [['iconColor', '--wpd-qb-icon'], ['textColor', '--wpd-qb-text'], ['hoverColor', '--wpd-qb-hover']].forEach(function (pair) {
             var col = hexColor(buttonsValue(a, pair[0]));
@@ -1404,11 +1567,11 @@
                     IconSizeControl('buttons', a, set)
                 ),
                 el(c.PanelBody, { title: 'Раскладка', initialOpen: false, className: 'wpd-ed-buttons-panel-layout' },
-                    select('columns'), select('columnsMobile'), range('gap'), range('height'), select('textAlign')
+                    select('columns'), select('columnsMobile'), range('gap'), range('height'), select('textAlign'), range('headingSize')
                 ),
                 el(c.PanelBody, { title: 'Вид и цвета', initialOpen: false, className: 'wpd-ed-buttons-panel-look' },
-                    select('layout'), select('variant'), select('radius'), range('textSize'),
-                    color('bgColor'), color('iconColor'), color('textColor'), color('hoverColor')
+                    select('layout'), select('variant'), select('radius'), range('textSize'), range('smallSize'),
+                    color('bgColor'), range('bgTransparency'), color('iconColor'), color('textColor'), color('hoverColor')
                 ),
                 ResetPanel('wpd/buttons', set)
             ),
@@ -1526,7 +1689,8 @@
         // Свой цвет фона главнее вида: тон текста — по нему (как в WPD_Renderer::notice_html)
         if (hexColor(a.color)) {
             var plain = look.className.replace(/ wpd-look--on(dark|light)\b/g, '');
-            look.className = plain + (isDark(a.color)
+            var ntr = parseInt(lookValue('notice', a, 'bgTransparency'), 10) || 0;
+            look.className = plain + (isDark(ntr > 0 ? blendColor(a.color, bgAlpha(ntr), underBg(a)) : a.color)
                 ? (plain.indexOf(' wpd-look') === -1 ? ' wpd-look' : '') + ' wpd-look--ondark'
                 : (plain !== look.className ? ' wpd-look--onlight' : ''));
         }
@@ -1753,7 +1917,21 @@
         if (a.cards) { cls.push('wpd-partners--cards'); }
         if (a.showNames) { cls.push('wpd-partners--names'); }
         var style = { '--wpd-pt-h': h + 'px' };
+        // 2.11.0: размеры заголовка и подписей, прозрачность карточек (как WPD_Renderer::partners_html)
+        [['headingSize', 'title', 16, 72], ['smallSize', 'small', 10, 24]].forEach(function (d) {
+            var n = sizeValue('partners', a, d[0]);
+            if (n > 0) { cls.push('wpd-partners--fs-' + d[1]); style['--wpd-pt-fs-' + d[1]] = Math.max(d[2], Math.min(d[3], n)) + 'px'; }
+        });
+        var ptr = Math.max(0, Math.min(100, sizeValue('partners', a, 'bgTransparency')));
+        if (ptr > 0 && a.cards) { cls.push('wpd-partners--bgtr'); style['--wpd-pt-a'] = (100 - ptr) + '%'; }
         if (layout === 'grid' && cols >= 2 && cols <= 6) { cls.push('wpd-partners--cols'); style['--wpd-pt-cols'] = cols; }
+        var ptRange = function (key, label, max, help) {
+            return el(c.RangeControl, {
+                label: label, className: 'wpd-ed-partners-' + key, value: Math.max(0, Math.min(max, parseInt(a[key], 10) || 0)), min: 0, max: max, step: 1,
+                help: '0 — как в настройках (' + (parseInt(((data.sizeSettings || {}).partners || {})[key], 10) || 0) + '). ' + help,
+                onChange: function (v) { var o = {}; o[key] = typeof v === 'number' ? v : 0; set(o); }
+            });
+        };
 
         function itemFields(it, i) {
             var patch = function (o) { setItems(updateItem(items, i, o)); };
@@ -1780,7 +1958,10 @@
                 el(c.PanelBody, { title: 'Вид' },
                     el(Toggle, { label: 'Чёрно-белые, цвет при наведении', checked: !!a.grayscale, onChange: function (v) { set({ grayscale: !!v }); } }),
                     el(Toggle, { label: 'Логотипы на карточках', checked: !!a.cards, onChange: function (v) { set({ cards: !!v }); } }),
-                    el(Toggle, { label: 'Подписи под логотипами', checked: !!a.showNames, onChange: function (v) { set({ showNames: !!v }); } })
+                    el(Toggle, { label: 'Подписи под логотипами', checked: !!a.showNames, onChange: function (v) { set({ showNames: !!v }); } }),
+                    ptRange('bgTransparency', 'Прозрачность фона карточек, %', 100, 'Для логотипов на карточках.'),
+                    ptRange('headingSize', 'Размер заголовка блока, px', 72, 'От 16 до 72.'),
+                    ptRange('smallSize', 'Размер подписей, px', 24, 'От 10 до 24.')
                 ),
                 ResetPanel('wpd/partners', set)
             ),
@@ -1840,7 +2021,7 @@
         return function (props) {
             return el(Fragment, null,
                 el(Edit, props),
-                el(be.InspectorControls, null, FontPanel(slug, props.attributes, props.setAttributes))
+                el(be.InspectorControls, null, FontPanel(slug, props.attributes, props.setAttributes), SectionPanel(slug, props.attributes, props.setAttributes))
             );
         };
     }

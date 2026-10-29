@@ -45,7 +45,7 @@ check('field contact_org (text) on contacts tab', ($map['contact_org']['type'] ?
 check('field contact_org_url (url) on contacts tab', ($map['contact_org_url']['type'] ?? '') === 'url' && $map['contact_org_url']['section'] === 'contacts');
 check('order: title, org, org url, address', array_slice($keys, array_search('contacts_title', $keys, true), 4) === ['contacts_title', 'contact_org', 'contact_org_url', 'contact_address']);
 check('defaults empty', WPD_Settings::get()['contact_org'] === '' && WPD_Settings::get()['contact_org_url'] === '');
-check('253 fields, contacts section 15', count($map) === 253 && count(array_filter($map, function ($f) { return $f['section'] === 'contacts'; })) === 15);
+check('292 fields, contacts section 15', count($map) === 292 && count(array_filter($map, function ($f) { return $f['section'] === 'contacts'; })) === 15);
 
 /* 2. Санитизация */
 $s = WPD_Settings::sanitize(['_tab' => 'contacts', 'contact_org' => '  <b>Центр</b> «Юниор» ', 'contact_org_url' => 'junior.example.org/about']);

@@ -61,6 +61,7 @@ class WPD_Blocks
             'iconSizes' => self::icon_sizes_data($o),
             'buttonsSettings' => self::buttons_settings_data($o),
             'lookSettings'    => self::look_settings_data($o),
+            'sizeSettings'    => self::size_settings_data($o),
             'fontList'        => WPD_Settings::font_suggestions($o),
         ]) . ');', 'before');
 
@@ -145,6 +146,12 @@ class WPD_Blocks
                     'logoHeight'  => ['type' => 'integer', 'default' => (int) $o['hero_logo_height']],
                     'logoAlt'     => ['type' => 'string', 'default' => (string) $o['hero_logo_alt']],
                     'logoLink'    => ['type' => 'string', 'default' => (string) $o['hero_logo_url']],
+                    // 2.11.0: прозрачность фона и размеры текстов (0 — как в настройках)
+                    'bgTransparency' => ['type' => 'integer', 'default' => 0],
+                    'titlePx'        => ['type' => 'integer', 'default' => 0],
+                    'badgeSize'      => ['type' => 'integer', 'default' => 0],
+                    'leadSize'       => ['type' => 'integer', 'default' => 0],
+                    'buttonSize'     => ['type' => 'integer', 'default' => 0],
                 ],
                 'render'      => [__CLASS__, 'render_hero'],
             ],
@@ -308,6 +315,10 @@ class WPD_Blocks
                     'grayscale'  => ['type' => 'boolean', 'default' => (bool) $o['partners_gray']],
                     'cards'      => ['type' => 'boolean', 'default' => (bool) $o['partners_cards']],
                     'showNames'  => ['type' => 'boolean', 'default' => (bool) $o['partners_names']],
+                    // 2.11.0 (0 — как в настройках)
+                    'headingSize'    => ['type' => 'integer', 'default' => 0],
+                    'smallSize'      => ['type' => 'integer', 'default' => 0],
+                    'bgTransparency' => ['type' => 'integer', 'default' => 0],
                 ],
                 'render'      => [__CLASS__, 'render_partners'],
             ],
@@ -392,6 +403,7 @@ class WPD_Blocks
             // 2.7.0: «Раскладка и вид» и свои параметры остальных блоков — описание полей и значения настроек
             'lookOptions'     => self::look_options_data(),
             'lookSettings'    => self::look_settings_data($o),
+            'sizeSettings'    => self::size_settings_data($o),
             // Список рубрик нужен только редактору; на сайте лишний запрос не делаем
             'categories'  => is_admin() ? self::categories() : [],
             'noticeLayouts' => WPD_Settings::field_map()['notice_layout']['options'],
@@ -512,7 +524,9 @@ class WPD_Blocks
                 $classes[] = $class;
             }
         }
-        return WPD_Renderer::wrap($inner, implode(' ', $classes), self::with_font_attrs($o ?? WPD_Settings::get(), $a, $slug));
+        $o   = self::with_font_attrs($o ?? WPD_Settings::get(), $a, $slug);
+        $sec = self::section_look($a, $slug, $o);
+        return WPD_Renderer::wrap($inner, implode(' ', array_merge($classes, $sec['class'])), $o, $sec['style']);
     }
 
     /** Атрибуты шрифтов блоков (2.9.0): атрибут → поля настроек, которые он заменяет. */
@@ -539,15 +553,53 @@ class WPD_Blocks
         return $out;
     }
 
-    /** Добавляет атрибуты шрифтов (пусто — как на странице) ко всем блокам. */
+    /**
+     * Добавляет атрибуты шрифтов (пусто — как на странице) ко всем блокам и (2.11.0) фон раздела с прозрачностью —
+     * ко всем, кроме главного блока (у него свой фон).
+     */
     private static function add_font_attrs(array $defs): array
     {
         foreach ($defs as $slug => $def) {
             foreach (array_keys(self::font_attrs($slug)) as $attr) {
                 $defs[$slug]['attributes'][$attr] = ['type' => 'string', 'default' => ''];
             }
+            if ($slug !== 'hero') {
+                $defs[$slug]['attributes']['sectionBg']   = ['type' => 'string', 'default' => ''];
+                $defs[$slug]['attributes']['sectionBgTr'] = ['type' => 'integer', 'default' => 0];
+            }
         }
         return $defs;
+    }
+
+    /** 2.11.0: видимый цвет фона раздела — под прозрачными элементами блока (для цвета их текста). */
+    public static function section_under(array $o, array $a, string $slug): array
+    {
+        unset($o['_under']);
+        $bg = $slug === 'hero' ? '' : (string) sanitize_hex_color(self::str($a, 'sectionBg'));
+        if ($bg !== '') {
+            $o['_under'] = WPD_Renderer::blend_color($bg, WPD_Renderer::bg_alpha(self::num($a, 'sectionBgTr', 0)), WPD_Renderer::page_bg($o));
+        }
+        return $o;
+    }
+
+    /**
+     * 2.11.0: фон раздела блока (атрибуты sectionBg, sectionBgTr) — классы и переменная обёртки, как у фона блока
+     * в панели «Блоки олимпиады». Цвет текста — по цвету, который виден поверх фона страницы.
+     *
+     * @return array{class:string[],style:string}
+     */
+    public static function section_look(array $a, string $slug, array $o): array
+    {
+        $bg = $slug === 'hero' ? '' : (string) sanitize_hex_color(self::str($a, 'sectionBg'));
+        if ($bg === '') {
+            return ['class' => [], 'style' => ''];
+        }
+        $alpha = WPD_Renderer::bg_alpha(self::num($a, 'sectionBgTr', 0));
+        $seen  = $alpha < 1 ? WPD_Renderer::blend_color($bg, $alpha, WPD_Renderer::page_bg(array_diff_key($o, ['_under' => 1]))) : $bg;
+        return [
+            'class' => ['wpd-sec', WPD_Renderer::is_light_color($seen) ? 'wpd-sec--light' : 'wpd-sec--dark'],
+            'style' => '--wpd-sec-bg:' . ($alpha < 1 ? WPD_Renderer::alpha_color($bg, $alpha) : $bg) . ';',
+        ];
     }
 
     /** Шрифты из атрибутов блока: непустое значение заменяет настройку страницы или общую. */
@@ -612,6 +664,10 @@ class WPD_Blocks
         'radius'        => 'buttons_radius',
         'textSize'      => 'buttons_text_size',
         'bgColor'       => 'buttons_bg',
+        // 2.11.0
+        'headingSize'    => 'buttons_title_size',
+        'smallSize'      => 'buttons_small_size',
+        'bgTransparency' => 'buttons_bg_tr',
         'iconColor'     => 'buttons_icon_color',
         'textColor'     => 'buttons_text_color',
         'hoverColor'    => 'buttons_hover_color',
@@ -663,6 +719,7 @@ class WPD_Blocks
     /** Подставляет атрибуты блока кнопок в настройки (значения проверяет рендерер). */
     public static function with_buttons_attrs(array $o, array $a): array
     {
+        $o   = self::section_under($o, $a, 'buttons');
         $map = WPD_Settings::field_map();
         foreach (self::BUTTONS_ATTRS as $attr => $key) {
             if (!array_key_exists($attr, $a) || !is_scalar($a[$attr])) {
@@ -685,6 +742,8 @@ class WPD_Blocks
     const LOOK_ATTR_NAMES = [
         'columns' => 'columns', 'columns_mobile' => 'columnsMobile', 'gap' => 'gap', 'align' => 'textAlign', 'variant' => 'variant',
         'radius' => 'radius', 'text_size' => 'textSize', 'bg' => 'bgColor', 'accent' => 'accentColor', 'text_color' => 'textColor',
+        // 2.11.0
+        'title_size' => 'headingSize', 'item_size' => 'itemSize', 'small_size' => 'smallSize', 'bg_tr' => 'bgTransparency',
     ];
 
     /** Свои параметры блоков (2.7.0): атрибут → поле настроек. */
@@ -733,6 +792,17 @@ class WPD_Blocks
         return $out;
     }
 
+    /** 2.11.0: значения настроек для атрибутов главного блока и логотипов партнёров (0 в атрибуте — как в настройках). */
+    public static function size_settings_data(?array $o = null): array
+    {
+        $o = $o ?? WPD_Settings::get();
+        return [
+            'hero'     => ['bgTransparency' => (int) $o['hero_bg_tr'], 'titlePx' => (int) $o['hero_title_px'], 'badgeSize' => (int) $o['hero_badge_size'],
+                           'leadSize' => (int) $o['hero_lead_size'], 'buttonSize' => (int) $o['hero_button_size']],
+            'partners' => ['headingSize' => (int) $o['partners_title_size'], 'smallSize' => (int) $o['partners_small_size'], 'bgTransparency' => (int) $o['partners_bg_tr']],
+        ];
+    }
+
     /** Значения настроек «Раскладки и вида» для холста: блок → атрибут → значение (общие или свои для страницы). */
     public static function look_settings_data(?array $o = null): array
     {
@@ -760,7 +830,7 @@ class WPD_Blocks
                 $f = $map[$key];
                 $generic = substr($key, strlen($slug) + 1);
                 $group = in_array($generic, WPD_Settings::LOOK_BLOCKS[$slug], true)
-                    ? (in_array($generic, ['bg', 'accent', 'text_color'], true) ? 'colors' : 'look')
+                    ? (in_array($generic, ['bg', 'bg_tr', 'accent', 'text_color'], true) ? 'colors' : 'look')
                     : 'extra';
                 $d = ['label' => $f['label'], 'type' => $f['type'], 'group' => $group, 'help' => (string) ($f['desc'] ?? '')];
                 if ($f['type'] === 'select') {
@@ -781,6 +851,7 @@ class WPD_Blocks
      */
     public static function with_look_attrs(array $o, array $a, string $slug): array
     {
+        $o   = self::section_under($o, $a, $slug);
         $map = WPD_Settings::field_map();
         foreach (self::look_attrs($slug) as $attr => $key) {
             if (!array_key_exists($attr, $a) || !is_scalar($a[$attr])) {
@@ -866,6 +937,12 @@ class WPD_Blocks
             'logo_height'     => self::num($a, 'logoHeight', $o['hero_logo_height']),
             'logo_alt'        => self::str($a, 'logoAlt', $o['hero_logo_alt']),
             'logo_url'        => self::str($a, 'logoLink', $o['hero_logo_url']),
+            // 2.11.0
+            'bg_tr'           => self::num($a, 'bgTransparency', 0) ?: (int) $o['hero_bg_tr'],
+            'title_px'        => self::num($a, 'titlePx', 0) ?: (int) $o['hero_title_px'],
+            'badge_size'      => self::num($a, 'badgeSize', 0) ?: (int) $o['hero_badge_size'],
+            'lead_size'       => self::num($a, 'leadSize', 0) ?: (int) $o['hero_lead_size'],
+            'button_size'     => self::num($a, 'buttonSize', 0) ?: (int) $o['hero_button_size'],
         ]), $a, 'hero', $o);
     }
 
@@ -1014,6 +1091,10 @@ class WPD_Blocks
             'gray'    => self::flag($a, 'grayscale', $o['partners_gray']),
             'cards'   => self::flag($a, 'cards', $o['partners_cards']),
             'names'   => self::flag($a, 'showNames', $o['partners_names']),
+            // 2.11.0
+            'title_size' => self::num($a, 'headingSize', 0) ?: (int) $o['partners_title_size'],
+            'small_size' => self::num($a, 'smallSize', 0) ?: (int) $o['partners_small_size'],
+            'bg_tr'      => self::num($a, 'bgTransparency', 0) ?: (int) $o['partners_bg_tr'],
         ]), $a, 'partners', $o);
     }
 }

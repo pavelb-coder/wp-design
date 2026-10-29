@@ -136,7 +136,7 @@ class WPD_Renderer
     /**
      * Корневой контейнер со CSS-переменными из настроек.
      */
-    public static function wrap(string $inner, string $extra_class = '', ?array $o = null): string
+    public static function wrap(string $inner, string $extra_class = '', ?array $o = null, string $extra_style = ''): string
     {
         // Страховка: если CSS не подключён заранее (шорткод в виджете, шаблоне), подключаем здесь.
         self::enqueue_assets();
@@ -146,7 +146,8 @@ class WPD_Renderer
 
         // Модификаторы вида (1.8.0): форма и вид кнопок, тени, черта под заголовками, подъём карточек
         $class = trim(implode(' ', array_merge(['wpd-page'], WPD_Settings::page_classes($o))) . ' ' . $extra_class);
-        return '<div class="' . esc_attr($class) . '" style="' . esc_attr($vars) . '">' . $inner . '</div>';
+        // 2.11.0: фон раздела блока редактора — своя переменная после переменных оформления
+        return '<div class="' . esc_attr($class) . '" style="' . esc_attr($vars . $extra_style) . '">' . $inner . '</div>';
     }
 
     /**
@@ -218,6 +219,12 @@ class WPD_Renderer
             'logo_height'     => $o['hero_logo_height'],
             'logo_alt'        => $o['hero_logo_alt'],
             'logo_url'        => $o['hero_logo_url'],
+            // 2.11.0: прозрачность фона и размеры текстов
+            'bg_tr'           => $o['hero_bg_tr'] ?? 0,
+            'title_px'        => $o['hero_title_px'] ?? 0,
+            'badge_size'      => $o['hero_badge_size'] ?? 0,
+            'lead_size'       => $o['hero_lead_size'] ?? 0,
+            'button_size'     => $o['hero_button_size'] ?? 0,
         ], array_filter($args, function ($v) {
             return $v !== null;
         }));
@@ -266,11 +273,19 @@ class WPD_Renderer
                 $classes[] = 'wpd-hero--' . $prefix . '-' . $pair[0];
             }
         }
+        // 2.11.0: прозрачность фона — у своего цвета и у фона стилей «Тёмный», «Градиент», «Светлый»
+        // (у фонового изображения — затемнение, «Мягкий градиент» прозрачен и так)
+        $tr = max(0, min(100, (int) $a['bg_tr']));
+        if ($tr > 0 && (($image !== '' && $position === 'background') || $style === 'soft')) {
+            $tr = 0;
+        }
+        $alpha = self::bg_alpha($tr);
         if ($bg !== '') {
-            // Свой фон: цвет текста — по яркости фона
+            // Свой фон: цвет текста — по яркости фона (с прозрачностью — по тому, что видно)
+            $seen = $tr > 0 ? self::blend_color($bg, $alpha, self::page_bg($o)) : $bg;
             $classes[] = 'wpd-hero--custom-bg';
-            $classes[] = self::is_light_color($bg) ? 'wpd-hero--fg-dark' : 'wpd-hero--fg-light';
-            $vars .= '--wpd-hero-bg:' . $bg . ';';
+            $classes[] = self::is_light_color($seen) ? 'wpd-hero--fg-dark' : 'wpd-hero--fg-light';
+            $vars .= '--wpd-hero-bg:' . ($tr > 0 ? self::alpha_color($bg, $alpha) : $bg) . ';';
         }
         if ($image !== '' && $position === 'background') {
             // Кавычки, скобки и пробелы кодируются, чтобы адрес не мог выйти за пределы url("…")
@@ -321,6 +336,24 @@ class WPD_Renderer
         if ($twidth > 0) {
             $classes[] = 'wpd-hero--text-w';
             $vars .= '--wpd-hero-text-w:' . $twidth . 'px;';
+        }
+        if ($tr > 0) {
+            $classes[] = 'wpd-hero--tr';
+            $vars .= '--wpd-hero-a:' . (100 - $tr) . '%;';
+            if ($bg === '') {
+                $dark = (string) sanitize_hex_color((string) ($o['dark'] ?? '')) ?: '#0f172a';
+                $base = $style === 'light' ? '#ffffff'
+                    : ($style === 'gradient' ? self::blend_color((string) sanitize_hex_color((string) ($o['primary'] ?? '')) ?: '#1d4ed8', 0.5, $dark) : $dark);
+                $classes[] = self::is_light_color(self::blend_color($base, $alpha, self::page_bg($o))) ? 'wpd-hero--fg-dark' : 'wpd-hero--fg-light';
+            }
+        }
+        // 2.11.0: размеры текстов
+        foreach (['title_px' => ['title', 20, 96], 'badge_size' => ['badge', 10, 24], 'lead_size' => ['lead', 12, 32], 'button_size' => ['btn', 12, 28]] as $key => $d) {
+            $n = is_numeric($a[$key]) ? (int) $a[$key] : 0;
+            if ($n > 0) {
+                $classes[] = 'wpd-hero--fs-' . $d[0];
+                $vars .= '--wpd-hero-fs-' . $d[0] . ':' . max($d[1], min($d[2], $n)) . 'px;';
+            }
         }
 
         // 2.9.0: логотип над заголовком или рядом с ним; на тёмном фоне — свой вариант, если задан
@@ -393,6 +426,74 @@ class WPD_Renderer
         $html .= '</div></section>';
 
         return $html;
+    }
+
+    /* ---------------------------------------------------------------
+     * 2.11.0: прозрачность фонов
+     * ------------------------------------------------------------- */
+
+    /** «Прозрачность фона, %» (0 — непрозрачный, 100 — полностью прозрачный) → непрозрачность 0–1. */
+    public static function bg_alpha($tr): float
+    {
+        $tr = is_numeric($tr) ? max(0, min(100, (int) $tr)) : 0;
+        return (100 - $tr) / 100;
+    }
+
+    /** Каналы #rrggbb или #rgb; не цвет — null. */
+    private static function hex_rgb(string $hex): ?array
+    {
+        $hex = ltrim(trim($hex), '#');
+        if (strlen($hex) === 3) {
+            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+        }
+        if (!preg_match('/^[0-9a-f]{6}$/i', $hex)) {
+            return null;
+        }
+        return [hexdec(substr($hex, 0, 2)), hexdec(substr($hex, 2, 2)), hexdec(substr($hex, 4, 2))];
+    }
+
+    /** Цвет с прозрачностью: rgba(r,g,b,a); непрозрачный — сам цвет. */
+    public static function alpha_color(string $hex, float $alpha): string
+    {
+        $rgb = self::hex_rgb($hex);
+        if ($rgb === null) {
+            return '';
+        }
+        if ($alpha >= 1) {
+            return (string) sanitize_hex_color($hex);
+        }
+        $a = rtrim(rtrim(sprintf('%.2f', max(0, $alpha)), '0'), '.');
+        return 'rgba(' . implode(',', $rgb) . ',' . ($a === '' ? '0' : $a) . ')';
+    }
+
+    /** Видимый цвет: $hex с непрозрачностью $alpha поверх $under (#rrggbb). */
+    public static function blend_color(string $hex, float $alpha, string $under): string
+    {
+        $top = self::hex_rgb($hex);
+        $bot = self::hex_rgb($under) ?? [255, 255, 255];
+        if ($top === null) {
+            return '';
+        }
+        $alpha = max(0, min(1, $alpha));
+        $out = '#';
+        foreach ([0, 1, 2] as $i) {
+            $out .= sprintf('%02x', (int) round($top[$i] * $alpha + $bot[$i] * (1 - $alpha)));
+        }
+        return $out;
+    }
+
+    /**
+     * Фон, сквозь который виден прозрачный фон элементов: видимый цвет фона раздела или блока ($o['_under'],
+     * задают WPD_Blocks::section_under() и page_html()), иначе палитра «Фон страницы».
+     */
+    public static function page_bg(array $o): string
+    {
+        $under = (string) sanitize_hex_color((string) ($o['_under'] ?? ''));
+        if ($under !== '') {
+            return $under;
+        }
+        $bg = (string) sanitize_hex_color((string) ($o['bg'] ?? ''));
+        return $bg !== '' ? $bg : '#f1f5f9';
     }
 
     /**
@@ -576,6 +677,9 @@ class WPD_Renderer
 
         $class = ['wpd-look'];
         $vars  = [];
+        // 2.11.0: прозрачность фона элементов
+        $tr    = in_array('bg_tr', $keys, true) ? $int('bg_tr') : 0;
+        $alpha = self::bg_alpha($tr);
         foreach ($keys as $k) {
             switch ($k) {
                 case 'columns':
@@ -615,10 +719,27 @@ class WPD_Renderer
                         $vars['--wpd-bl-fs'] = max(11, $n) . 'px';
                     }
                     break;
+                // 2.11.0: заголовок блока, заголовки элементов, второстепенный текст
+                case 'title_size':
+                case 'item_size':
+                case 'small_size':
+                    if ($n = $int($k)) {
+                        $part = substr($k, 0, -5);
+                        $class[] = 'wpd-look--fs-' . $part;
+                        $vars['--wpd-bl-fs-' . $part] = max(WPD_Settings::LOOK_TEXT_RANGE[$k][0], $n) . 'px';
+                    }
+                    break;
                 case 'bg':
                     if (($c = $color($k)) !== '') {
                         $class[] = 'wpd-look--bg';
-                        $vars['--wpd-bl-bg'] = $c;
+                        $vars['--wpd-bl-bg'] = $tr > 0 ? self::alpha_color($c, $alpha) : $c;
+                    }
+                    break;
+                case 'bg_tr':
+                    // Свой цвет уже с прозрачностью; без него — прозрачный фон вида (CSS: color-mix с --wpd-bl-bg-a)
+                    if ($tr > 0 && !(in_array('bg', $keys, true) && $color('bg') !== '')) {
+                        $class[] = 'wpd-look--bgtr';
+                        $vars['--wpd-bl-bg-a'] = (100 - $tr) . '%';
                     }
                     break;
                 case 'accent':
@@ -640,7 +761,11 @@ class WPD_Renderer
         // Тон: на тёмном фоне и заливке текст светлый, на светлом — тёмный (важно для цветных карточек)
         $bg      = in_array('bg', $keys, true) ? $color('bg') : '';
         $variant = in_array('variant', $keys, true) ? $pick('variant') : '';
-        if ($bg !== '') {
+        $seen    = $tr > 0 ? self::look_seen_bg($o, $slug, $bg, $variant, $color('accent'), $alpha) : '';
+        if ($seen !== '') {
+            // 2.11.0: прозрачный фон — по цвету, который виден поверх фона страницы
+            $class[] = self::is_dark($seen) ? 'wpd-look--ondark' : 'wpd-look--onlight';
+        } elseif ($bg !== '') {
             $class[] = self::is_dark($bg) ? 'wpd-look--ondark' : 'wpd-look--onlight';
         } elseif ($variant === 'solid') {
             $class[] = 'wpd-look--ondark';
@@ -653,6 +778,30 @@ class WPD_Renderer
             $style .= $name . ':' . $value . ';';
         }
         return ['class' => implode(' ', $class), 'style' => $style];
+    }
+
+    /**
+     * 2.11.0: видимый цвет прозрачного фона элементов поверх фона страницы — для цвета текста.
+     * Пусто — фон вида прозрачен или неизвестен (контурный, без фона, подпись слайда).
+     */
+    private static function look_seen_bg(array $o, string $slug, string $bg, string $variant, string $accent, float $alpha): string
+    {
+        $primary = $accent !== '' ? $accent : ((string) sanitize_hex_color((string) ($o['primary'] ?? '')) ?: '#1d4ed8');
+        if ($bg !== '') {
+            $base = $bg;
+        } elseif ($slug === 'slider' || in_array($variant, ['outline', 'plain'], true)) {
+            return '';
+        } elseif ($variant === 'solid' || ($variant === '' && $slug === 'cards')) {
+            $base = $primary;
+        } elseif ($variant === 'tint') {
+            $base = self::blend_color($primary, 0.1, '#ffffff');
+        } elseif ($variant === '' && $slug === 'notice') {
+            $own  = (string) sanitize_hex_color((string) ($o['notice_color'] ?? ''));
+            $base = $own !== '' ? $own : self::blend_color($primary, 0.08, '#ffffff');
+        } else {
+            $base = '#ffffff';
+        }
+        return self::blend_color($base, $alpha, self::page_bg($o));
     }
 
     /** Классы «Раскладки и вида» для корня блока: пусто, если своих параметров нет. */
@@ -1161,10 +1310,24 @@ class WPD_Renderer
             $vars['--wpd-qb-fs']       = $size . 'px';
             $vars['--wpd-qb-fs-small'] = max(11, (int) round($size * 0.85)) . 'px';
         }
+        // 2.11.0: размеры заголовка блока и подписей, прозрачность фона плиток
+        if ($size = $int('buttons_title_size')) {
+            $class[] = 'wpd-buttons--fs-title';
+            $vars['--wpd-qb-fs-title'] = max(16, $size) . 'px';
+        }
+        if ($size = $int('buttons_small_size')) {
+            $class[] = 'wpd-buttons--fs-sub';
+            $vars['--wpd-qb-fs-sub'] = max(10, $size) . 'px';
+        }
+        $tr = isset($map['buttons_bg_tr']) ? $int('buttons_bg_tr') : 0;
+        if ($tr > 0) {
+            $class[] = 'wpd-buttons--bgtr';
+            $vars['--wpd-qb-a'] = (100 - $tr) . '%';
+        }
         $bg = $color('buttons_bg');
         if ($bg !== '') {
             $vars['--wpd-qb-bg'] = $bg;
-            if (self::is_dark($bg)) {
+            if (self::is_dark($tr > 0 ? self::blend_color($bg, self::bg_alpha($tr), self::page_bg($o)) : $bg)) {
                 $class[] = 'wpd-buttons--dark';
             }
         }
@@ -1291,11 +1454,15 @@ class WPD_Renderer
 
         $open  = $url !== '' ? '<a' . self::link_attrs($url, $new_tab) . '>' : '';
         $close = $url !== '' ? '</a>' : '';
+        $o['notice_color'] = $color; // 2.11.0: цвет этого объявления — для тона прозрачного фона
         $look = self::block_look($o, 'notice');
         // Свой «Цвет фона» объявления главнее вида, поэтому тон текста — по нему: тёмный — светлый текст
         if ($color !== '') {
             $plain = (string) preg_replace('/ wpd-look--on(dark|light)\b/', '', $look['class']);
-            $look['class'] = $plain . (self::is_dark($color) ? ' wpd-look--ondark' : ($plain !== $look['class'] ? ' wpd-look--onlight' : ''));
+            // 2.11.0: с прозрачностью фона — по цвету, который виден поверх фона страницы
+            $ntr  = is_numeric($o['notice_bg_tr'] ?? null) ? max(0, min(100, (int) $o['notice_bg_tr'])) : 0;
+            $seen = $ntr > 0 ? self::blend_color($color, self::bg_alpha($ntr), self::page_bg($o)) : $color;
+            $look['class'] = $plain . (self::is_dark($seen) ? ' wpd-look--ondark' : ($plain !== $look['class'] ? ' wpd-look--onlight' : ''));
         }
         $html = self::look_open('section', 'wpd-notice wpd-notice--' . str_replace('_', '-', $layout), $look,
             $color !== '' ? '--wpd-notice-bg:' . $color : '');
@@ -1547,6 +1714,19 @@ class WPD_Renderer
             $classes[] = 'wpd-partners--names';
         }
         $style = '--wpd-pt-h:' . $height . 'px;';
+        // 2.11.0: размеры заголовка и подписей, прозрачность фона карточек
+        foreach (['title_size' => ['title', 16, 72], 'small_size' => ['small', 10, 24]] as $key => $d) {
+            $n = (int) self::arg($args, $key, $o['partners_' . $key] ?? 0);
+            if ($n > 0) {
+                $classes[] = 'wpd-partners--fs-' . $d[0];
+                $style .= '--wpd-pt-fs-' . $d[0] . ':' . max($d[1], min($d[2], $n)) . 'px;';
+            }
+        }
+        $tr = max(0, min(100, (int) self::arg($args, 'bg_tr', $o['partners_bg_tr'] ?? 0)));
+        if ($tr > 0 && in_array('wpd-partners--cards', $classes, true)) {
+            $classes[] = 'wpd-partners--bgtr';
+            $style .= '--wpd-pt-a:' . (100 - $tr) . '%;';
+        }
         if ($layout === 'grid' && $columns >= 2 && $columns <= 6) {
             $classes[] = 'wpd-partners--cols';
             $style .= '--wpd-pt-cols:' . $columns . ';';
@@ -1619,6 +1799,12 @@ class WPD_Renderer
             if (in_array($key, $p['hidden'], true)) {
                 continue;
             }
+            // 2.11.0: прозрачные элементы блока с фоном — цвет текста по видимому цвету фона блока
+            unset($o['_under']);
+            $bs_bg = $key === 'hero' ? '' : (string) sanitize_hex_color((string) ($p['bstyle'][$key]['bg'] ?? ''));
+            if ($bs_bg !== '') {
+                $o['_under'] = self::blend_color($bs_bg, self::bg_alpha($p['bstyle'][$key]['bg_tr'] ?? ''), self::page_bg($o));
+            }
             $html = '';
             switch ($key) {
                 case 'hero':
@@ -1655,7 +1841,7 @@ class WPD_Renderer
                     $html = self::part_html($key, $o);
             }
             // Вид блока (2.4.0): фон, отступы, ширина, скрытие
-            $inner .= self::decorate_block($html, $p['bstyle'][$key] ?? [], $key);
+            $inner .= self::decorate_block($html, $p['bstyle'][$key] ?? [], $key, $o);
         }
 
         return self::wrap($inner, '', $o);
@@ -1664,19 +1850,22 @@ class WPD_Renderer
     /**
      * Классы и CSS-переменные вида блока (2.4.0) добавляются к первому тегу его разметки.
      */
-    public static function decorate_block(string $html, array $b, string $key): string
+    public static function decorate_block(string $html, array $b, string $key, ?array $o = null): string
     {
         if ($html === '' || !$b) {
             return $html;
         }
-        $b       = array_merge(['bg' => '', 'mt' => '', 'mb' => '', 'width' => '', 'hide' => ''], $b);
+        $b       = array_merge(['bg' => '', 'bg_tr' => '', 'mt' => '', 'mb' => '', 'width' => '', 'hide' => ''], $b);
         $classes = ['wpd-b'];
         $style   = '';
         $bg      = (string) sanitize_hex_color((string) $b['bg']);
         if ($bg !== '' && $key !== 'hero') {
+            // 2.11.0: прозрачность фона блока; цвет текста — по тому, что видно поверх фона страницы
+            $alpha = self::bg_alpha($b['bg_tr']);
+            $seen  = $alpha < 1 ? self::blend_color($bg, $alpha, self::page_bg(array_diff_key($o ?? WPD_Settings::get(), ['_under' => 1]))) : $bg;
             $classes[] = 'wpd-b--bg';
-            $classes[] = self::is_light_color($bg) ? 'wpd-b--bg-light' : 'wpd-b--bg-dark';
-            $style    .= '--wpd-b-bg:' . $bg . ';';
+            $classes[] = self::is_light_color($seen) ? 'wpd-b--bg-light' : 'wpd-b--bg-dark';
+            $style    .= '--wpd-b-bg:' . ($alpha < 1 ? self::alpha_color($bg, $alpha) : $bg) . ';';
         }
         foreach (['mt', 'mb'] as $side) {
             if ((string) $b[$side] !== '' && is_numeric($b[$side])) {

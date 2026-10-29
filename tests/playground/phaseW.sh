@@ -54,7 +54,7 @@ t "design: no PHP warnings" "$(nowarn w_design.html)"
 get "/wp-admin/admin.php?page=wpd-settings&tab=hero" w_hero.html
 t "hero: logo section with 6 fields" "$( [ "$(has w_hero.html '<h2>Логотип</h2>')" = 1 ] && [ "$(grep -oE 'name="wpd_settings\[hero_logo(_dark|_pos|_height|_alt|_url)?\]"' w_hero.html | sort -u | wc -l | tr -d ' ')" = 6 ] && echo 1 || echo 0)"
 get "/wp-admin/admin.php?page=wpd-settings&tab=partners" w_partners.html
-t "partners: tab active, 9 fields" "$( [ "$(python3 -c "import re;s=open('w_partners.html',encoding='utf-8').read();print(1 if re.search(r'tab=partners\"\s*class=\"nav-tab nav-tab-active\"',s) else 0)")" = 1 ] && [ "$(fields w_partners.html)" = 9 ] && echo 1 || echo 0)"
+t "partners: tab active, 12 fields" "$( [ "$(python3 -c "import re;s=open('w_partners.html',encoding='utf-8').read();print(1 if re.search(r'tab=partners\"\s*class=\"nav-tab nav-tab-active\"',s) else 0)")" = 1 ] && [ "$(fields w_partners.html)" = 12 ] && echo 1 || echo 0)"
 t "partners: row template (5 sub-fields)" "$(eq "$(grep -oE 'wpd_settings\[partners\]\[__i__\]\[(logo|name|url|new_tab|hidden)\]' w_partners.html | sort -u | wc -l | tr -d ' ')" 5)"
 get "/wp-admin/admin.php?page=wpd-settings&tab=contacts" w_contacts.html
 t "contacts: logo picker and height" "$( [ "$(grep -qE 'data-wpd-s-media>[^<]*<img[^>]*>[^<]*<input type="url" id="wpd_contact_logo_url"' w_contacts.html && echo 1 || echo 0)" = 1 ] && [ "$(has w_contacts.html 'name="wpd_settings\[contact_logo_height\]"')" = 1 ] && echo 1 || echo 0)"
