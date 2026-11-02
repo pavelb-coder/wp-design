@@ -486,7 +486,8 @@
         // Таймер внутри блока: предпросмотр по датам из настроек (как блок «Обратный отсчёт» по умолчанию)
         var cd = data.blocks['wpd/countdown'] ? defaults('wpd/countdown') : {};
         // 2.12.0: кнопка этапа с параметрами кнопки таймера (атрибуты блока или настройки)
-        var cdBtn = cdButtonLook('heroCountdown', a);
+        var heroIcons = showIcons('hero', a); // 2.13.0
+        var cdBtn = cdButtonLook('heroCountdown', a, !heroIcons);
         var cdLinkOn = !!(lookValue('heroCountdown', a, 'cdLinkUrl') && lookValue('heroCountdown', a, 'cdLinkText'));
         var cdStage = cdLinkOn ? cdButtonEl(cdBtn, lookValue('heroCountdown', a, 'cdLinkText')) : null;
         var timerPreview = a.showCountdown
@@ -522,9 +523,9 @@
         function button(textKey, urlKey, klass, placeholder, arrow) {
             var iconKey = textKey === 'buttonText' ? 'buttonIcon' : 'button2Icon';
             return (sel || a[textKey]) ? el('span', { className: klass + (a[textKey] ? '' : ' is-empty') },
-                icons[a[iconKey]] ? el('span', { className: 'wpd-btn__icon dashicons dashicons-' + a[iconKey], 'aria-hidden': 'true' }) : null,
+                heroIcons && icons[a[iconKey]] ? el('span', { className: 'wpd-btn__icon dashicons dashicons-' + a[iconKey], 'aria-hidden': 'true' }) : null,
                 el(Inline, { value: a[textKey], placeholder: placeholder, label: placeholder, onChange: function (v) { var o = {}; o[textKey] = v; set(o); } }),
-                arrow ? ' →' : null
+                arrow && heroIcons ? ' →' : null
             ) : null;
         }
 
@@ -698,6 +699,7 @@
                     })
                 ),
                 a.showCountdown ? LookPanels('heroCountdown', a, set, true) : null,
+                LookPanels('hero', a, set, 'box'),
                 ResetPanel('wpd/hero', set)
             ),
             Wrapper('hero', { className: props.className, attributes: a },
@@ -826,7 +828,32 @@
         } else if (variant) {
             cls.push('wpd-look--onlight');
         }
-        return { className: base + (cls.length ? ' wpd-look ' + cls.join(' ') : ''), style: st };
+        // 2.13.0: высота блока и иконки (одни они не добавляют wpd-look — как WPD_Renderer::block_look)
+        var box = boxLook(slug, a);
+        Object.assign(st, box.style);
+        return { className: base + (cls.length ? ' wpd-look ' + cls.join(' ') : '') + box.className, style: st };
+    }
+
+    /* 2.13.0: показывать ли иконки блока (параметр «Показывать иконки»; нет параметра — показывать) */
+    function showIcons(slug, a) {
+        var o = lookOpts(slug).showIcons;
+        return !o || o.group !== 'box' || !!lookValue(slug, a, 'showIcons');
+    }
+
+    /* 2.13.0: классы и переменные высоты блока и иконок — как WPD_Renderer::box_look() */
+    function boxLook(slug, a) {
+        var opts = lookOpts(slug);
+        var cls = [];
+        var st = {};
+        var h = opts.blockMinHeight ? parseInt(lookValue(slug, a, 'blockMinHeight'), 10) : 0;
+        if (h > 0) {
+            cls.push('wpd-bh');
+            st['--wpd-bh'] = Math.min(opts.blockMinHeight.max || 1200, h) + 'px';
+            var v = opts.blockVAlign ? String(lookValue(slug, a, 'blockVAlign')) : '';
+            if (v === 'center' || v === 'bottom') { cls.push('wpd-bh--' + v); }
+        }
+        if (!showIcons(slug, a)) { cls.push('wpd-noicons'); }
+        return { className: cls.length ? ' ' + cls.join(' ') : '', style: st, list: cls };
     }
 
     /* 2.11.0: видимый цвет прозрачного фона элементов — как WPD_Renderer::look_seen_bg() */
@@ -917,10 +944,16 @@
             var list = group(g);
             return list.length ? el(c.PanelBody, { key: 'wpd-' + g, title: btnTitles[g], initialOpen: false, className: 'wpd-ed-look-panel-' + g }, list) : null;
         });
+        // 2.13.0: высота блока и иконки
+        var box = group('box');
+        var boxPanel = box.length ? el(c.PanelBody, { key: 'wpd-box', title: 'Высота и иконки', initialOpen: false, className: 'wpd-ed-look-panel-box' }, box) : null;
+        if (only === 'box') {
+            return boxPanel;
+        }
         if (only) {
             return btnPanels;
         }
-        return btnPanels.concat([
+        return btnPanels.concat([boxPanel,
             extra.length ? el(c.PanelBody, { key: 'wpd-x', title: 'Параметры блока', initialOpen: false, className: 'wpd-ed-look-panel-extra' }, extra) : null,
             look.length ? el(c.PanelBody, { key: 'wpd-l', title: 'Раскладка и вид', initialOpen: false, className: 'wpd-ed-look-panel-layout' }, look) : null,
             colors.length ? el(c.PanelBody, { key: 'wpd-c', title: 'Цвета', initialOpen: false, className: 'wpd-ed-look-panel-colors' }, colors) : null
@@ -931,7 +964,7 @@
      * 2.12.0: кнопка таймера — классы и переменные корня таймера, иконка и подпись, как WPD_Renderer::countdown_button().
      * slug: 'countdown' (блок таймера) или 'heroCountdown' (таймер главного блока).
      */
-    function cdButtonLook(slug, a) {
+    function cdButtonLook(slug, a, noIcons) {
         var opts = lookOpts(slug);
         var sel = function (attr, def) {
             var o = opts[attr];
@@ -953,7 +986,7 @@
             var col = hexColor(lookValue(slug, a, p[0]));
             if (col) { cls.push('wpd-cdb--' + p[1]); st['--wpd-cdb-' + p[1]] = col; }
         });
-        var icon = sel('cdBtnIcon', 'arrow');
+        var icon = noIcons ? 'none' : sel('cdBtnIcon', 'arrow'); // 2.13.0: «Показывать иконки» выключено
         v = lookPx(slug, a, 'cdBtnIconSize', 10, 48);
         if (v && icon !== 'none') { cls.push('wpd-cdb--icon'); st['--wpd-cdb-icon'] = v + 'px'; }
         var pos = icon === 'arrow' ? 'right' : sel('cdBtnIconPos', 'right');
@@ -1031,6 +1064,7 @@
                 has('open') ? check('open', 'ответ открыт сразу') : null,
                 has('new_tab') ? check('new_tab', 'в новой вкладке') : null,
                 has('download') ? check('download', 'скачивать файл') : null,
+                has('noicon') ? check('noicon', p.noiconLabel || 'без иконки') : null,
                 check('hidden', 'скрыть')
             ),
             el('div', { className: 'wpd-ed-row wpd-ed-dates' },
@@ -1074,7 +1108,7 @@
         var endValid = shownEnd !== '' && (a.end || '') > (a.date || '');
         var valSize = lookPx('countdown', a, 'valueSize', 14, 64);
         var look = blockLook('countdown', a, 'wpd-countdown', valSize ? { '--wpd-bl-val': valSize + 'px' } : null);
-        var btn = cdButtonLook('countdown', a);
+        var btn = cdButtonLook('countdown', a, !showIcons('countdown', a));
         var beforeOn = !!(lookValue('countdown', a, 'cdBeforeUrl') && lookValue('countdown', a, 'cdBeforeText'));
         var afterOn = !!(endValid && lookValue('countdown', a, 'cdAfterUrl') && lookValue('countdown', a, 'cdAfterText'));
         var stageBtn = a.linkUrl ? cdButtonEl(btn, el(Inline, { value: a.linkText, placeholder: 'Текст кнопки', onChange: function (v) { set({ linkText: v }); } })) : null;
@@ -1171,7 +1205,7 @@
                         var patch = function (o) { setItems(updateItem(items, i, o)); };
                         var col = itemColor(it.color);
                         return el('li', { key: i, className: 'wpd-stat' + col.className + itemFlags(it), style: col.style },
-                            it.icon ? el('span', { className: 'wpd-stat__icon dashicons dashicons-' + it.icon, 'aria-hidden': true }) : null,
+                            it.icon && showIcons('stats', a) ? el('span', { className: 'wpd-stat__icon dashicons dashicons-' + it.icon, 'aria-hidden': true }) : null,
                             el('span', { className: 'wpd-stat__num' },
                                 el(Plain, { value: it.num, single: true, placeholder: '300+', label: 'Число', onChange: function (v) { patch({ num: v }); } })
                             ),
@@ -1202,7 +1236,7 @@
         var sel = props.isSelected;
         var items = list(a.items);
         var setItems = function (v) { set({ items: v }); };
-        var showType = !!lookValue('docs', a, 'showType');
+        var showType = !!lookValue('docs', a, 'showType') && showIcons('docs', a);
         var look = blockLook('docs', a, 'wpd-docs' + (showType ? '' : ' wpd-docs--notype'));
 
         return el(Fragment, null,
@@ -1222,9 +1256,10 @@
                         var patch = function (o) { setItems(updateItem(items, i, o)); };
                         var col = itemColor(it.color, '--wpd-it-icon');
                         var type = it.type ? String(it.type).slice(0, 6) : (isPdf(it.url) ? 'PDF' : 'WEB');
+                        var rowIcon = showType && !it.noicon;
                         return el('li', { key: i, className: 'wpd-ed-doc' },
-                            el('div', { className: 'wpd-doc' + (it.url ? '' : ' is-nolink') + (col.className ? ' has-icon-color' : '') + itemFlags(it), style: col.style },
-                                showType ? el('span', { className: 'wpd-doc__icon', 'aria-hidden': true }, type) : null,
+                            el('div', { className: 'wpd-doc' + (it.url ? '' : ' is-nolink') + (col.className ? ' has-icon-color' : '') + (showType && !rowIcon ? ' wpd-doc--noicon' : '') + itemFlags(it), style: col.style },
+                                rowIcon ? el('span', { className: 'wpd-doc__icon', 'aria-hidden': true }, type) : null,
                                 el('div', { className: 'wpd-doc__name wpd-ed-grow' },
                                     el(Plain, { value: it.title, single: true, placeholder: 'Название документа', onChange: function (v) { patch({ title: v }); } }),
                                     (sel || it.desc) ? el('span', { className: 'wpd-doc__desc' + (it.desc ? '' : ' is-empty') },
@@ -1248,14 +1283,14 @@
                             ),
                             ItemState(it),
                             sel ? el(ItemMore, {
-                                it: it, patch: patch, fields: ['badge', 'type', 'color', 'new_tab', 'download'], colorLabel: 'Цвет значка', className: 'wpd-ed-more--docs',
+                                it: it, patch: patch, fields: ['badge', 'type', 'color', 'new_tab', 'download', 'noicon'], noiconLabel: 'без значка', colorLabel: 'Цвет значка', className: 'wpd-ed-more--docs',
                                 tools: el(Tools, { items: items, index: i, onChange: setItems })
                             }) : null
                         );
                     })) : Empty('Нет документов — на сайте блок не выводится.'),
                     sel ? el(AddButton, {
                         label: 'Добавить документ',
-                        onClick: function () { setItems(items.concat([{ title: '', url: '', desc: '', badge: '', type: '', color: '', new_tab: 0, download: 0, hidden: 0, from: '', to: '' }])); }
+                        onClick: function () { setItems(items.concat([{ title: '', url: '', desc: '', badge: '', type: '', color: '', new_tab: 0, download: 0, hidden: 0, from: '', to: '', noicon: 0 }])); }
                     }) : null
                 )
             )
@@ -1425,7 +1460,7 @@
                                 (sel || it.text) ? el('p', { className: 'wpd-slide__text' },
                                     el(Plain, { value: it.text, placeholder: 'Текст слайда', onChange: function (v) { setItems(updateItem(items, i, { text: v })); } })
                                 ) : null,
-                                (it.url && it.button) ? el('span', { className: 'wpd-btn wpd-slide__btn' }, it.button + ' \u2192') : null,
+                                (it.url && it.button) ? el('span', { className: 'wpd-btn wpd-slide__btn' }, it.button + (showIcons('slider', a) ? ' \u2192' : '')) : null,
                                 ItemState(it)
                             ),
                             sel ? el('div', { className: 'wpd-ed-item wpd-ed-item--top' },
@@ -1531,7 +1566,10 @@
             var col = hexColor(buttonsValue(a, pair[0]));
             if (col) { st[pair[1]] = col; }
         });
-        return { className: cls.join(' '), style: st };
+        // 2.13.0: высота блока и иконки
+        var box = boxLook('buttons', a);
+        Object.assign(st, box.style);
+        return { className: cls.concat(box.list).join(' '), style: st };
     }
     function buttonItemLook(it) {
         var cls = '';
@@ -1607,7 +1645,8 @@
                 el('div', { className: 'wpd-ed-row' },
                     el(Check, { checked: it.new_tab, label: 'в новой вкладке', onChange: function (v) { patch({ new_tab: v }); } }),
                     el(Check, { checked: it.download, label: 'скачивать файл', onChange: function (v) { patch({ download: v }); } }),
-                    el(Check, { checked: it.small, label: 'мелкий текст', onChange: function (v) { patch({ small: v }); } })
+                    el(Check, { checked: it.small, label: 'мелкий текст', onChange: function (v) { patch({ small: v }); } }),
+                    el(Check, { checked: it.noicon, label: 'без иконки', onChange: function (v) { patch({ noicon: v }); } })
                 ),
                 el('input', {
                     type: 'text', className: 'wpd-ed-urlinput wpd-ed-badge', value: it.badge || '', placeholder: 'Метка в углу, например «Новое»',
@@ -1652,6 +1691,7 @@
                     select('layout'), select('variant'), select('radius'), range('textSize'), range('smallSize'),
                     color('bgColor'), range('bgTransparency'), color('iconColor'), color('textColor'), color('hoverColor')
                 ),
+                LookPanels('buttons', a, set, 'box'),
                 ResetPanel('wpd/buttons', set)
             ),
             Wrapper('buttons', { className: props.className, attributes: a },
@@ -1662,9 +1702,10 @@
                     items.length ? el('ul', { className: 'wpd-buttons__grid' }, items.map(function (it, i) {
                         var il = buttonItemLook(it);
                         var scheduled = !!(it.from || it.to);
+                        var noIcon = !showIcons('buttons', a) || !!it.noicon;
                         return el('li', { key: i },
-                            el('div', { className: 'wpd-qbtn' + (it.small ? ' wpd-qbtn--small' : '') + il.className + (scheduled ? ' wpd-qbtn--scheduled' : ''), style: il.style },
-                                it.image
+                            el('div', { className: 'wpd-qbtn' + (it.small ? ' wpd-qbtn--small' : '') + il.className + (scheduled ? ' wpd-qbtn--scheduled' : '') + (noIcon ? ' wpd-qbtn--noicon' : ''), style: il.style },
+                                noIcon ? null : it.image
                                     ? el('img', { className: 'wpd-qbtn__img', src: it.image, alt: '' })
                                     : el('span', { className: 'wpd-qbtn__icon dashicons dashicons-' + (it.icon || 'admin-links'), 'aria-hidden': true }),
                                 el('span', { className: 'wpd-qbtn__body' },
@@ -1685,7 +1726,7 @@
                     })) : Empty('Нет кнопок — на сайте блок не выводится.'),
                     sel ? el(AddButton, {
                         label: 'Добавить кнопку',
-                        onClick: function () { setItems(items.concat([{ icon: 'admin-links', text: '', url: '', new_tab: 0, small: 0, desc: '', badge: '', image: '', color: '', icon_color: '', download: 0, hidden: 0, from: '', to: '' }])); }
+                        onClick: function () { setItems(items.concat([{ icon: 'admin-links', text: '', url: '', new_tab: 0, small: 0, desc: '', badge: '', image: '', color: '', icon_color: '', download: 0, hidden: 0, from: '', to: '', noicon: 0 }])); }
                     }) : null
                 )
             )
@@ -1721,10 +1762,11 @@
                         var patch = function (o) { setItems(updateItem(items, i, o)); };
                         var style = it.color ? { '--wpd-card': it.color } : undefined;
                         var more = it.more || moreDefault;
+                        var cardIcons = showIcons('cards', a) && !it.noicon; // 2.13.0
                         return el('li', { key: i, className: 'wpd-card' + (it.color ? ' has-color' : '') + (it.badge ? ' wpd-card--badge' : '') + itemFlags(it), style: style },
                             el('div', { className: 'wpd-card__link' },
                                 el('span', { className: 'wpd-card__title' },
-                                    it.icon ? el('span', { className: 'wpd-card__icon dashicons dashicons-' + it.icon, 'aria-hidden': true }) : null,
+                                    it.icon && cardIcons ? el('span', { className: 'wpd-card__icon dashicons dashicons-' + it.icon, 'aria-hidden': true }) : null,
                                     el(Plain, { value: it.title, single: true, placeholder: 'Заголовок', onChange: function (v) { patch({ title: v }); } })
                                 ),
                                 it.image ? el('img', { className: 'wpd-card__img', src: it.image, alt: '' }) : null,
@@ -1732,8 +1774,8 @@
                                     el(Plain, { value: it.text, placeholder: 'Текст', onChange: function (v) { patch({ text: v }); } })
                                 ) : null,
                                 it.url ? (more
-                                    ? el('span', { className: 'wpd-card__more wpd-card__more--text' }, more + ' \u2192')
-                                    : el('span', { className: 'wpd-card__more', 'aria-hidden': true }, '\u2192')) : null
+                                    ? el('span', { className: 'wpd-card__more wpd-card__more--text' }, more + (cardIcons ? ' \u2192' : ''))
+                                    : (cardIcons ? el('span', { className: 'wpd-card__more', 'aria-hidden': true }, '\u2192') : null)) : null
                             ),
                             Badge(it.badge),
                             ItemState(it, 'Скрыта'),
@@ -1742,7 +1784,7 @@
                                 el(ColorField, { value: it.color, onChange: function (v) { patch({ color: v }); } }),
                                 el(UrlField, { value: it.url, onChange: function (v) { patch({ url: v }); } }),
                                 el(Check, { checked: it.new_tab, label: 'в новой вкладке', onChange: function (v) { patch({ new_tab: v }); } }),
-                                el(ItemMore, { it: it, patch: patch, fields: ['icon', 'badge', 'more'], className: 'wpd-ed-more--cards' }),
+                                el(ItemMore, { it: it, patch: patch, fields: ['icon', 'badge', 'more', 'noicon'], noiconLabel: 'без иконки и стрелки', className: 'wpd-ed-more--cards' }),
                                 el(Tools, { items: items, index: i, onChange: setItems })
                             ) : null
                         );
@@ -1793,7 +1835,7 @@
                 placeholder: 'Текст объявления', 'aria-label': 'Текст объявления',
                 onChange: function (v) { set({ content: v }); }
             }),
-            buttonText ? el('p', { className: 'wpd-notice__actions' }, el('span', { className: 'wpd-btn wpd-notice__btn' }, buttonText + ' \u2192')) : null
+            buttonText ? el('p', { className: 'wpd-notice__actions' }, el('span', { className: 'wpd-btn wpd-notice__btn' }, buttonText + (showIcons('notice', a) ? ' \u2192' : ''))) : null
         ) : null;
 
         return el(Fragment, null,
@@ -1970,7 +2012,7 @@
                             (sel || a.email) ? row('email', 'email-alt', field('email', 'E-mail')) : null,
                             (sel || a.phone) ? row('phone', 'phone', field('phone', 'Телефон')) : null
                         ),
-                        ((a.page || a.email) && buttonText) ? el('span', { className: 'wpd-btn wpd-contacts__btn' }, buttonText + ' →') : null
+                        ((a.page || a.email) && buttonText) ? el('span', { className: 'wpd-btn wpd-contacts__btn' }, buttonText + (showIcons ? ' →' : '')) : null
                     ) : Empty('Контакты не заполнены — на сайте блок не выводится.')
                 )
             )
@@ -2004,6 +2046,10 @@
         var ptr = Math.max(0, Math.min(100, sizeValue('partners', a, 'bgTransparency')));
         if (ptr > 0 && a.cards) { cls.push('wpd-partners--bgtr'); style['--wpd-pt-a'] = (100 - ptr) + '%'; }
         if (layout === 'grid' && cols >= 2 && cols <= 6) { cls.push('wpd-partners--cols'); style['--wpd-pt-cols'] = cols; }
+        // 2.13.0: высота блока
+        var box = boxLook('partners', a);
+        cls = cls.concat(box.list);
+        Object.assign(style, box.style);
         var ptRange = function (key, label, max, help) {
             return el(c.RangeControl, {
                 label: label, className: 'wpd-ed-partners-' + key, value: Math.max(0, Math.min(max, parseInt(a[key], 10) || 0)), min: 0, max: max, step: 1,
@@ -2042,6 +2088,7 @@
                     ptRange('headingSize', 'Размер заголовка блока, px', 72, 'От 16 до 72.'),
                     ptRange('smallSize', 'Размер подписей, px', 24, 'От 10 до 24.')
                 ),
+                LookPanels('partners', a, set, 'box'),
                 ResetPanel('wpd/partners', set)
             ),
             Wrapper('partners', { className: props.className, attributes: a },

@@ -74,7 +74,7 @@ foreach ($new as $k => $type) {
     if (!isset($map[$k]) || $map[$k]['type'] !== $type || $map[$k]['section'] !== 'countdown_button') { $bad[] = $k; }
 }
 check('fields: 21 new in section countdown_button', count($new) === 21 && !$bad, implode(',', $bad));
-check('fields: 313 in total', count($map) === 313, (string) count($map));
+check('fields: 343 in total', count($map) === 343, (string) count($map));
 check('fields: section label', (WPD_Settings::sections()['countdown_button'] ?? '') === 'Кнопка таймера: этапы, вид и поведение');
 check('tab features: sections', WPD_Settings::tabs()['features']['sections'] === ['features', 'countdown_button', 'countdown_look']);
 check('defaults', $D['countdown_before_text'] === 'Регистрация' && $D['countdown_after_text'] === 'Результаты' && $D['countdown_before_url'] === ''
@@ -259,7 +259,7 @@ check('css: styles and colours', has($css, '.wpd-cdb.wpd-cdb--outline .wpd-count
 $fjs = (string) file_get_contents($dir . 'assets/js/wpd.js');
 check('wpd.js: phase buttons', has($fjs, "querySelectorAll('.wpd-countdown__link')") && has($fjs, "getAttribute('data-when') || 'stage'") && has($fjs, 'actions.hidden = !any') && has($fjs, 'note.hidden = !any'));
 $js = (string) file_get_contents($dir . 'assets/js/wpd-blocks.js');
-check('wpd-blocks.js: helpers and panels', has($js, 'function cdButtonLook(slug, a)') && has($js, 'function cdButtonEl(') && has($js, "LookPanels('heroCountdown', a, set, true)")
+check('wpd-blocks.js: helpers and panels', has($js, 'function cdButtonLook(slug, a') && has($js, 'function cdButtonEl(') && has($js, "LookPanels('heroCountdown', a, set, true)")
     && has($js, "'Кнопки до начала и после окончания'") && has($js, "'Кнопка таймера: вид и цвета'") && has($js, "'Кнопка таймера: иконка и поведение'"));
 check('wpd-blocks.js: classes mirror renderer', has($js, "'wpd-cdb--' + v") && has($js, "'wpd-cdb--r-' + v") && has($js, "'wpd-cdb--icon-left'") && has($js, "'--wpd-cdb-h'"));
 $rh = new ReflectionMethod('WPD_Settings', 'render_help');

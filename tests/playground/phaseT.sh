@@ -72,7 +72,7 @@ LOC=$(curl -s -c cjT.txt -b cjT.txt -o /dev/null --max-time 120 -w "%{redirect_u
   --data-urlencode "wpd_settings[buttons_layout]=row" --data-urlencode "wpd_settings[buttons_variant]=tint" \
   --data-urlencode "wpd_settings[buttons_radius]=small" --data-urlencode "wpd_settings[buttons_text_size]=18" \
   --data-urlencode "wpd_settings[buttons_bg]=" --data-urlencode "wpd_settings[buttons_icon_color]=#15803d" \
-  --data-urlencode "wpd_settings[buttons_text_color]=" --data-urlencode "wpd_settings[buttons_hover_color]=#b91c1c" \
+  --data-urlencode "wpd_settings[buttons_text_color]=" --data-urlencode "wpd_settings[buttons_hover_color]=#b91c1c" --data-urlencode "wpd_settings[buttons_show_icons]=1" \
   --data-urlencode "wpd_settings[buttons][0][icon]=admin-home" --data-urlencode "wpd_settings[buttons][0][text]=Главная" \
   --data-urlencode "wpd_settings[buttons][0][url]=https://example.com/" --data-urlencode "wpd_settings[buttons][0][desc]=Сайт олимпиады" \
   --data-urlencode "wpd_settings[buttons][0][badge]=Новое" --data-urlencode "wpd_settings[buttons][0][color]=#1e3a8a" \
@@ -144,7 +144,7 @@ CODE=$(curl -s -c cjT.txt -b cjT.txt -o /dev/null --max-time 180 -w "%{http_code
   --data-urlencode "post_type=page" --data-urlencode "original_post_status=publish" --data-urlencode "post_ID=$ID" \
   --data-urlencode "wpd_nonce=$DN" --data-urlencode "wpd_enabled=1" --data-urlencode "wpd_page_nonce=$PN" \
   "${ARGS[@]}" --data-urlencode "wpd_page[show][content]=1" \
-  --data-urlencode "wpd_page[ovg][buttons]=1" --data-urlencode "wpd_page[ov][buttons_layout]=stack" --data-urlencode "wpd_page[ov][buttons_variant]=solid" \
+  --data-urlencode "wpd_page[ovg][buttons]=1" --data-urlencode "wpd_page[ov][buttons_show_icons]=1" --data-urlencode "wpd_page[ov][buttons_layout]=stack" --data-urlencode "wpd_page[ov][buttons_variant]=solid" \
   --data-urlencode "wpd_page[ov][buttons_title]=Для страницы" --data-urlencode "wpd_page[ov][buttons_columns]=2" --data-urlencode "wpd_page[ov][buttons_gap]=30" \
   --data-urlencode "wpd_page[ov][buttons_icon_color]=" --data-urlencode "wpd_page[ov][buttons_hover_color]=" \
   --data-urlencode "wpd_page[ov][buttons][0][text]=Своя для страницы" --data-urlencode "wpd_page[ov][buttons][0][url]=https://example.com/p" \

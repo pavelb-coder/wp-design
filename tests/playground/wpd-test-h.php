@@ -18,6 +18,10 @@ function check(string $name, bool $cond, string $detail = ''): void {
 }
 function has(string $h, string $n): bool { return strpos($h, $n) !== false; }
 function set_opts(array $values): void {
+    // Полная санитизация: неотправленный флажок = 0. 2.13.0: «Показывать иконки» блоков (по умолчанию включено) — явно
+    foreach (WPD_Settings::BOX_BLOCKS as $slug => $keys) {
+        if (in_array('show_icons', $keys, true) && !array_key_exists($slug . '_show_icons', $values)) { $values[$slug . '_show_icons'] = 1; }
+    }
     update_option('wpd_settings', $values);
     WPD_Settings::flush_cache();
 }
@@ -32,7 +36,7 @@ check('version >= 1.5.0', version_compare(WPD_VERSION, '1.5.0', '>='));
 
 /* 1. Поля и вкладки */
 $map = WPD_Settings::field_map();
-check('313 fields', count($map) === 313, (string) count($map));
+check('343 fields', count($map) === 343, (string) count($map));
 foreach (['slider', 'buttons', 'cards', 'notice', 'news', 'contacts'] as $tab) {
     check("tab $tab exists", isset(WPD_Settings::tabs()[$tab]));
 }

@@ -64,7 +64,7 @@ check('no settings box hook', !has_action('wpd_settings_after_form'));
 check('cleanup hooks', has_action('init', ['WPD_Netfolder_Cleanup', 'maybe_run']) === 20 && has_action('admin_notices', ['WPD_Netfolder_Cleanup', 'notice']) !== false
     && has_action('admin_post_wpd_nf_removed_dismiss', ['WPD_Netfolder_Cleanup', 'dismiss']) !== false);
 $map = WPD_Settings::field_map();
-check('docs row: no src, nf', array_keys($map['docs']['fields']) === ['title', 'url', 'desc', 'badge', 'type', 'color', 'new_tab', 'download', 'hidden', 'from', 'to']);
+check('docs row: no src, nf', array_keys($map['docs']['fields']) === ['title', 'url', 'desc', 'badge', 'type', 'color', 'new_tab', 'download', 'hidden', 'from', 'to', 'noicon']);
 check('no hidden field type left', !array_filter($map, function ($f) { return $f['type'] === 'repeater' && array_filter($f['fields'], function ($s) { return $s['type'] === 'hidden'; }); }));
 $rows = WPD_Settings::sanitize_rows([['title' => 'A', 'url' => 'https://ex.com/a.pdf', 'src' => 'a.pdf', 'nf' => '1']], 'docs');
 check('sanitize drops src, nf', count($rows) === 1 && !isset($rows[0]['src']) && !isset($rows[0]['nf']) && $rows[0]['title'] === 'A');

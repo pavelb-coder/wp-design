@@ -64,8 +64,8 @@ $keys = array_keys($map);
 /* 1. Поля */
 $layout_keys = ['buttons_title', 'buttons_columns', 'buttons_columns_mobile', 'buttons_gap', 'buttons_height', 'buttons_align'];
 $look_keys   = ['buttons_layout', 'buttons_variant', 'buttons_radius', 'buttons_text_size', 'buttons_bg', 'buttons_icon_color', 'buttons_text_color', 'buttons_hover_color'];
-check('fields: 313 in total', count($map) === 313, (string) count($map));
-check('fields: 304 plain + 9 repeaters', count(array_filter($map, function ($f) { return $f['type'] !== 'repeater'; })) === 304);
+check('fields: 343 in total', count($map) === 343, (string) count($map));
+check('fields: 334 plain + 9 repeaters', count(array_filter($map, function ($f) { return $f['type'] !== 'repeater'; })) === 334);
 check('fields: layout section fields', count(array_filter($layout_keys, function ($k) use ($map) { return isset($map[$k]) && $map[$k]['section'] === 'buttons_layout'; })) === 6);
 check('fields: look section fields', count(array_filter($look_keys, function ($k) use ($map) { return isset($map[$k]) && $map[$k]['section'] === 'buttons_look'; })) === 8);
 $pos = array_flip($keys);
@@ -82,7 +82,7 @@ check('fields: align options', array_keys($map['buttons_align']['options']) === 
 check('fields: number bounds', $map['buttons_gap']['max'] === 48 && $map['buttons_height']['max'] === 320 && $map['buttons_text_size']['max'] === 28);
 check('fields: colors are optional colors', $map['buttons_bg']['type'] === 'color_opt' && $map['buttons_hover_color']['type'] === 'color_opt');
 $sub = array_keys($map['buttons']['fields']);
-check('repeater: new sub-fields', $sub === ['icon', 'text', 'url', 'new_tab', 'small', 'desc', 'badge', 'image', 'color', 'icon_color', 'download', 'hidden', 'from', 'to'], implode(',', $sub));
+check('repeater: new sub-fields', $sub === ['icon', 'text', 'url', 'new_tab', 'small', 'desc', 'badge', 'image', 'color', 'icon_color', 'download', 'hidden', 'from', 'to', 'noicon'], implode(',', $sub));
 check('repeater: dates are datetime', $map['buttons']['fields']['from']['type'] === 'datetime' && $map['buttons']['fields']['to']['type'] === 'datetime');
 $sections = WPD_Settings::sections();
 check('sections: layout and look', ($sections['buttons_layout'] ?? '') === 'Раскладка' && ($sections['buttons_look'] ?? '') === 'Вид и цвета');
@@ -233,7 +233,8 @@ $wo = WPD_Blocks::with_buttons_attrs(WPD_Settings::get(), ['gap' => '-3', 'colum
 check('with_buttons_attrs: unit', (int) $wo['buttons_gap'] === 20 && $wo['buttons_columns'] === '4' && $wo['buttons_bg'] === '#000' && $wo['buttons_title'] === 'Из настроек' && !isset($wo['unknown']));
 
 $pid = new_page('Кнопки T');
-$ov = ['buttons_layout' => 'compact', 'buttons_variant' => 'solid', 'buttons_title' => 'Для страницы', 'buttons_gap' => 30];
+// 2.13.0: группа хранит все свои поля, неотправленный флажок = 0 — «Показывать иконки» задаём явно
+$ov = ['buttons_layout' => 'compact', 'buttons_variant' => 'solid', 'buttons_title' => 'Для страницы', 'buttons_gap' => 30, 'buttons_show_icons' => '1'];
 WPD_Page_Editor::store($pid, WPD_Page_Editor::sanitize(['order' => array_keys(WPD_Page_Editor::blocks()), 'show' => ['content' => 1],
     'ovg' => ['buttons' => 1], 'ov' => $ov], $pid));
 WPD_Settings::set_page($pid);

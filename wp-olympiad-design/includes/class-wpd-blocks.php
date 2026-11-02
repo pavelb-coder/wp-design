@@ -559,6 +559,13 @@ class WPD_Blocks
      */
     private static function add_font_attrs(array $defs): array
     {
+        $o = WPD_Settings::get();
+        foreach (self::box_only_slugs() as $slug) {
+            // 2.13.0: высота блока и иконки у главного блока, кнопок-ссылок и логотипов партнёров
+            if (isset($defs[$slug])) {
+                $defs[$slug]['attributes'] += self::attr_defs(self::box_attrs($slug), $o);
+            }
+        }
         foreach ($defs as $slug => $def) {
             foreach (array_keys(self::font_attrs($slug)) as $attr) {
                 $defs[$slug]['attributes'][$attr] = ['type' => 'string', 'default' => ''];
@@ -791,6 +798,25 @@ class WPD_Blocks
         'cdLinkNewTab' => 'countdown_link_new_tab',
     ];
 
+    /** 2.13.0: имена атрибутов высоты блока и иконок (WPD_Settings::BOX_BLOCKS). */
+    const BOX_ATTR_NAMES = ['min_h' => 'blockMinHeight', 'valign' => 'blockVAlign', 'show_icons' => 'showIcons'];
+
+    /** 2.13.0: атрибуты высоты блока и иконок: атрибут → поле настроек. */
+    public static function box_attrs(string $slug): array
+    {
+        $out = [];
+        foreach (WPD_Settings::BOX_BLOCKS[$slug] ?? [] as $k) {
+            $out[self::BOX_ATTR_NAMES[$k]] = $slug . '_' . $k;
+        }
+        return $out;
+    }
+
+    /** Блоки с высотой и иконками, у которых нет «Раскладки и вида» (их атрибуты добавляются отдельно). */
+    public static function box_only_slugs(): array
+    {
+        return array_values(array_diff(array_keys(WPD_Settings::BOX_BLOCKS), array_keys(WPD_Settings::LOOK_BLOCKS)));
+    }
+
     /** 2.12.0: атрибуты таймера главного блока — кнопка этапа и все параметры кнопки. */
     public static function hero_countdown_attrs(): array
     {
@@ -817,6 +843,7 @@ class WPD_Blocks
             $out[self::LOOK_ATTR_NAMES[$k]] = $slug . '_' . $k;
         }
         $out += self::LOOK_EXTRA_ATTRS[$slug] ?? [];
+        $out += self::box_attrs($slug); // 2.13.0
         return $slug === 'countdown' ? $out + self::CD_BTN_ATTRS : $out;
     }
 
@@ -875,12 +902,18 @@ class WPD_Blocks
         foreach (self::hero_countdown_attrs() as $attr => $key) {
             $out['heroCountdown'][$attr] = self::attr_value($map[$key]['type'], $o[$key]);
         }
+        // 2.13.0: высота блока и иконки блоков без «Раскладки и вида»
+        foreach (self::box_only_slugs() as $slug) {
+            foreach (self::box_attrs($slug) as $attr => $key) {
+                $out[$slug][$attr] = self::attr_value($map[$key]['type'], $o[$key]);
+            }
+        }
         return $out;
     }
 
     /**
      * Описание полей «Раскладки и вида» для боковой панели блоков: блок → атрибут → подпись, тип, варианты или границы,
-     * группа панели (look — раскладка и вид, colors — цвета, extra — параметры блока).
+     * группа панели (look — раскладка и вид, colors — цвета, extra — параметры блока, box — высота блока и иконки).
      */
     public static function look_options_data(): array
     {
@@ -901,6 +934,8 @@ class WPD_Blocks
                 $generic = substr($key, strlen($slug) + 1);
                 if (isset(self::CD_BTN_ATTRS[$attr])) {
                     $group = self::countdown_button_group($key);
+                } elseif (isset(self::box_attrs($slug)[$attr])) {
+                    $group = 'box'; // 2.13.0: высота блока и иконки
                 } else {
                     $group = in_array($generic, WPD_Settings::LOOK_BLOCKS[$slug], true)
                         ? (in_array($generic, ['bg', 'bg_tr', 'accent', 'text_color'], true) ? 'colors' : 'look')
@@ -912,6 +947,11 @@ class WPD_Blocks
         // 2.12.0: таймер главного блока — те же поля кнопки и кнопка этапа
         foreach (self::hero_countdown_attrs() as $attr => $key) {
             $out['heroCountdown'][$attr] = $describe($map[$key], self::countdown_button_group($key));
+        }
+        foreach (self::box_only_slugs() as $slug) {
+            foreach (self::box_attrs($slug) as $attr => $key) {
+                $out[$slug][$attr] = $describe($map[$key], 'box');
+            }
         }
         return $out;
     }
@@ -978,6 +1018,7 @@ class WPD_Blocks
         $a = is_array($a) ? $a : [];
         $o = self::with_icon_size(WPD_Settings::get(), $a, 'buttonIconSize', 'hero_button_icon_size');
         $o = self::apply_attr_map($o, $a, self::hero_countdown_attrs()); // 2.12.0: кнопка таймера в блоке
+        $o = self::apply_attr_map($o, $a, self::box_attrs('hero'));      // 2.13.0: иконки
         return self::wrap(WPD_Renderer::hero_html($o, [
             'title'       => self::str($a, 'title', $o['hero_title']),
             'lead'        => self::str($a, 'lead', $o['hero_text']),
@@ -1099,6 +1140,7 @@ class WPD_Blocks
     {
         $a = is_array($a) ? $a : [];
         $o = self::with_buttons_attrs(self::with_icon_size(WPD_Settings::get(), $a, 'iconSize', 'buttons_icon_size'), $a);
+        $o = self::apply_attr_map($o, $a, self::box_attrs('buttons')); // 2.13.0: высота блока и иконки
         return self::wrap(WPD_Renderer::buttons_html($o, self::items($a, (array) $o['buttons'])), $a, 'buttons', $o);
     }
 
@@ -1160,7 +1202,7 @@ class WPD_Blocks
     public static function render_partners($a): string
     {
         $a = is_array($a) ? $a : [];
-        $o = WPD_Settings::get();
+        $o = self::apply_attr_map(WPD_Settings::get(), $a, self::box_attrs('partners')); // 2.13.0: высота блока
         return self::wrap(WPD_Renderer::partners_html($o, [
             'title'   => self::str($a, 'title', (string) $o['partners_title']),
             'items'   => self::items($a, (array) $o['partners']),

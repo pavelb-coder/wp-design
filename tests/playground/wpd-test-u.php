@@ -102,11 +102,11 @@ check('extra defaults', $D['docs_show_type'] === 1 && $D['news_show_image'] === 
 check('repeaters: stats, docs, faq', $map['stats']['type'] === 'repeater' && $map['docs']['type'] === 'repeater' && $map['faq']['type'] === 'repeater');
 check('stats row keys', array_keys($map['stats']['fields']) === ['num', 'label', 'icon', 'color', 'hidden', 'from', 'to']);
 // 2.10.0: служебные src и nf (строки из сетевой папки 2.8.0) убраны
-check('docs row keys', array_keys($map['docs']['fields']) === ['title', 'url', 'desc', 'badge', 'type', 'color', 'new_tab', 'download', 'hidden', 'from', 'to']);
+check('docs row keys', array_keys($map['docs']['fields']) === ['title', 'url', 'desc', 'badge', 'type', 'color', 'new_tab', 'download', 'hidden', 'from', 'to', 'noicon']);
 check('faq row keys', array_keys($map['faq']['fields']) === ['q', 'a', 'open', 'hidden', 'from', 'to']);
 check('slides row: badge, button, hidden, dates', !array_diff(['badge', 'button', 'hidden', 'from', 'to'], array_keys($map['slides']['fields'])));
 check('cards row: icon, badge, more, hidden, dates', !array_diff(['icon', 'badge', 'more', 'hidden', 'from', 'to'], array_keys($map['cards']['fields'])));
-check('look_keys(stats)', WPD_Settings::look_keys('stats') === array_merge(array_map(function ($k) { return 'stats_' . $k; }, WPD_Settings::LOOK_BLOCKS['stats']), ['stats_num_size']),
+check('look_keys(stats)', WPD_Settings::look_keys('stats') === array_merge(array_map(function ($k) { return 'stats_' . $k; }, WPD_Settings::LOOK_BLOCKS['stats']), ['stats_num_size', 'stats_min_h', 'stats_valign', 'stats_show_icons']),
     implode(',', WPD_Settings::look_keys('stats')));
 
 /* 2. Санитизация */
@@ -269,7 +269,7 @@ check('notice: light own color, no look -> unchanged', $cls === 'wpd-notice wpd-
 // Контакты
 $ct = WPD_Renderer::contacts_html(array_merge($o, ['contacts_show_icons' => 0, 'contacts_button_text' => 'Написать', 'contacts_columns' => '2']));
 check('contacts: no icons class, no icons', has($ct, '<section class="wpd-contacts wpd-contacts--noicons wpd-look wpd-look--cols"') && !has($ct, 'wpd-contacts__icon'));
-check('contacts: own button text', has($ct, '>Написать &rarr;</a>'));
+check('contacts: own button text (2.13.0: without icons — without arrow)', has($ct, '>Написать</a>'));
 check('contacts: empty button text -> no button', !has(WPD_Renderer::contacts_html(array_merge($o, ['contacts_button_text' => ''])), 'wpd-contacts__btn'));
 // Таймер
 $cw = WPD_Renderer::countdown_html(array_merge($o, ['countdown_enabled' => 1, 'countdown_date' => '2035-01-01 10:00', 'countdown_value_size' => 40, 'countdown_variant' => 'solid']));
@@ -316,7 +316,8 @@ $bt = $reg->get_registered('wpd/docs');
 check('blocks: attribute types', $bt->attributes['showType']['type'] === 'boolean' && $bt->attributes['gap']['type'] === 'integer' && $bt->attributes['variant']['type'] === 'string');
 check('blocks: server attributes without defaults', !array_key_exists('default', $bt->attributes['variant']) && !array_key_exists('default', $bt->attributes['showType']));
 check('look_attrs(faq)', WPD_Blocks::look_attrs('faq') === ['gap' => 'faq_gap', 'textAlign' => 'faq_align', 'variant' => 'faq_variant', 'radius' => 'faq_radius', 'headingSize' => 'faq_title_size', 'itemSize' => 'faq_item_size', 'textSize' => 'faq_text_size',
-    'bgColor' => 'faq_bg', 'bgTransparency' => 'faq_bg_tr', 'accentColor' => 'faq_accent', 'textColor' => 'faq_text_color', 'openFirst' => 'faq_open_first', 'single' => 'faq_single', 'numbered' => 'faq_numbered']);
+    'bgColor' => 'faq_bg', 'bgTransparency' => 'faq_bg_tr', 'accentColor' => 'faq_accent', 'textColor' => 'faq_text_color', 'openFirst' => 'faq_open_first', 'single' => 'faq_single', 'numbered' => 'faq_numbered',
+    'blockMinHeight' => 'faq_min_h', 'blockVAlign' => 'faq_valign', 'showIcons' => 'faq_show_icons']);
 $wo = WPD_Blocks::with_look_attrs($o, ['gap' => 0, 'textSize' => 99, 'variant' => 'solid', 'showType' => false, 'newTab' => true, 'bgColor' => '#000', 'unknown' => 'x', 'title' => ['bad']], 'docs');
 check('with_look_attrs: unit', (int) $wo['docs_gap'] === (int) $o['docs_gap'] && (int) $wo['docs_text_size'] === 28 && $wo['docs_variant'] === 'solid'
     && $wo['docs_show_type'] === 0 && $wo['docs_new_tab'] === 1 && $wo['docs_bg'] === '#000' && !isset($wo['unknown']));
@@ -348,7 +349,7 @@ check('block: invalid select attr -> settings', root(blk('stats', ['variant' => 
 $pid = new_page('Блоки U');
 $created[] = $pid;
 WPD_Page_Editor::store($pid, WPD_Page_Editor::sanitize(['order' => array_keys(WPD_Page_Editor::blocks()), 'show' => ['content' => 1],
-    'ovg' => ['stats' => 1, 'faq' => 1], 'ov' => ['stats_variant' => 'outline', 'stats_gap' => 30, 'stats_title' => 'Для страницы', 'faq_numbered' => '1']], $pid));
+    'ovg' => ['stats' => 1, 'faq' => 1], 'ov' => ['stats_variant' => 'outline', 'stats_gap' => 30, 'stats_title' => 'Для страницы', 'faq_numbered' => '1', 'stats_show_icons' => '1', 'faq_show_icons' => '1']], $pid));
 WPD_Settings::set_page($pid);
 $po = WPD_Settings::get();
 check('page: overrides saved', $po['stats_variant'] === 'outline' && (int) $po['stats_gap'] === 30 && $po['stats_title'] === 'Для страницы' && (int) $po['faq_numbered'] === 1,
@@ -405,7 +406,7 @@ check('metabox: groups stats/docs/faq', has($mb, 'data-wpd-ovg="stats"') && has(
 
 /* 9. Данные редактора */
 $ls = WPD_Blocks::look_settings_data();
-check('editor lookSettings: nine blocks + hero timer (2.12.0)', array_keys($ls) === array_merge(array_keys(WPD_Settings::LOOK_BLOCKS), ['heroCountdown']), implode(',', array_keys($ls)));
+check('editor lookSettings: nine blocks + hero timer (2.12.0) + hero, buttons, partners (2.13.0)', array_keys($ls) === array_merge(array_keys(WPD_Settings::LOOK_BLOCKS), ['heroCountdown', 'hero', 'buttons', 'partners']), implode(',', array_keys($ls)));
 check('editor lookSettings: types', $ls['docs']['showType'] === true && $ls['news']['excerptWords'] === 20 && $ls['stats']['gap'] === 20 && $ls['contacts']['buttonText'] === 'Связаться',
     json_encode($ls['docs']));
 $lo = WPD_Blocks::look_options_data();

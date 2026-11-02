@@ -384,17 +384,18 @@ class WPD_Renderer
 
         $buttons = '';
         $icons = WPD_Settings::icons();
+        $show_icons = self::show_icons($o, 'hero'); // 2.13.0
         foreach ([['button_text', 'button_url', 'button_new_tab', 'wpd-btn', 'button_icon'], ['button2_text', 'button2_url', 'button2_new_tab', 'wpd-btn wpd-btn--ghost', 'button2_icon']] as $b) {
             $url = esc_url($a[$b[1]]);
             if ($a[$b[0]] !== '' && $url !== '') {
-                $icon = isset($icons[$a[$b[4]]]) ? $a[$b[4]] : '';
+                $icon = $show_icons && isset($icons[$a[$b[4]]]) ? $a[$b[4]] : '';
                 if ($icon !== '') {
                     self::enqueue_icons();
                 }
                 $buttons .= '<a class="' . $b[3] . '" href="' . $url . '"'
                     . ($on($a[$b[2]]) ? ' target="_blank" rel="noopener noreferrer"' : '')
                     . '>' . ($icon !== '' ? '<span class="wpd-btn__icon dashicons dashicons-' . esc_attr($icon) . '" aria-hidden="true"></span>' : '')
-                    . esc_html($a[$b[0]]) . ($b[3] === 'wpd-btn' ? ' &rarr;' : '') . '</a>';
+                    . esc_html($a[$b[0]]) . ($b[3] === 'wpd-btn' && $show_icons ? ' &rarr;' : '') . '</a>';
             }
         }
         if ($buttons !== '') {
@@ -403,7 +404,9 @@ class WPD_Renderer
 
         // Таймер внутри главного блока (1.9.0): даты и подписи — с вкладки «Таймер и эффекты»
         if ($on($a['countdown'])) {
-            $timer = self::countdown_html($o, ['enabled' => true]);
+            // 2.13.0: высота блока таймера к таймеру в главном блоке не относится; без иконок главного блока — и без иконок кнопки
+            $timer = self::countdown_html(array_merge($o, ['countdown_min_h' => 0, 'countdown_valign' => '']
+                + ($show_icons ? [] : ['countdown_show_icons' => 0])), ['enabled' => true]);
             if ($timer !== '') {
                 $html .= '<div class="wpd-hero__countdown">' . $timer . '</div>';
             }
@@ -703,7 +706,7 @@ class WPD_Renderer
                 $style .= '--wpd-cdb-' . $suffix . ':' . $c . ';';
             }
         }
-        $icon = $pick('countdown_btn_icon');
+        $icon = self::show_icons($o, 'countdown') ? $pick('countdown_btn_icon') : 'none'; // 2.13.0
         $isz  = self::px($o, 'countdown_btn_icon_size', 10, 48);
         if ($isz && $icon !== 'none') {
             $cls[]  = 'wpd-cdb--icon';
@@ -772,6 +775,39 @@ class WPD_Renderer
     /* ---------------------------------------------------------------
      * 2.7.0: «Раскладка и вид» блоков и общие поля элементов
      * ------------------------------------------------------------- */
+
+    /** 2.13.0: показывать ли иконки блока (поле <блок>_show_icons; нет поля — показывать). */
+    public static function show_icons(array $o, string $slug): bool
+    {
+        $key = $slug === 'contacts' ? 'contacts_show_icons' : $slug . '_show_icons';
+        return !array_key_exists($key, $o) || !empty($o[$key]);
+    }
+
+    /**
+     * 2.13.0: высота блока и иконки — классы и CSS-переменные корня блока. Минимальная высота: wpd-bh и --wpd-bh,
+     * положение содержимого: wpd-bh--center / wpd-bh--bottom (только вместе с высотой), без иконок: wpd-noicons.
+     *
+     * @return array{class:string[],vars:array<string,string>}
+     */
+    public static function box_look(array $o, string $slug): array
+    {
+        $keys  = WPD_Settings::BOX_BLOCKS[$slug] ?? [];
+        $class = [];
+        $vars  = [];
+        $h     = in_array('min_h', $keys, true) && isset($o[$slug . '_min_h']) && is_numeric($o[$slug . '_min_h']) ? (int) $o[$slug . '_min_h'] : 0;
+        if ($h > 0) {
+            $class[] = 'wpd-bh';
+            $vars['--wpd-bh'] = min(WPD_Settings::BOX_MAX_H, $h) . 'px';
+            $v = (string) ($o[$slug . '_valign'] ?? '');
+            if (in_array('valign', $keys, true) && in_array($v, ['center', 'bottom'], true)) {
+                $class[] = 'wpd-bh--' . $v;
+            }
+        }
+        if (in_array('show_icons', $keys, true) && !self::show_icons($o, $slug)) {
+            $class[] = 'wpd-noicons';
+        }
+        return ['class' => $class, 'vars' => $vars];
+    }
 
     /**
      * Классы и CSS-переменные блока по общим параметрам «Раскладка и вид» (WPD_Settings::LOOK_BLOCKS).
@@ -897,6 +933,12 @@ class WPD_Renderer
         } elseif ($variant !== '') {
             $class[] = 'wpd-look--onlight';
         }
+        // 2.13.0: высота блока и иконки (без «Раскладки и вида» — без класса wpd-look, чтобы вид блока не менялся)
+        $box   = self::box_look($o, $slug);
+        if ($box['class']) {
+            $class = count($class) > 1 ? array_merge($class, $box['class']) : $box['class'];
+        }
+        $vars  = array_merge($vars, $box['vars']);
 
         $style = '';
         foreach ($vars as $name => $value) {
@@ -1007,6 +1049,7 @@ class WPD_Renderer
         $items = $items === null ? WPD_Settings::stats_items($o['stats']) : self::clean_items($items, self::row_keys('stats'));
         $items = self::visible_items($items, $o);
         $html  = '';
+        $show_icons = self::show_icons($o, 'stats'); // 2.13.0
 
         foreach ($items as $item) {
             $num   = (string) ($item['num'] ?? '');
@@ -1017,7 +1060,7 @@ class WPD_Renderer
             $attrs = !empty($o['stats_animate']) ? self::count_attrs($num) : '';
             $col   = self::item_color($item['color'] ?? '');
             $html .= '<li class="wpd-stat' . $col['class'] . '"' . ($col['style'] !== '' ? ' style="' . esc_attr($col['style']) . '"' : '') . '>'
-                . self::item_icon($item['icon'] ?? '', 'wpd-stat__icon')
+                . ($show_icons ? self::item_icon($item['icon'] ?? '', 'wpd-stat__icon') : '')
                 . '<span class="wpd-stat__num"' . $attrs . '>' . esc_html($num) . '</span>'
                 . '<span class="wpd-stat__label">' . esc_html($label) . '</span>'
                 . '</li>';
@@ -1045,7 +1088,8 @@ class WPD_Renderer
         $items = $items === null ? WPD_Settings::docs_items($o['docs']) : self::clean_items($items, self::row_keys('docs'));
         $items = self::visible_items($items, $o);
         $title = ($title === null || $title === '') ? $o['docs_title'] : $title;
-        $show_type = !array_key_exists('docs_show_type', $o) || !empty($o['docs_show_type']);
+        // 2.13.0: «Показывать иконки» блока убирает значки так же, как «Значок с подписью PDF или WEB»
+        $show_type = (!array_key_exists('docs_show_type', $o) || !empty($o['docs_show_type'])) && self::show_icons($o, 'docs');
         $all_new   = !empty($o['docs_new_tab']);
         $list  = '';
 
@@ -1060,7 +1104,8 @@ class WPD_Renderer
             $type   = $type !== '' ? (function_exists('mb_substr') ? mb_substr($type, 0, 6) : substr($type, 0, 6)) : ($is_pdf ? 'PDF' : 'WEB');
             $desc   = trim((string) ($item['desc'] ?? ''));
             $col    = self::item_color($item['color'] ?? '', '--wpd-it-icon');
-            $class  = 'wpd-doc' . ($col['class'] !== '' ? ' has-icon-color' : '');
+            $row_icon = $show_type && empty($item['noicon']); // 2.13.0: «Без значка» у строки
+            $class  = 'wpd-doc' . ($col['class'] !== '' ? ' has-icon-color' : '') . ($show_type && !$row_icon ? ' wpd-doc--noicon' : '');
             $attrs  = ' href="' . $url . '"';
             if ($all_new || !empty($item['new_tab'])) {
                 $attrs .= ' target="_blank" rel="noopener noreferrer"';
@@ -1076,7 +1121,7 @@ class WPD_Renderer
                 $name_html = '<span class="wpd-doc__text">' . $name_html . '<span class="wpd-doc__desc">' . esc_html($desc) . '</span></span>';
             }
             $list .= '<li><a class="' . $class . '"' . $attrs . '>'
-                . ($show_type ? '<span class="wpd-doc__icon" aria-hidden="true">' . esc_html($type) . '</span>' : '')
+                . ($row_icon ? '<span class="wpd-doc__icon" aria-hidden="true">' . esc_html($type) . '</span>' : '')
                 . $name_html
                 . self::badge_html($item['badge'] ?? '', 'inline')
                 . '</a></li>';
@@ -1204,6 +1249,7 @@ class WPD_Renderer
             $classes[] = 'wpd-slider--cap-' . $cap;
         }
         $look = self::block_look($o, 'slider');
+        $show_icons = self::show_icons($o, 'slider'); // 2.13.0
         if ($look['class'] !== 'wpd-look') {
             $classes[] = $look['class'];
         }
@@ -1251,7 +1297,7 @@ class WPD_Renderer
                     $inner .= '<p class="wpd-slide__text">' . nl2br(esc_html($item['text'])) . '</p>';
                 }
                 if ($button !== '') {
-                    $inner .= '<span class="wpd-btn wpd-slide__btn">' . esc_html($button) . ' &rarr;</span>';
+                    $inner .= '<span class="wpd-btn wpd-slide__btn">' . esc_html($button) . ($show_icons ? ' &rarr;' : '') . '</span>';
                 }
                 $inner .= '</div>';
             }
@@ -1318,14 +1364,16 @@ class WPD_Renderer
             $html .= '<h2 class="wpd-h2">' . esc_html($title) . '</h2>';
         }
         $html .= '<ul class="wpd-buttons__grid">';
+        $show_icons = self::show_icons($o, 'buttons'); // 2.13.0
         foreach ($rows as $item) {
             $item_look = self::button_item_look($item);
+            $no_icon   = !$show_icons || !empty($item['noicon']);
             $class = 'wpd-qbtn' . ($item['small'] ? ' wpd-qbtn--small' : '') . ($item['url'] === '' ? ' wpd-qbtn--nolink' : '')
-                . $item_look['class'] . (!empty($item['_off']) ? ' wpd-qbtn--off' : '');
+                . $item_look['class'] . (!empty($item['_off']) ? ' wpd-qbtn--off' : '') . ($no_icon ? ' wpd-qbtn--noicon' : '');
             $style = $item_look['style'] !== '' ? ' style="' . esc_attr($item_look['style']) . '"' : '';
-            $media = $item['image'] !== ''
+            $media = $no_icon ? '' : ($item['image'] !== ''
                 ? '<img class="wpd-qbtn__img" src="' . esc_url($item['image']) . '" alt="" loading="lazy">'
-                : '<span class="wpd-qbtn__icon dashicons dashicons-' . esc_attr($item['icon']) . '" aria-hidden="true"></span>';
+                : '<span class="wpd-qbtn__icon dashicons dashicons-' . esc_attr($item['icon']) . '" aria-hidden="true"></span>');
             $inner = $media . '<span class="wpd-qbtn__body"><span class="wpd-qbtn__text">' . esc_html($item['text']) . '</span>'
                 . ($item['desc'] !== '' ? '<span class="wpd-qbtn__desc">' . esc_html($item['desc']) . '</span>' : '') . '</span>'
                 . ($item['badge'] !== '' ? '<span class="wpd-qbtn__badge">' . esc_html($item['badge']) . '</span>' : '');
@@ -1461,6 +1509,10 @@ class WPD_Renderer
                 $vars[$var] = $c;
             }
         }
+        // 2.13.0: высота блока и иконки
+        $box   = self::box_look($o, 'buttons');
+        $class = array_merge($class, $box['class']);
+        $vars  = array_merge($vars, $box['vars']);
         $style = '';
         foreach ($vars as $k => $v) {
             $style .= $k . ':' . $v . ';';
@@ -1518,8 +1570,10 @@ class WPD_Renderer
             $html .= '<h2 class="wpd-h2">' . esc_html($title) . '</h2>';
         }
         $html .= '<ul class="wpd-cards__grid">';
+        $show_icons = self::show_icons($o, 'cards'); // 2.13.0
         foreach ($items as $item) {
-            $inner = '<span class="wpd-card__title">' . self::item_icon($item['icon'] ?? '', 'wpd-card__icon') . esc_html($item['title']) . '</span>';
+            $icons = $show_icons && empty($item['noicon']);
+            $inner = '<span class="wpd-card__title">' . ($icons ? self::item_icon($item['icon'] ?? '', 'wpd-card__icon') : '') . esc_html($item['title']) . '</span>';
             if ($item['image'] !== '') {
                 $inner .= '<img class="wpd-card__img" src="' . esc_url($item['image']) . '" alt="" loading="lazy">';
             }
@@ -1528,9 +1582,11 @@ class WPD_Renderer
             }
             if ($item['url'] !== '') {
                 $more = trim((string) ($item['more'] ?? '')) !== '' ? trim((string) $item['more']) : $more_default;
-                $inner .= $more !== ''
-                    ? '<span class="wpd-card__more wpd-card__more--text">' . esc_html($more) . ' &rarr;</span>'
-                    : '<span class="wpd-card__more" aria-hidden="true">&rarr;</span>';
+                if ($more !== '') {
+                    $inner .= '<span class="wpd-card__more wpd-card__more--text">' . esc_html($more) . ($icons ? ' &rarr;' : '') . '</span>';
+                } elseif ($icons) {
+                    $inner .= '<span class="wpd-card__more" aria-hidden="true">&rarr;</span>';
+                }
                 $inner  = '<a class="wpd-card__link"' . self::link_attrs($item['url'], $item['new_tab']) . '>' . $inner . '</a>';
             } else {
                 $inner = '<div class="wpd-card__link">' . $inner . '</div>';
@@ -1607,7 +1663,7 @@ class WPD_Renderer
             }
             if ($button !== '') {
                 $html .= '<p class="wpd-notice__actions"><a class="wpd-btn wpd-notice__btn"' . self::link_attrs($url, $new_tab) . '>'
-                    . esc_html($button) . ' &rarr;</a></p>';
+                    . esc_html($button) . (self::show_icons($o, 'notice') ? ' &rarr;' : '') . '</a></p>';
             }
             $html .= '</div>';
         }
@@ -1666,7 +1722,7 @@ class WPD_Renderer
             $html .= '<h2 class="wpd-h2">' . esc_html($title) . '</h2>';
         }
         if ($more_url !== '') {
-            $html .= '<a class="wpd-news__more" href="' . esc_url($more_url) . '">' . esc_html($more) . ' &rarr;</a>';
+            $html .= '<a class="wpd-news__more" href="' . esc_url($more_url) . '">' . esc_html($more) . (self::show_icons($o, 'news') ? ' &rarr;' : '') . '</a>';
         }
         $html .= '</div><div class="wpd-news__track" data-wpd-track>';
 
@@ -1768,7 +1824,7 @@ class WPD_Renderer
         $target = $v['page'] !== '' ? $v['page'] : ($v['email'] !== '' ? 'mailto:' . $v['email'] : '');
         $btn_text = array_key_exists('contacts_button_text', $o) ? trim((string) $o['contacts_button_text']) : 'Связаться';
         if ($target !== '' && esc_url($target) !== '' && $btn_text !== '') {
-            $button = '<a class="wpd-btn wpd-contacts__btn" href="' . esc_url($target) . '">' . esc_html($btn_text) . ' &rarr;</a>';
+            $button = '<a class="wpd-btn wpd-contacts__btn" href="' . esc_url($target) . '">' . esc_html($btn_text) . ($show_icons ? ' &rarr;' : '') . '</a>';
         }
 
         return self::look_open('section', 'wpd-contacts' . ($show_icons ? '' : ' wpd-contacts--noicons'), self::block_look($o, 'contacts'))
@@ -1860,6 +1916,12 @@ class WPD_Renderer
         if ($marquee) {
             $classes[] = 'wpd-partners--marquee';
             $style .= '--wpd-pt-dur:' . round(count($rows) * self::PARTNERS_SPEED[$speed], 1) . 's;';
+        }
+        // 2.13.0: высота блока
+        $box = self::box_look($o, 'partners');
+        $classes = array_merge($classes, $box['class']);
+        foreach ($box['vars'] as $var => $value) {
+            $style .= $var . ':' . $value . ';';
         }
 
         $item = function (array $r, bool $clone) use ($names): string {

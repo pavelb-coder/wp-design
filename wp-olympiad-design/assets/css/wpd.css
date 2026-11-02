@@ -3728,3 +3728,56 @@
         display: none !important;
     }
 }
+
+/* 2.13.0: высота блока — минимальная высота корня и положение содержимого */
+.wpd-page .wpd-bh {
+    min-height: var(--wpd-bh);
+    box-sizing: border-box;
+}
+
+.wpd-page :is(.wpd-bh--center, .wpd-bh--bottom):not(.wpd-notice):not(.wpd-countdown) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+}
+
+.wpd-page .wpd-notice:is(.wpd-bh--center, .wpd-bh--bottom) {
+    align-content: center;
+}
+
+.wpd-page .wpd-countdown:is(.wpd-bh--center, .wpd-bh--bottom) {
+    align-content: center;
+    align-items: center;
+}
+
+.wpd-page .wpd-bh.wpd-bh--bottom:is(*, #wpd-none) {
+    align-content: end;
+}
+
+.wpd-page .wpd-countdown.wpd-bh.wpd-bh--bottom {
+    align-items: flex-end;
+}
+
+@media (max-width: 600px) {
+    .wpd-page .wpd-bh {
+        min-height: min(var(--wpd-bh), 100vh);
+    }
+}
+
+/* 2.13.0: без иконок — убрать и нарисованные стилем значки (стрелки ↗, шеврон вопросов) */
+.wpd-page .wpd-noicons :is(.wpd-faq__q, #wpd-none)::after,
+.wpd-page .wpd-noicons :is(.wpd-doc, #wpd-none)::after,
+.wpd-page :is(.wpd-doc--noicon, #wpd-none)::after,
+.wpd-page .wpd-noicons :is(a.wpd-qbtn, #wpd-none)::after,
+.wpd-page :is(a.wpd-qbtn--noicon, #wpd-none)::after {
+    display: none;
+    content: none;
+}
+
+.wpd-page .wpd-faq.wpd-noicons .wpd-faq__q {
+    padding-right: 24px;
+}
+
+.wpd-page .wpd-doc.wpd-doc--noicon {
+    padding-left: 20px;
+}

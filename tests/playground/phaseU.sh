@@ -83,7 +83,7 @@ save() { local tab=$1 n=$2; shift 2
     --data-urlencode "_wp_http_referer=/wp-admin/admin.php?page=wpd-settings&tab=$tab" --data-urlencode "wpd_settings[_tab]=$tab" "$@" "$B/wp-admin/options.php"; }
 LOC=$(save stats "$N" --data-urlencode "wpd_settings[stats_title]=Ключевые цифры" --data-urlencode "wpd_settings[stats_columns]=4" \
   --data-urlencode "wpd_settings[stats_columns_mobile]=2" --data-urlencode "wpd_settings[stats_gap]=12" --data-urlencode "wpd_settings[stats_variant]=outline" \
-  --data-urlencode "wpd_settings[stats_radius]=small" --data-urlencode "wpd_settings[stats_bg]=#0b1220" --data-urlencode "wpd_settings[stats_num_size]=48" \
+  --data-urlencode "wpd_settings[stats_radius]=small" --data-urlencode "wpd_settings[stats_bg]=#0b1220" --data-urlencode "wpd_settings[stats_num_size]=48" --data-urlencode "wpd_settings[stats_show_icons]=1" \
   --data-urlencode "wpd_settings[stats][_]=" \
   --data-urlencode "wpd_settings[stats][0][num]=100" --data-urlencode "wpd_settings[stats][0][label]=первая" --data-urlencode "wpd_settings[stats][0][icon]=awards" \
   --data-urlencode "wpd_settings[stats][0][color]=#1e3a8a" \
@@ -100,7 +100,7 @@ t "saved: row date back with T" "$(has u_tab_stats2.html 'name="wpd_settings\[st
 
 # Сохранение вкладки «Частые вопросы» (флажки) и «Документы» (без значка типа)
 N=$(val u_tab_faq.html _wpnonce)
-save faq "$N" --data-urlencode "wpd_settings[faq_title]=Вопросы U" --data-urlencode "wpd_settings[faq_single]=1" --data-urlencode "wpd_settings[faq_numbered]=1" \
+save faq "$N" --data-urlencode "wpd_settings[faq_title]=Вопросы U" --data-urlencode "wpd_settings[faq_single]=1" --data-urlencode "wpd_settings[faq_numbered]=1" --data-urlencode "wpd_settings[faq_show_icons]=1" \
   --data-urlencode "wpd_settings[faq][_]=" --data-urlencode "wpd_settings[faq][0][q]=Как?" --data-urlencode "wpd_settings[faq][0][a]=Так" \
   --data-urlencode "wpd_settings[faq][0][open]=1" > /dev/null
 get "/wp-admin/admin.php?page=wpd-settings&tab=faq" u_tab_faq2.html
@@ -133,14 +133,14 @@ t "front: notice" "$(eq "$(root u_front.html wpd-notice 0)" 'wpd-notice wpd-noti
 t "front: notice button" "$(has u_front.html '<p class="wpd-notice__actions"><a class="wpd-btn wpd-notice__btn" href="https://example.com/n">Читать &rarr;</a></p>')"
 t "front: countdown" "$(eq "$(root u_front.html wpd-countdown 0)" 'wpd-countdown wpd-look wpd-look--card wpd-look--onlight wpd-countdown--size|--wpd-bl-val:40px;')"
 t "front: contacts" "$(eq "$(root u_front.html wpd-contacts 0)" 'wpd-contacts wpd-contacts--noicons wpd-look wpd-look--cols wpd-look--tint wpd-look--onlight|--wpd-bl-cols:2;--wpd-bl-cols-t:2;')"
-t "front: contacts button, no icons" "$( [ "$(has u_front.html '>Написать &rarr;</a>')" = 1 ] && [ "$(hasnt u_front.html 'wpd-contacts__icon')" = 1 ] && echo 1 || echo 0)"
+t "front: contacts button, no icons" "$( [ "$(has u_front.html '>Написать</a>')" = 1 ] && [ "$(hasnt u_front.html 'wpd-contacts__icon')" = 1 ] && echo 1 || echo 0)"
 t "front: news without images" "$( [ "$(inq "$(root u_front.html wpd-news 0)" 'wpd-news wpd-news--grid wpd-news--noimg')" = 1 ] && [ "$(hasnt u_front.html 'wpd-news__media')" = 1 ] && echo 1 || echo 0)"
 t "front: no PHP warnings" "$(grep -qE '<b>(Warning|Notice|Deprecated|Fatal error)</b>' u_front.html && echo 0 || echo 1)"
 
 # Экран редактирования
 get "/wp-admin/post.php?post=$ID&action=edit" u_edit.html
 LS=$(edata u_edit.html lookSettings)
-t "edit: lookSettings from settings" "$( [ "$(inq "$LS" '"stats":{"columns":"4","columnsMobile":"2","gap":12,"textAlign":"","variant":"outline","radius":"small"')" = 1 ] && [ "$(inq "$LS" '"title":"Ключевые цифры","numSize":48}')" = 1 ] && [ "$(inq "$LS" '"single":true,"numbered":true')" = 1 ] && echo 1 || echo 0)"
+t "edit: lookSettings from settings" "$( [ "$(inq "$LS" '"stats":{"columns":"4","columnsMobile":"2","gap":12,"textAlign":"","variant":"outline","radius":"small"')" = 1 ] && [ "$(inq "$LS" '"title":"Ключевые цифры","numSize":48,"blockMinHeight":0,"blockVAlign":"","showIcons":true}')" = 1 ] && [ "$(inq "$LS" '"single":true,"numbered":true')" = 1 ] && echo 1 || echo 0)"
 t "edit: lookOptions" "$(inq "$(edata u_edit.html lookOptions)" '"variant":{"label":"Вид карточек","type":"select","group":"look"')"
 t "edit: client defaults = settings" "$(has u_edit.html '"numSize":{"type":"integer","default":48}')"
 t "edit: icons for item select" "$(has u_edit.html '"icons":{"media-document":')"
@@ -160,7 +160,7 @@ CODE=$(curl -s -c cjU.txt -b cjU.txt -o /dev/null --max-time 180 -w "%{http_code
   --data-urlencode "post_type=page" --data-urlencode "original_post_status=publish" --data-urlencode "post_ID=$ID" \
   --data-urlencode "wpd_nonce=$DN" --data-urlencode "wpd_enabled=1" --data-urlencode "wpd_page_nonce=$PN" \
   "${ARGS[@]}" --data-urlencode "wpd_page[show][content]=1" \
-  --data-urlencode "wpd_page[ovg][stats]=1" --data-urlencode "wpd_page[ov][stats_variant]=plain" --data-urlencode "wpd_page[ov][stats_gap]=30" \
+  --data-urlencode "wpd_page[ovg][stats]=1" --data-urlencode "wpd_page[ov][stats_show_icons]=1" --data-urlencode "wpd_page[ov][stats_variant]=plain" --data-urlencode "wpd_page[ov][stats_gap]=30" \
   --data-urlencode "wpd_page[ov][stats_title]=Для страницы" --data-urlencode "wpd_page[ov][stats_bg]=" \
   --data-urlencode "wpd_page[faq_mode]=custom" --data-urlencode "wpd_page[faq_title]=" \
   --data-urlencode "wpd_page[faq][0][q]=Вопрос страницы" --data-urlencode "wpd_page[faq][0][a]=Ответ" --data-urlencode "wpd_page[faq][0][open]=1" \

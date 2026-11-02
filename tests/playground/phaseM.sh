@@ -45,7 +45,7 @@ t "design save: fonts and css stored (no «<»)" "$([ "$(has m_design2.html 'Mon
 get "/wp-admin/admin.php?page=wpd-settings&tab=hero" m_hero.html
 N=$(nonce m_hero.html)
 post --data-urlencode "option_page=wpd_settings_group" --data-urlencode "action=update" --data-urlencode "_wpnonce=$N" \
-  --data-urlencode "_wp_http_referer=/wp-admin/admin.php?page=wpd-settings&tab=hero" --data-urlencode "wpd_settings[_tab]=hero" \
+  --data-urlencode "_wp_http_referer=/wp-admin/admin.php?page=wpd-settings&tab=hero" --data-urlencode "wpd_settings[_tab]=hero" --data-urlencode "wpd_settings[hero_show_icons]=1" \
   --data-urlencode "wpd_settings[badge]=Олимпиада 2026" --data-urlencode "wpd_settings[hero_title]=Главный блок M" \
   --data-urlencode "wpd_settings[hero_button_text]=Положение" --data-urlencode "wpd_settings[hero_button_url]=https://example.com/rules" \
   --data-urlencode "wpd_settings[hero_button_icon]=media-document" --data-urlencode "wpd_settings[hero_countdown]=1" \
@@ -63,7 +63,7 @@ t "hero save: design tab kept"           "$(get "/wp-admin/admin.php?page=wpd-se
 get "/wp-admin/admin.php?page=wpd-settings&tab=features" m_feat.html
 N=$(nonce m_feat.html)
 post --data-urlencode "option_page=wpd_settings_group" --data-urlencode "action=update" --data-urlencode "_wpnonce=$N" \
-  --data-urlencode "_wp_http_referer=/wp-admin/admin.php?page=wpd-settings&tab=features" --data-urlencode "wpd_settings[_tab]=features" \
+  --data-urlencode "_wp_http_referer=/wp-admin/admin.php?page=wpd-settings&tab=features" --data-urlencode "wpd_settings[_tab]=features" --data-urlencode "wpd_settings[countdown_show_icons]=1" \
   --data-urlencode "wpd_settings[countdown_enabled]=1" --data-urlencode "wpd_settings[countdown_date]=$FUTURE" \
   --data-urlencode "wpd_settings[countdown_label]=До начала M" > /dev/null
 

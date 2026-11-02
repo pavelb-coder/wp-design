@@ -49,11 +49,11 @@ save() { local tab=$1; shift
   curl -s -c cjS.txt -b cjS.txt -o /dev/null --max-time 120 -w "%{redirect_url}" \
     --data-urlencode "option_page=wpd_settings_group" --data-urlencode "action=update" --data-urlencode "_wpnonce=$n" \
     --data-urlencode "_wp_http_referer=/wp-admin/admin.php?page=wpd-settings&tab=$tab" --data-urlencode "wpd_settings[_tab]=$tab" "$@" "$B/wp-admin/options.php"; }
-LOC=$(save buttons --data-urlencode "wpd_settings[buttons_icon_size]=36")
+LOC=$(save buttons --data-urlencode "wpd_settings[buttons_icon_size]=36" --data-urlencode "wpd_settings[buttons_show_icons]=1")
 t "save buttons: redirect back" "$(inq "$LOC" 'tab=buttons')"
 save contacts --data-urlencode "wpd_settings[contacts_icon_size]=30" --data-urlencode "wpd_settings[contacts_show_icons]=1" --data-urlencode "wpd_settings[contact_phone]=+7 391 111-11-11" > /dev/null
-save docs --data-urlencode "wpd_settings[docs_icon_size]=500" --data-urlencode "wpd_settings[docs_show_type]=1" --data-urlencode "wpd_settings[docs]=Положение|https://example.com/a.pdf" > /dev/null
-save hero --data-urlencode "wpd_settings[hero_button_icon_size]=26" --data-urlencode "wpd_settings[hero_title]=Заголовок S" > /dev/null
+save docs --data-urlencode "wpd_settings[docs_icon_size]=500" --data-urlencode "wpd_settings[docs_show_type]=1" --data-urlencode "wpd_settings[docs_show_icons]=1" --data-urlencode "wpd_settings[docs]=Положение|https://example.com/a.pdf" > /dev/null
+save hero --data-urlencode "wpd_settings[hero_button_icon_size]=26" --data-urlencode "wpd_settings[hero_show_icons]=1" --data-urlencode "wpd_settings[hero_title]=Заголовок S" > /dev/null
 for tab in buttons contacts docs hero; do get "/wp-admin/admin.php?page=wpd-settings&tab=$tab" "s_tab2_$tab.html"; done
 t "saved: buttons 36 kept after other tabs" "$(has s_tab2_buttons.html 'name="wpd_settings\[buttons_icon_size\]" value="36"')"
 t "saved: contacts 30" "$(has s_tab2_contacts.html 'name="wpd_settings\[contacts_icon_size\]" value="30"')"
