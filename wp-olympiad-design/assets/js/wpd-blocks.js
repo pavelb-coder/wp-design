@@ -387,7 +387,11 @@
         var tsize = pick(a.titleSize, ho.titleSize, 'normal');
         var bg = /^#[0-9a-f]{6}$/i.test(a.bgColor || '') ? a.bgColor : '';
         var overlay = typeof a.overlay === 'number' ? Math.max(0, Math.min(90, a.overlay)) : 55;
-        var isBgImage = !!a.imageUrl && position === 'background';
+        // 2.14.0: картинка вместо текста — только если она задана; изображение сбоку/фоном тогда не выводится
+        var bannerOn = !!a.bannerOn && !!a.bannerUrl;
+        var bannerEdge = pick(a.bannerEdge, ho.bannerEdge, 'edge');
+        var imgUrl = bannerOn ? '' : a.imageUrl;
+        var isBgImage = !!imgUrl && position === 'background';
         // 1.9.0
         var hex = function (v) { return /^#[0-9a-f]{6}$/i.test(v || '') ? v : ''; };
         var num = function (v, max) { return typeof v === 'number' ? Math.max(0, Math.min(max, v)) : 0; };
@@ -402,8 +406,9 @@
 
         var cls = ['wpd-hero', 'wpd-hero--' + variant];
         // 2.3.0: «Мягкий градиент» без изображения — встроенная иллюстрация городов, как на сайте
-        var orb = !a.imageUrl && variant === 'soft' && !!data.softOrb;
-        if (a.imageUrl) { cls.push('wpd-hero--img-' + position); }
+        var orb = !bannerOn && !imgUrl && variant === 'soft' && !!data.softOrb;
+        if (imgUrl) { cls.push('wpd-hero--img-' + position); }
+        if (bannerOn) { cls.push('wpd-hero--banner'); if (bannerEdge === 'padded') { cls.push('wpd-hero--banner-padded'); } }
         if (orb) { cls.push('wpd-hero--orb', 'wpd-hero--img-' + (position === 'left' ? 'left' : 'right')); }
         if (height !== 'normal') { cls.push('wpd-hero--height-' + height); }
         if (align !== 'left') { cls.push('wpd-hero--align-' + align); }
@@ -414,15 +419,15 @@
             style['--wpd-hero-bg'] = bg;
         }
         if (isBgImage) {
-            style['--wpd-hero-img'] = 'url("' + String(a.imageUrl).replace(/["'()\\\s]/g, encodeURIComponent) + '")';
+            style['--wpd-hero-img'] = 'url("' + String(imgUrl).replace(/["'()\\\s]/g, encodeURIComponent) + '")';
             style['--wpd-hero-overlay'] = overlay + '%';
             if (hex(a.overlayColor)) { style['--wpd-hero-overlay-color'] = a.overlayColor; }
         }
-        if (a.imageUrl && !isBgImage) {
+        if (imgUrl && !isBgImage) {
             if (fit !== 'cover') { cls.push('wpd-hero--fit-' + fit); }
             if (istyle !== 'rounded') { cls.push('wpd-hero--imgstyle-' + istyle); }
         }
-        if (a.imageUrl && a.imageMobile === false) { cls.push('wpd-hero--img-hide-mobile'); }
+        if (imgUrl && a.imageMobile === false) { cls.push('wpd-hero--img-hide-mobile'); }
         if (valign !== 'center') { cls.push('wpd-hero--valign-' + valign); }
         if (hex(a.badgeColor)) {
             cls.push('wpd-hero--c-badge');
@@ -467,7 +472,7 @@
             : (bg ? !isLight(bg) : (variant === 'dark' || variant === 'gradient'));
         var logoSrc = (darkBg && a.logoDarkUrl) ? a.logoDarkUrl : (a.logoUrl || a.logoDarkUrl || '');
         var logoEl = null;
-        if (logoSrc) {
+        if (logoSrc && !bannerOn) {
             cls.push('wpd-hero--logo-' + logoPos);
             style['--wpd-hero-logo-h'] = Math.max(16, Math.min(240, parseInt(a.logoHeight, 10) || 56)) + 'px';
             logoEl = el('div', { className: 'wpd-hero__logo' }, el('img', { className: 'wpd-hero__logo-img', src: logoSrc, alt: a.logoAlt || '' }));
@@ -478,6 +483,22 @@
                 el(Media, {
                     label: a[key] ? 'Заменить' : label, allowedTypes: ['image'],
                     onSelect: function (m) { var o = {}; o[key] = m.url; if (key === 'logoUrl' && !a.logoAlt && m.alt) { o.logoAlt = m.alt; } set(o); }
+                }),
+                a[key] ? el(c.Button, { variant: 'link', isDestructive: true, onClick: function () { var o = {}; o[key] = ''; set(o); } }, 'Убрать') : null
+            );
+        }
+
+        // 2.14.0: картинки «вместо текста»
+        function bannerMedia(key, label) {
+            return el('div', { className: 'wpd-ed-media-control wpd-ed-banner-' + key },
+                a[key] ? el('img', { src: a[key], alt: '' }) : null,
+                el(Media, {
+                    label: a[key] ? 'Заменить' : label, allowedTypes: ['image'],
+                    onSelect: function (m) {
+                        var o = {}; o[key] = m.url;
+                        if (key === 'bannerUrl' && !a.bannerAlt && m.alt) { o.bannerAlt = m.alt; }
+                        set(o);
+                    }
                 }),
                 a[key] ? el(c.Button, { variant: 'link', isDestructive: true, onClick: function () { var o = {}; o[key] = ''; set(o); } }, 'Убрать') : null
             );
@@ -677,6 +698,45 @@
                         onChange: function (v) { set({ imageAlt: v }); }
                     })
                 ),
+                el(c.PanelBody, { title: 'Картинка вместо текста', initialOpen: false, className: 'wpd-ed-hero-banner' },
+                    el(Toggle, {
+                        label: 'Картинка вместо текста', checked: !!a.bannerOn,
+                        help: 'Вместо метки, заголовка, текста и кнопок — одна картинка на всю ширину блока. Без картинки блок выводится как обычно.',
+                        onChange: function (v) { set({ bannerOn: !!v }); }
+                    }),
+                    el(c.BaseControl, { label: 'Картинка', id: 'wpd-hero-banner', help: 'Высота блока — по пропорциям картинки; например, 1600 × 500 px.' }, bannerMedia('bannerUrl', 'Выбрать картинку')),
+                    el(c.TextControl, {
+                        label: 'Или адрес картинки (URL)', type: 'url', value: a.bannerUrl || '', className: 'wpd-ed-banner-url',
+                        onChange: function (v) { set({ bannerUrl: v }); }
+                    }),
+                    el(c.BaseControl, { label: 'Картинка для телефона', id: 'wpd-hero-banner-mobile', help: 'Необязательно. На экранах до 600 px. Пусто — основная картинка.' }, bannerMedia('bannerMobileUrl', 'Выбрать картинку')),
+                    el(c.TextControl, {
+                        label: 'Описание картинки (alt)', value: a.bannerAlt || '',
+                        help: 'Текст с картинки или её смысл. Заголовок блока остаётся на странице невидимым.',
+                        onChange: function (v) { set({ bannerAlt: v }); }
+                    }),
+                    el(c.TextControl, {
+                        label: 'Ссылка с картинки', type: 'url', value: a.bannerLink || '', placeholder: 'https://…',
+                        onChange: function (v) { set({ bannerLink: v }); }
+                    }),
+                    el(Toggle, {
+                        label: 'Ссылка в новой вкладке', checked: !!a.bannerNewTab,
+                        onChange: function (v) { set({ bannerNewTab: !!v }); }
+                    }),
+                    el(c.SelectControl, {
+                        label: 'Ширина картинки', value: bannerEdge, options: opts(ho.bannerEdge),
+                        onChange: function (v) { set({ bannerEdge: v }); }
+                    }),
+                    el(Toggle, {
+                        label: 'Кнопки под картинкой', checked: !!a.bannerButtons,
+                        onChange: function (v) { set({ bannerButtons: !!v }); }
+                    }),
+                    el(Toggle, {
+                        label: 'Таймер под картинкой', checked: !!a.bannerTimer,
+                        help: 'Если включён «Таймер под кнопками» (раздел «Кнопки»).',
+                        onChange: function (v) { set({ bannerTimer: !!v }); }
+                    })
+                ),
                 el(c.PanelBody, { title: 'Логотип', initialOpen: false },
                     el(c.BaseControl, { label: 'Логотип', id: 'wpd-hero-logo', help: 'PNG, WebP или SVG с прозрачным фоном. SVG загружают только администраторы.' }, logoMedia('logoUrl', 'Выбрать логотип')),
                     el(c.BaseControl, { label: 'Логотип для тёмного фона', id: 'wpd-hero-logo-dark', help: 'Стили «Тёмный» и «Градиент», тёмный свой цвет, фото с затемнением. Пусто — основной.' }, logoMedia('logoDarkUrl', 'Выбрать вариант')),
@@ -703,10 +763,21 @@
                 ResetPanel('wpd/hero', set)
             ),
             Wrapper('hero', { className: props.className, attributes: a },
-                el('section', { className: cls.join(' '), style: style },
+                bannerOn ? el('section', { className: cls.join(' '), style: style },
+                    el('div', { className: 'wpd-hero__banner' },
+                        el('img', { className: 'wpd-hero__banner-img', src: a.bannerUrl, alt: a.bannerAlt || '' })),
+                    (function () {
+                        var acts = a.bannerButtons && (sel || a.buttonText || a.button2Text) ? el('div', { className: 'wpd-hero__actions' },
+                            button('buttonText', 'buttonUrl', 'wpd-btn', 'Текст кнопки', true),
+                            button('button2Text', 'button2Url', 'wpd-btn wpd-btn--ghost', 'Вторая кнопка', false)) : null;
+                        var tm = a.bannerTimer ? timerPreview : null;
+                        return acts || tm ? el('div', { className: 'wpd-hero__below' }, acts, tm) : null;
+                    })()
+                ) : el('section', { className: cls.join(' '), style: style },
                     el('div', { className: 'wpd-hero__inner' },
                         el('div', { className: 'wpd-hero__text' },
                             logoEl && logoPos === 'above' ? logoEl : null,
+                            (sel && a.bannerOn && !a.bannerUrl) ? el('p', { className: 'wpd-ed-hint' }, 'Включена «Картинка вместо текста» — выберите картинку в настройках блока справа.') : null,
                             (sel || a.badge) ? el('span', { className: 'wpd-badge' + (a.badge ? '' : ' is-empty') },
                                 el(Inline, { value: a.badge, placeholder: 'Метка', label: 'Метка над заголовком', onChange: function (v) { set({ badge: v }); } })
                             ) : null,
@@ -853,6 +924,12 @@
             if (v === 'center' || v === 'bottom') { cls.push('wpd-bh--' + v); }
         }
         if (!showIcons(slug, a)) { cls.push('wpd-noicons'); }
+        // 2.14.0: максимальная ширина текста блока
+        var tw = opts.blockTextWidth ? parseInt(lookValue(slug, a, 'blockTextWidth'), 10) : 0;
+        if (tw > 0) {
+            cls.push('wpd-tw');
+            st['--wpd-tw'] = Math.max(opts.blockTextWidth.minWidth || 200, Math.min(opts.blockTextWidth.max || 1600, tw)) + 'px';
+        }
         return { className: cls.length ? ' ' + cls.join(' ') : '', style: st, list: cls };
     }
 
@@ -946,7 +1023,8 @@
         });
         // 2.13.0: высота блока и иконки
         var box = group('box');
-        var boxPanel = box.length ? el(c.PanelBody, { key: 'wpd-box', title: 'Высота и иконки', initialOpen: false, className: 'wpd-ed-look-panel-box' }, box) : null;
+        var boxTitle = lookOpts(slug).blockTextWidth ? 'Высота, ширина текста и иконки' : 'Высота и иконки'; // 2.14.0
+        var boxPanel = box.length ? el(c.PanelBody, { key: 'wpd-box', title: boxTitle, initialOpen: false, className: 'wpd-ed-look-panel-box' }, box) : null;
         if (only === 'box') {
             return boxPanel;
         }

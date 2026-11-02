@@ -152,6 +152,16 @@ class WPD_Blocks
                     'badgeSize'      => ['type' => 'integer', 'default' => 0],
                     'leadSize'       => ['type' => 'integer', 'default' => 0],
                     'buttonSize'     => ['type' => 'integer', 'default' => 0],
+                    // 2.14.0: картинка вместо текста
+                    'bannerOn'        => ['type' => 'boolean', 'default' => (bool) $o['hero_banner']],
+                    'bannerUrl'       => ['type' => 'string', 'default' => (string) $o['hero_banner_url']],
+                    'bannerMobileUrl' => ['type' => 'string', 'default' => (string) $o['hero_banner_mobile']],
+                    'bannerAlt'       => ['type' => 'string', 'default' => (string) $o['hero_banner_alt']],
+                    'bannerLink'      => ['type' => 'string', 'default' => (string) $o['hero_banner_link']],
+                    'bannerNewTab'    => ['type' => 'boolean', 'default' => (bool) $o['hero_banner_new_tab']],
+                    'bannerEdge'      => ['type' => 'string', 'default' => (string) $o['hero_banner_edge']],
+                    'bannerButtons'   => ['type' => 'boolean', 'default' => (bool) $o['hero_banner_buttons']],
+                    'bannerTimer'     => ['type' => 'boolean', 'default' => (bool) $o['hero_banner_timer']],
                 ] + self::attr_defs(self::hero_countdown_attrs(), $o),
                 'render'      => [__CLASS__, 'render_hero'],
             ],
@@ -388,6 +398,7 @@ class WPD_Blocks
                 'imageStyle'    => WPD_Settings::field_map()['hero_image_style']['options'],
                 'verticalAlign' => WPD_Settings::field_map()['hero_valign']['options'],
                 'logoPos'       => WPD_Settings::field_map()['hero_logo_pos']['options'],
+                'bannerEdge'    => WPD_Settings::field_map()['hero_banner_edge']['options'],
             ],
             'palette'     => [$o['primary'], $o['accent'], $o['dark'], $o['text'], $o['bg']],
             'settingsUrl' => WPD_Settings::url(),
@@ -799,7 +810,7 @@ class WPD_Blocks
     ];
 
     /** 2.13.0: имена атрибутов высоты блока и иконок (WPD_Settings::BOX_BLOCKS). */
-    const BOX_ATTR_NAMES = ['min_h' => 'blockMinHeight', 'valign' => 'blockVAlign', 'show_icons' => 'showIcons'];
+    const BOX_ATTR_NAMES = ['min_h' => 'blockMinHeight', 'valign' => 'blockVAlign', 'show_icons' => 'showIcons', 'text_w' => 'blockTextWidth'];
 
     /** 2.13.0: атрибуты высоты блока и иконок: атрибут → поле настроек. */
     public static function box_attrs(string $slug): array
@@ -1064,6 +1075,16 @@ class WPD_Blocks
             'badge_size'      => self::num($a, 'badgeSize', 0) ?: (int) $o['hero_badge_size'],
             'lead_size'       => self::num($a, 'leadSize', 0) ?: (int) $o['hero_lead_size'],
             'button_size'     => self::num($a, 'buttonSize', 0) ?: (int) $o['hero_button_size'],
+            // 2.14.0
+            'banner'          => self::flag($a, 'bannerOn', $o['hero_banner']),
+            'banner_url'      => self::str($a, 'bannerUrl', $o['hero_banner_url']),
+            'banner_mobile'   => self::str($a, 'bannerMobileUrl', $o['hero_banner_mobile']),
+            'banner_alt'      => self::str($a, 'bannerAlt', $o['hero_banner_alt']),
+            'banner_link'     => self::str($a, 'bannerLink', $o['hero_banner_link']),
+            'banner_new_tab'  => self::flag($a, 'bannerNewTab', $o['hero_banner_new_tab']),
+            'banner_edge'     => self::str($a, 'bannerEdge', $o['hero_banner_edge']),
+            'banner_buttons'  => self::flag($a, 'bannerButtons', $o['hero_banner_buttons']),
+            'banner_timer'    => self::flag($a, 'bannerTimer', $o['hero_banner_timer']),
         ]), $a, 'hero', $o);
     }
 

@@ -51,8 +51,8 @@ $R = 'WPD_Renderer';
 /* ---------- 1. Поля ---------- */
 $box = array_filter($map, function ($f, $k) { return (bool) preg_match('/_(min_h|valign|show_icons)$/', $k) && !in_array($k, ['contacts_show_icons', 'hero_valign'], true); }, ARRAY_FILTER_USE_BOTH);
 check('box fields: 30', count($box) === 30, (string) count($box));
-check('field_map total 343', count($map) === 343, (string) count($map));
-check('plain fields 334', count(array_filter($map, function ($f) { return $f['type'] !== 'repeater'; })) === 334);
+check('field_map total 363', count($map) === 363, (string) count($map));
+check('plain fields 354', count(array_filter($map, function ($f) { return $f['type'] !== 'repeater'; })) === 354);
 $ok = true;
 foreach (WPD_Settings::BOX_BLOCKS as $slug => $keys) {
     foreach ($keys as $k) {
@@ -63,9 +63,9 @@ foreach (WPD_Settings::BOX_BLOCKS as $slug => $keys) {
 check('box fields exist in their sections', $ok);
 check('sections: hero_look, buttons_layout, partners_look, stats_look', WPD_Settings::box_section('hero') === 'hero_look' && WPD_Settings::box_section('buttons') === 'buttons_layout'
     && WPD_Settings::box_section('partners') === 'partners_look' && WPD_Settings::box_section('stats') === 'stats_look');
-check('slider and hero: icons only (own heights exist)', WPD_Settings::BOX_BLOCKS['slider'] === ['show_icons'] && WPD_Settings::BOX_BLOCKS['hero'] === ['show_icons']
+check('slider and hero: icons only (own heights exist)', WPD_Settings::BOX_BLOCKS['slider'] === ['show_icons', 'text_w'] && WPD_Settings::BOX_BLOCKS['hero'] === ['show_icons']
     && !isset($map['slider_min_h']) && !isset($map['hero_min_h']));
-check('contacts, partners: no show_icons field', !isset($map['partners_show_icons']) && WPD_Settings::BOX_BLOCKS['contacts'] === ['min_h', 'valign']);
+check('contacts, partners: no show_icons field', !isset($map['partners_show_icons']) && WPD_Settings::BOX_BLOCKS['contacts'] === ['min_h', 'valign', 'text_w']);
 check('min_h: number 0..1200 default 0', $map['stats_min_h']['type'] === 'number' && $map['stats_min_h']['min'] === 0 && $map['stats_min_h']['max'] === 1200 && $D['stats_min_h'] === 0);
 check('valign: select default top', $map['faq_valign']['type'] === 'select' && array_keys($map['faq_valign']['options']) === ['', 'center', 'bottom'] && $D['faq_valign'] === '');
 check('show_icons: checkbox default on', $map['cards_show_icons']['type'] === 'checkbox' && (int) $D['cards_show_icons'] === 1 && (int) $D['hero_show_icons'] === 1);
@@ -205,7 +205,7 @@ check('blocks: box attributes registered', $okb, $miss);
 check('blocks: attr types', ($reg->get_registered('wpd/stats')->attributes['blockMinHeight']['type'] ?? '') === 'integer'
     && ($reg->get_registered('wpd/stats')->attributes['blockVAlign']['type'] ?? '') === 'string'
     && ($reg->get_registered('wpd/hero')->attributes['showIcons']['type'] ?? '') === 'boolean');
-check('blocks: box_attrs map', WPD_Blocks::box_attrs('faq') === ['blockMinHeight' => 'faq_min_h', 'blockVAlign' => 'faq_valign', 'showIcons' => 'faq_show_icons']
+check('blocks: box_attrs map', WPD_Blocks::box_attrs('faq') === ['blockMinHeight' => 'faq_min_h', 'blockVAlign' => 'faq_valign', 'showIcons' => 'faq_show_icons', 'blockTextWidth' => 'faq_text_w']
     && WPD_Blocks::box_attrs('hero') === ['showIcons' => 'hero_show_icons'] && WPD_Blocks::box_only_slugs() === ['hero', 'buttons', 'partners']);
 $lo = WPD_Blocks::look_options_data();
 check('editor data: box group', ($lo['stats']['blockMinHeight']['group'] ?? '') === 'box' && ($lo['stats']['blockMinHeight']['max'] ?? 0) === 1200

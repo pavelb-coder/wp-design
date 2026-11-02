@@ -4,7 +4,7 @@
 положение содержимого (по центру, снизу), блоки по умолчанию — прежней высоты; без иконок — нет значков раскрытия вопросов,
 строки без иконки; стиль «Мягкий градиент» — стрелки «↗» убраны только у строк без иконки; телефон — высота не больше экрана,
 нет горизонтальной прокрутки. Редактор: классы и переменные холста как на сайте, раздел «Высота и иконки» у блоков
-(в том числе у главного, кнопок-ссылок и партнёров), смена положения и флажка иконок → атрибуты и холст, флажок строки
+(с 2.14.0 — «Высота, ширина текста и иконки»; в том числе у главного, кнопок-ссылок и партнёров), смена положения и флажка иконок → атрибуты и холст, флажок строки
 «без иконки», сохранение. Настройки и панель «Блоки олимпиады»: поля.
 
 Запуск: WPD_BASE=http://127.0.0.1:9400 python3 wpd-browser-test-aa.py <папка_для_скриншотов>
@@ -231,7 +231,7 @@ with sync_playwright() as p:
 
     sid = block_id("b.name === 'wpd/stats' && b.attributes.className === 'aa-stats'")
     select_block(sid)
-    check("inspector stats: box panel", open_panel("Высота и иконки") and insp.locator(".wpd-ed-look-blockMinHeight").count() == 1
+    check("inspector stats: box panel", open_panel("Высота, ширина текста и иконки") and insp.locator(".wpd-ed-look-blockMinHeight").count() == 1
           and insp.locator(".wpd-ed-look-blockVAlign select").count() == 1 and insp.locator(".wpd-ed-look-showIcons").count() == 1)
     insp.locator(".wpd-ed-look-blockVAlign select").select_option("bottom")
     time.sleep(0.8)
@@ -253,7 +253,7 @@ with sync_playwright() as p:
 
     bid = block_id("b.name === 'wpd/buttons'")
     select_block(bid)
-    check("inspector buttons: box panel", open_panel("Высота и иконки") and insp.locator(".wpd-ed-look-blockMinHeight").count() == 1)
+    check("inspector buttons: box panel", open_panel("Высота, ширина текста и иконки") and insp.locator(".wpd-ed-look-blockMinHeight").count() == 1)
     flags = cv.locator(".aa-buttons .wpd-ed-item--buttons").first.get_by_text("без иконки", exact=True)
     check("buttons item editor: row flag", flags.count() == 1)
     try:
@@ -266,7 +266,7 @@ with sync_playwright() as p:
           [i.get("noicon") for i in items])
     pid_ = block_id("b.name === 'wpd/partners'")
     select_block(pid_)
-    check("inspector partners: box panel", open_panel("Высота и иконки") and insp.locator(".wpd-ed-look-blockVAlign select").count() == 1 and insp.locator(".wpd-ed-look-showIcons").count() == 0)
+    check("inspector partners: box panel", open_panel("Высота, ширина текста и иконки") and insp.locator(".wpd-ed-look-blockVAlign select").count() == 1 and insp.locator(".wpd-ed-look-showIcons").count() == 0)
 
     save(page)
     page.goto(URL, timeout=180000)

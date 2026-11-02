@@ -225,6 +225,16 @@ class WPD_Renderer
             'badge_size'      => $o['hero_badge_size'] ?? 0,
             'lead_size'       => $o['hero_lead_size'] ?? 0,
             'button_size'     => $o['hero_button_size'] ?? 0,
+            // 2.14.0: картинка вместо текста
+            'banner'          => $o['hero_banner'] ?? 0,
+            'banner_url'      => $o['hero_banner_url'] ?? '',
+            'banner_mobile'   => $o['hero_banner_mobile'] ?? '',
+            'banner_alt'      => $o['hero_banner_alt'] ?? '',
+            'banner_link'     => $o['hero_banner_link'] ?? '',
+            'banner_new_tab'  => $o['hero_banner_new_tab'] ?? 0,
+            'banner_edge'     => $o['hero_banner_edge'] ?? 'edge',
+            'banner_buttons'  => $o['hero_banner_buttons'] ?? 0,
+            'banner_timer'    => $o['hero_banner_timer'] ?? 0,
         ], array_filter($args, function ($v) {
             return $v !== null;
         }));
@@ -238,7 +248,7 @@ class WPD_Renderer
         $style    = $pick($a['style'], self::HERO_STYLES, 'dark');
         $position = $pick($a['image_position'], ['right', 'left', 'background'], 'right');
         $height   = $pick($a['height'], ['compact', 'normal', 'tall'], 'normal');
-        $align    = $pick($a['align'], ['left', 'center'], 'left');
+        $align    = $pick($a['align'], ['left', 'center', 'justify'], 'left');
         $tsize    = $pick($a['title_size'], ['small', 'normal', 'large'], 'normal');
         $overlay  = max(0, min(90, (int) $a['overlay']));
         $bg       = (string) sanitize_hex_color($a['bg']);
@@ -251,9 +261,16 @@ class WPD_Renderer
         $twidth   = max(0, min(1200, (int) $a['text_width']));
         $on       = function (string $v): bool { return $v !== '' && $v !== '0'; };
 
+        // 2.14.0: картинка вместо текста — только если она задана; изображение сбоку/фоном и иллюстрация тогда не выводятся
+        $banner_src = esc_url($a['banner_url']);
+        $banner     = $on($a['banner']) && $banner_src !== '';
+        if ($banner) {
+            $image = '';
+        }
+
         // 2.3.0: «Мягкий градиент» без своего изображения — встроенная круглая иллюстрация городов справа (или слева)
         $orb = false;
-        if ($image === '' && $style === 'soft' && !empty($o['hero_soft_orb'])) {
+        if (!$banner && $image === '' && $style === 'soft' && !empty($o['hero_soft_orb'])) {
             $orb      = true;
             $image    = esc_url(WPD_URL . self::ORB_IMAGE);
             $position = $position === 'left' ? 'left' : 'right';
@@ -263,6 +280,12 @@ class WPD_Renderer
         $classes = ['wpd-hero', 'wpd-hero--' . $style];
         if ($orb) {
             $classes[] = 'wpd-hero--orb';
+        }
+        if ($banner) {
+            $classes[] = 'wpd-hero--banner';
+            if ($a['banner_edge'] === 'padded') {
+                $classes[] = 'wpd-hero--banner-padded';
+            }
         }
         $vars    = '';
         if ($image !== '') {
@@ -357,30 +380,14 @@ class WPD_Renderer
         }
 
         // 2.9.0: логотип над заголовком или рядом с ним; на тёмном фоне — свой вариант, если задан
-        $logo = self::hero_logo_html($a, $style, $bg, $image !== '' && $position === 'background', $overlay);
+        $logo = $banner ? '' : self::hero_logo_html($a, $style, $bg, $image !== '' && $position === 'background', $overlay);
         $logo_pos = $pick($a['logo_pos'], ['above', 'beside'], 'above');
         if ($logo !== '') {
             $classes[] = 'wpd-hero--logo-' . $logo_pos;
             $vars .= '--wpd-hero-logo-h:' . max(16, min(240, (int) $a['logo_height'] ?: 56)) . 'px;';
         }
 
-        $html = '<section class="' . esc_attr(implode(' ', $classes)) . '"' . ($vars !== '' ? ' style="' . esc_attr($vars) . '"' : '') . '>'
-            . '<div class="wpd-hero__inner"><div class="wpd-hero__text">';
-
-        if ($logo !== '' && $logo_pos === 'above') {
-            $html .= $logo;
-        }
-
-        if ($a['badge'] !== '') {
-            $html .= '<span class="wpd-badge">' . esc_html($a['badge']) . '</span>';
-        }
-
-        $title = '<h1 class="wpd-hero__title">' . esc_html($a['title']) . '</h1>';
-        $html .= $logo !== '' && $logo_pos === 'beside' ? '<div class="wpd-hero__heading">' . $logo . $title . '</div>' : $title;
-
-        if ($a['lead'] !== '') {
-            $html .= '<p class="wpd-hero__lead">' . nl2br(esc_html($a['lead'])) . '</p>';
-        }
+        $open = '<section class="' . esc_attr(implode(' ', $classes)) . '"' . ($vars !== '' ? ' style="' . esc_attr($vars) . '"' : '') . '>';
 
         $buttons = '';
         $icons = WPD_Settings::icons();
@@ -398,19 +405,45 @@ class WPD_Renderer
                     . esc_html($a[$b[0]]) . ($b[3] === 'wpd-btn' && $show_icons ? ' &rarr;' : '') . '</a>';
             }
         }
-        if ($buttons !== '') {
-            $html .= '<div class="wpd-hero__actions">' . $buttons . '</div>';
-        }
+        $buttons = $buttons !== '' ? '<div class="wpd-hero__actions">' . $buttons . '</div>' : '';
 
         // Таймер внутри главного блока (1.9.0): даты и подписи — с вкладки «Таймер и эффекты»
-        if ($on($a['countdown'])) {
+        $timer_html = '';
+        if ($on($a['countdown']) && (!$banner || $on($a['banner_timer']))) {
             // 2.13.0: высота блока таймера к таймеру в главном блоке не относится; без иконок главного блока — и без иконок кнопки
             $timer = self::countdown_html(array_merge($o, ['countdown_min_h' => 0, 'countdown_valign' => '']
                 + ($show_icons ? [] : ['countdown_show_icons' => 0])), ['enabled' => true]);
             if ($timer !== '') {
-                $html .= '<div class="wpd-hero__countdown">' . $timer . '</div>';
+                $timer_html = '<div class="wpd-hero__countdown">' . $timer . '</div>';
             }
         }
+
+        if ($banner) {
+            // Под картинкой — кнопки и таймер, если они включены отдельными флажками
+            $below = ($on($a['banner_buttons']) ? $buttons : '') . $timer_html;
+            return $open . self::hero_banner_html($a, $banner_src, $on)
+                . ($below !== '' ? '<div class="wpd-hero__below">' . $below . '</div>' : '')
+                . '</section>';
+        }
+
+        $html = $open . '<div class="wpd-hero__inner"><div class="wpd-hero__text">';
+
+        if ($logo !== '' && $logo_pos === 'above') {
+            $html .= $logo;
+        }
+
+        if ($a['badge'] !== '') {
+            $html .= '<span class="wpd-badge">' . esc_html($a['badge']) . '</span>';
+        }
+
+        $title = '<h1 class="wpd-hero__title">' . esc_html($a['title']) . '</h1>';
+        $html .= $logo !== '' && $logo_pos === 'beside' ? '<div class="wpd-hero__heading">' . $logo . $title . '</div>' : $title;
+
+        if ($a['lead'] !== '') {
+            $html .= '<p class="wpd-hero__lead">' . nl2br(esc_html($a['lead'])) . '</p>';
+        }
+
+        $html .= $buttons . $timer_html;
 
         $html .= '</div>';
 
@@ -429,6 +462,28 @@ class WPD_Renderer
         $html .= '</div></section>';
 
         return $html;
+    }
+
+    /**
+     * 2.14.0: картинка вместо текста главного блока. Заголовок остаётся на странице для экранных дикторов и поисковиков
+     * (невидимый h1), картинка для телефона — через <picture>, ссылка — со всей картинки.
+     */
+    private static function hero_banner_html(array $a, string $src, callable $on): string
+    {
+        $link = esc_url($a['banner_link']);
+        $alt  = $a['banner_alt'] !== '' ? $a['banner_alt'] : ($link !== '' ? $a['title'] : '');
+        $img  = '<img class="wpd-hero__banner-img" src="' . $src . '" alt="' . esc_attr($alt) . '" decoding="async">';
+        $mobile = esc_url($a['banner_mobile']);
+        if ($mobile !== '' && $mobile !== $src) {
+            // В srcset запятая и пробел — разделители, поэтому они кодируются
+            $img = '<picture><source media="(max-width: 600px)" srcset="' . strtr($mobile, [',' => '%2C', ' ' => '%20']) . '">' . $img . '</picture>';
+        }
+        if ($link !== '') {
+            $img = '<a class="wpd-hero__banner-link" href="' . $link . '"'
+                . ($on($a['banner_new_tab']) ? ' target="_blank" rel="noopener noreferrer"' : '') . '>' . $img . '</a>';
+        }
+        return ($a['title'] !== '' ? '<h1 class="wpd-sr">' . esc_html($a['title']) . '</h1>' : '')
+            . '<div class="wpd-hero__banner">' . $img . '</div>';
     }
 
     /* ---------------------------------------------------------------
@@ -805,6 +860,12 @@ class WPD_Renderer
         }
         if (in_array('show_icons', $keys, true) && !self::show_icons($o, $slug)) {
             $class[] = 'wpd-noicons';
+        }
+        // 2.14.0: максимальная ширина текста блока
+        $tw = in_array('text_w', $keys, true) && isset($o[$slug . '_text_w']) && is_numeric($o[$slug . '_text_w']) ? (int) $o[$slug . '_text_w'] : 0;
+        if ($tw > 0) {
+            $class[] = 'wpd-tw';
+            $vars['--wpd-tw'] = max(WPD_Settings::BOX_MIN_TW, min(WPD_Settings::BOX_MAX_TW, $tw)) . 'px';
         }
         return ['class' => $class, 'vars' => $vars];
     }

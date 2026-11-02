@@ -3781,3 +3781,117 @@
 .wpd-page .wpd-doc.wpd-doc--noicon {
     padding-left: 20px;
 }
+
+/* ===================================================================
+ * 2.14.0. Выравнивание по ширине, максимальная ширина текста,
+ * картинка вместо текста в главном блоке
+ * ================================================================= */
+
+/* Невидимый заголовок — для экранных дикторов и поисковиков */
+.wpd-page .wpd-sr {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* По ширине: строки растягиваются до обоих краёв, длинные слова переносятся по слогам */
+.wpd-page .wpd-look.wpd-look--align-justify > .wpd-h2,
+.wpd-page .wpd-look.wpd-look--align-justify :is(.wpd-stat, .wpd-doc, .wpd-faq__item, .wpd-card, .wpd-news__item, .wpd-contacts__box, .wpd-notice__body, .wpd-slide__caption),
+.wpd-page .wpd-look.wpd-look--align-justify:is(.wpd-countdown, .wpd-notice),
+.wpd-page .wpd-buttons--align-justify .wpd-qbtn,
+.wpd-page .wpd-hero--align-justify .wpd-hero__text {
+    text-align: justify;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+/* Максимальная ширина текста: колонка по центру блока, при выравнивании «По левому краю» — слева */
+.wpd-page .wpd-tw:not(.wpd-slider):not(.wpd-notice) > * {
+    max-width: var(--wpd-tw);
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.wpd-page :is(.wpd-tw.wpd-look--align-left, .wpd-tw.wpd-buttons--align-left):not(.wpd-slider):not(.wpd-notice):not(.wpd-partners) > * {
+    margin-left: 0;
+}
+
+/* У слайдера и объявления — ширина текста внутри слайда и карточки */
+.wpd-page .wpd-slider.wpd-tw :is(.wpd-slide__title, .wpd-slide__text) {
+    max-width: var(--wpd-tw);
+}
+
+.wpd-page .wpd-notice.wpd-tw .wpd-notice__body > * {
+    max-width: var(--wpd-tw);
+}
+
+.wpd-page .wpd-notice.wpd-tw.wpd-look--align-center .wpd-notice__body > * {
+    margin-right: auto;
+    margin-left: auto;
+}
+
+/* Картинка вместо текста: высота — по пропорциям картинки */
+.wpd-page .wpd-hero.wpd-hero--banner {
+    display: block;
+    min-height: 0;
+}
+
+.wpd-page .wpd-hero.wpd-hero--banner:not(.wpd-hero--banner-padded) {
+    padding: 0;
+}
+
+.wpd-page .wpd-hero__banner,
+.wpd-page .wpd-hero__banner-link,
+.wpd-page .wpd-hero__banner picture {
+    display: block;
+}
+
+.wpd-page .wpd-hero__banner-img {
+    display: block;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    margin: 0;
+    border: 0;
+}
+
+.wpd-page .wpd-hero--banner-padded .wpd-hero__banner-img {
+    border-radius: calc(var(--wpd-radius) * 0.6);
+}
+
+.wpd-page .wpd-hero__banner-link:focus-visible {
+    outline: 3px solid var(--wpd-accent, #f59e0b);
+    outline-offset: -3px;
+}
+
+.wpd-page .wpd-hero__below {
+    padding: 24px 48px 32px;
+}
+
+.wpd-page .wpd-hero--banner-padded .wpd-hero__below {
+    padding: 24px 0 0;
+}
+
+.wpd-page .wpd-hero__below > .wpd-hero__actions {
+    margin-top: 0;
+}
+
+.wpd-page .wpd-hero--align-center .wpd-hero__below {
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .wpd-page .wpd-hero__below {
+        padding: 20px 20px 24px;
+    }
+
+    .wpd-page .wpd-hero--banner-padded .wpd-hero__below {
+        padding: 20px 0 0;
+    }
+}

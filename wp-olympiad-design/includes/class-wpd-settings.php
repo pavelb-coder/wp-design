@@ -108,6 +108,7 @@ class WPD_Settings
             'code'     => 'Шрифты Google и свой CSS',
             'hero'     => 'Текст и кнопки',
             'hero_image' => 'Изображение',
+            'hero_banner' => 'Картинка вместо текста',
             'hero_look'  => 'Вид главного блока',
             'hero_logo'  => 'Логотип',
             'features' => 'Возможности',
@@ -145,7 +146,7 @@ class WPD_Settings
     {
         return [
             'design'   => ['title' => 'Оформление', 'sections' => ['colors', 'look', 'fonts', 'behavior', 'code']],
-            'hero'     => ['title' => 'Главный блок', 'sections' => ['hero', 'hero_image', 'hero_look', 'hero_logo']],
+            'hero'     => ['title' => 'Главный блок', 'sections' => ['hero', 'hero_image', 'hero_banner', 'hero_look', 'hero_logo']],
             'features' => ['title' => 'Таймер и эффекты', 'sections' => ['features', 'countdown_button', 'countdown_look']],
             'stats'    => ['title' => 'Статистика', 'sections' => ['stats', 'stats_look']],
             'docs'     => ['title' => 'Документы', 'sections' => ['docs', 'docs_look']],
@@ -320,9 +321,28 @@ class WPD_Settings
                                   'options' => ['top' => 'По верху', 'center' => 'По центру', 'bottom' => 'По низу'],
                                   'desc' => 'Текста относительно изображения и внутри блока заданной высоты.'],
             'hero_align'      => ['label' => 'Выравнивание текста', 'type' => 'select', 'section' => 'hero_look', 'default' => 'left',
-                                  'options' => ['left' => 'Слева', 'center' => 'По центру']],
+                                  'options' => ['left' => 'Слева', 'center' => 'По центру', 'justify' => 'По ширине']],
             'hero_text_width' => ['label' => 'Максимальная ширина текста, px', 'type' => 'number', 'section' => 'hero_look', 'default' => 0, 'min' => 0, 'max' => 1200,
                                   'desc' => '0 — автоматически. Например, 600 — чтобы строки не растягивались на широком блоке.'],
+
+            // 2.14.0: картинка вместо текста на всю ширину блока
+            'hero_banner'         => ['label' => 'Картинка вместо текста', 'type' => 'checkbox', 'section' => 'hero_banner', 'default' => 0,
+                                      'desc' => 'Вместо метки, заголовка, текста и кнопок — одна картинка на всю ширину блока. Без картинки блок выводится как обычно.'],
+            'hero_banner_url'     => ['label' => 'Картинка', 'type' => 'image', 'section' => 'hero_banner', 'default' => '',
+                                      'desc' => 'Высота блока — по пропорциям картинки; например, 1600 × 500 px.'],
+            'hero_banner_mobile'  => ['label' => 'Картинка для телефона', 'type' => 'image', 'section' => 'hero_banner', 'default' => '',
+                                      'desc' => 'Необязательно. Показывается на экранах до 600 px, например, более высокий вариант. Пусто — основная картинка.'],
+            'hero_banner_alt'     => ['label' => 'Описание картинки (alt)', 'type' => 'text', 'section' => 'hero_banner', 'default' => '',
+                                      'desc' => 'Текст с картинки или её смысл — для незрячих посетителей и поисковиков. Заголовок блока остаётся на странице невидимым.'],
+            'hero_banner_link'    => ['label' => 'Ссылка с картинки', 'type' => 'url', 'section' => 'hero_banner', 'default' => '',
+                                      'desc' => 'Пусто — картинка без ссылки.'],
+            'hero_banner_new_tab' => ['label' => 'Ссылка в новой вкладке', 'type' => 'checkbox', 'section' => 'hero_banner', 'default' => 0],
+            'hero_banner_edge'    => ['label' => 'Ширина картинки', 'type' => 'select', 'section' => 'hero_banner', 'default' => 'edge',
+                                      'options' => ['edge' => 'От края до края блока', 'padded' => 'С внутренними отступами блока']],
+            'hero_banner_buttons' => ['label' => 'Кнопки под картинкой', 'type' => 'checkbox', 'section' => 'hero_banner', 'default' => 0,
+                                      'desc' => 'Кнопки главного блока (если заданы) — под картинкой.'],
+            'hero_banner_timer'   => ['label' => 'Таймер под картинкой', 'type' => 'checkbox', 'section' => 'hero_banner', 'default' => 0,
+                                      'desc' => 'Если включён «Таймер внутри главного блока».'],
 
             // Логотип в главном блоке (2.9.0)
             'hero_logo'        => ['label' => 'Логотип', 'type' => 'image', 'section' => 'hero_logo', 'default' => '',
@@ -586,7 +606,7 @@ class WPD_Settings
             'buttons_height'         => ['label' => 'Высота плиток, px', 'type' => 'number', 'section' => 'buttons_layout', 'default' => 0, 'min' => 0, 'max' => 320,
                                          'desc' => 'Минимальная высота. 0 — по виду плиток (116 px, «Иконка слева» — 72 px).'],
             'buttons_align'          => ['label' => 'Выравнивание текста', 'type' => 'select', 'section' => 'buttons_layout', 'default' => '',
-                                         'options' => ['' => 'Как в стиле оформления', 'center' => 'По центру', 'left' => 'По левому краю']],
+                                         'options' => ['' => 'Как в стиле оформления', 'center' => 'По центру', 'left' => 'По левому краю', 'justify' => 'По ширине']],
             // 2.6.0: вид и цвета
             'buttons_layout'         => ['label' => 'Вид плиток', 'type' => 'select', 'section' => 'buttons_look', 'default' => 'stack',
                                          'options' => ['stack' => 'Иконка сверху', 'row' => 'Иконка слева', 'compact' => 'Компактные (в строку)']],
@@ -757,20 +777,21 @@ class WPD_Settings
      * 2.13.0: высота блока и иконки — какие параметры есть у блока. min_h — минимальная высота блока, valign — положение
      * содержимого по вертикали, show_icons — показывать иконки блока (у контактов — прежнее поле contacts_show_icons,
      * у главного блока высота и выравнивание уже есть: hero_min_height, hero_valign; у слайдера — «Высота слайдера»).
+     * 2.14.0: text_w — максимальная ширина текста блока (у главного блока — hero_text_width).
      */
     const BOX_BLOCKS = [
         'hero'      => ['show_icons'],
-        'stats'     => ['min_h', 'valign', 'show_icons'],
-        'docs'      => ['min_h', 'valign', 'show_icons'],
-        'faq'       => ['min_h', 'valign', 'show_icons'],
-        'slider'    => ['show_icons'],
-        'buttons'   => ['min_h', 'valign', 'show_icons'],
-        'cards'     => ['min_h', 'valign', 'show_icons'],
-        'notice'    => ['min_h', 'valign', 'show_icons'],
-        'news'      => ['min_h', 'valign', 'show_icons'],
-        'countdown' => ['min_h', 'valign', 'show_icons'],
-        'contacts'  => ['min_h', 'valign'],
-        'partners'  => ['min_h', 'valign'],
+        'stats'     => ['min_h', 'valign', 'show_icons', 'text_w'],
+        'docs'      => ['min_h', 'valign', 'show_icons', 'text_w'],
+        'faq'       => ['min_h', 'valign', 'show_icons', 'text_w'],
+        'slider'    => ['show_icons', 'text_w'],
+        'buttons'   => ['min_h', 'valign', 'show_icons', 'text_w'],
+        'cards'     => ['min_h', 'valign', 'show_icons', 'text_w'],
+        'notice'    => ['min_h', 'valign', 'show_icons', 'text_w'],
+        'news'      => ['min_h', 'valign', 'show_icons', 'text_w'],
+        'countdown' => ['min_h', 'valign', 'show_icons', 'text_w'],
+        'contacts'  => ['min_h', 'valign', 'text_w'],
+        'partners'  => ['min_h', 'valign', 'text_w'],
     ];
 
     /** 2.13.0: какие иконки убирает «Показывать иконки» у каждого блока. */
@@ -790,6 +811,10 @@ class WPD_Settings
     /** 2.13.0: граница минимальной высоты блока, px. */
     const BOX_MAX_H = 1200;
 
+    /** 2.14.0: границы максимальной ширины текста блока, px (меньше минимума — минимум). */
+    const BOX_MIN_TW = 200;
+    const BOX_MAX_TW = 1600;
+
     /** 2.13.0: раздел настроек, в котором стоят поля высоты и иконок блока. */
     public static function box_section(string $slug): string
     {
@@ -808,6 +833,15 @@ class WPD_Settings
                     case 'min_h':
                         $f = ['label' => 'Минимальная высота блока, px', 'type' => 'number', 'default' => 0, 'min' => 0, 'max' => self::BOX_MAX_H,
                               'desc' => '0 — по содержимому. До ' . self::BOX_MAX_H . ' px; на телефоне — не выше экрана. Блок не бывает ниже своего содержимого.'];
+                        break;
+                    case 'text_w':
+                        $f = ['label' => 'Максимальная ширина текста, px', 'type' => 'number', 'default' => 0, 'min' => 0, 'max' => self::BOX_MAX_TW,
+                              'desc' => in_array($slug, ['slider', 'notice'], true)
+                                  ? '0 — как в стиле. Заголовок и текст ' . ($slug === 'slider' ? 'слайдов' : 'объявления') . ' не шире этого значения (от '
+                                      . self::BOX_MIN_TW . ' до ' . self::BOX_MAX_TW . ' px); при выравнивании по центру — по центру.'
+                                  : '0 — во всю ширину блока. Заголовок и содержимое блока не шире этого значения (от ' . self::BOX_MIN_TW . ' до '
+                                      . self::BOX_MAX_TW . ' px), на узком экране — по ширине экрана. Колонка стоит по центру блока'
+                                      . ($slug === 'partners' ? '.' : ', при выравнивании «По левому краю» — слева.')];
                         break;
                     case 'valign':
                         $f = ['label' => 'Содержимое по вертикали', 'type' => 'select', 'default' => '',
@@ -861,7 +895,7 @@ class WPD_Settings
                         break;
                     case 'align':
                         $f = ['label' => 'Выравнивание текста', 'type' => 'select', 'default' => '',
-                              'options' => ['' => 'Как в оформлении', 'left' => 'По левому краю', 'center' => 'По центру']];
+                              'options' => ['' => 'Как в оформлении', 'left' => 'По левому краю', 'center' => 'По центру', 'justify' => 'По ширине']];
                         break;
                     case 'variant':
                         $f = ['label' => 'Вид ' . $what, 'type' => 'select', 'default' => '',
@@ -2092,6 +2126,26 @@ class WPD_Settings
                 <li>Где задаются: общие настройки (разделы «Раскладка и вид», «Вид» на вкладках блоков), группы панели
                     «Блоки олимпиады» для одной страницы, боковая панель блока «Олимпиада: …» (разделы «Раскладка и вид»,
                     «Цвета», «Размеры текстов»). Числа 0 в блоке — как в настройках.</li>
+            </ul>
+
+            <h2>Картинка вместо текста и ширина текста (2.14.0)</h2>
+            <ul style="list-style:disc;margin-left:20px">
+                <li><strong>Картинка вместо текста</strong> (вкладка «Главный блок», раздел «Картинка вместо текста»): вместо метки,
+                    заголовка, текста и кнопок — одна картинка на всю ширину блока, высота — по пропорциям картинки. Флажок действует,
+                    только если картинка выбрана. Заголовок остаётся на странице невидимым — для экранных дикторов и поисковиков.</li>
+                <li>Там же: <strong>картинка для телефона</strong> (экраны до 600 px), <strong>описание (alt)</strong>,
+                    <strong>ссылка с картинки</strong> и новая вкладка, <strong>ширина картинки</strong> — от края до края блока или
+                    с внутренними отступами блока, флажки <strong>«Кнопки под картинкой»</strong> и <strong>«Таймер под картинкой»</strong>
+                    (таймер — если включён «Таймер внутри главного блока»).</li>
+                <li><strong>По ширине</strong> — новый вариант выравнивания текста у всех блоков: «Выравнивание» в «Раскладке и виде»,
+                    «Выравнивание текста» главного блока и плиток кнопок-ссылок. Строки растягиваются до обоих краёв, длинные слова
+                    переносятся по слогам.</li>
+                <li><strong>Максимальная ширина текста, px</strong> (0 — во всю ширину, от 200 до 1600) — у всех блоков, кроме главного
+                    (у него прежнее поле «Максимальная ширина текста»). Колонка стоит по центру блока, при выравнивании «По левому краю» —
+                    слева; у слайдера и объявления ограничивается текст внутри слайда и карточки.</li>
+                <li>Где задаются: общие настройки, группы панели «Блоки олимпиады» для одной страницы, боковая панель блока
+                    «Олимпиада: …» (раздел «Картинка вместо текста» главного блока, «Высота, ширина текста и иконки» остальных блоков).
+                    По умолчанию всё как раньше.</li>
             </ul>
 
             <h2>Высота блоков и иконки (2.13.0)</h2>

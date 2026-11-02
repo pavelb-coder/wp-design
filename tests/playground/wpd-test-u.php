@@ -106,11 +106,11 @@ check('docs row keys', array_keys($map['docs']['fields']) === ['title', 'url', '
 check('faq row keys', array_keys($map['faq']['fields']) === ['q', 'a', 'open', 'hidden', 'from', 'to']);
 check('slides row: badge, button, hidden, dates', !array_diff(['badge', 'button', 'hidden', 'from', 'to'], array_keys($map['slides']['fields'])));
 check('cards row: icon, badge, more, hidden, dates', !array_diff(['icon', 'badge', 'more', 'hidden', 'from', 'to'], array_keys($map['cards']['fields'])));
-check('look_keys(stats)', WPD_Settings::look_keys('stats') === array_merge(array_map(function ($k) { return 'stats_' . $k; }, WPD_Settings::LOOK_BLOCKS['stats']), ['stats_num_size', 'stats_min_h', 'stats_valign', 'stats_show_icons']),
+check('look_keys(stats)', WPD_Settings::look_keys('stats') === array_merge(array_map(function ($k) { return 'stats_' . $k; }, WPD_Settings::LOOK_BLOCKS['stats']), ['stats_num_size', 'stats_min_h', 'stats_valign', 'stats_show_icons', 'stats_text_w']),
     implode(',', WPD_Settings::look_keys('stats')));
 
 /* 2. Санитизация */
-$s = WPD_Settings::sanitize(['_tab' => 'stats', 'stats_columns' => '9', 'stats_columns_mobile' => '2', 'stats_gap' => '99', 'stats_align' => 'justify',
+$s = WPD_Settings::sanitize(['_tab' => 'stats', 'stats_columns' => '9', 'stats_columns_mobile' => '2', 'stats_gap' => '99', 'stats_align' => 'sideways',
     'stats_variant' => 'tint', 'stats_radius' => 'huge', 'stats_text_size' => '-4', 'stats_bg' => 'red', 'stats_accent' => '#F97316', 'stats_text_color' => '#fff',
     'stats_title' => '<b>Цифры</b>', 'stats_num_size' => '500',
     'stats' => ['_' => '', ['num' => '300+', 'label' => 'школ', 'icon' => 'groups', 'color' => '#0b1220', 'hidden' => '1', 'from' => '2030-03-01T10:00', 'to' => 'завтра', 'evil' => 'x'],
@@ -317,7 +317,7 @@ check('blocks: attribute types', $bt->attributes['showType']['type'] === 'boolea
 check('blocks: server attributes without defaults', !array_key_exists('default', $bt->attributes['variant']) && !array_key_exists('default', $bt->attributes['showType']));
 check('look_attrs(faq)', WPD_Blocks::look_attrs('faq') === ['gap' => 'faq_gap', 'textAlign' => 'faq_align', 'variant' => 'faq_variant', 'radius' => 'faq_radius', 'headingSize' => 'faq_title_size', 'itemSize' => 'faq_item_size', 'textSize' => 'faq_text_size',
     'bgColor' => 'faq_bg', 'bgTransparency' => 'faq_bg_tr', 'accentColor' => 'faq_accent', 'textColor' => 'faq_text_color', 'openFirst' => 'faq_open_first', 'single' => 'faq_single', 'numbered' => 'faq_numbered',
-    'blockMinHeight' => 'faq_min_h', 'blockVAlign' => 'faq_valign', 'showIcons' => 'faq_show_icons']);
+    'blockMinHeight' => 'faq_min_h', 'blockVAlign' => 'faq_valign', 'showIcons' => 'faq_show_icons', 'blockTextWidth' => 'faq_text_w']);
 $wo = WPD_Blocks::with_look_attrs($o, ['gap' => 0, 'textSize' => 99, 'variant' => 'solid', 'showType' => false, 'newTab' => true, 'bgColor' => '#000', 'unknown' => 'x', 'title' => ['bad']], 'docs');
 check('with_look_attrs: unit', (int) $wo['docs_gap'] === (int) $o['docs_gap'] && (int) $wo['docs_text_size'] === 28 && $wo['docs_variant'] === 'solid'
     && $wo['docs_show_type'] === 0 && $wo['docs_new_tab'] === 1 && $wo['docs_bg'] === '#000' && !isset($wo['unknown']));

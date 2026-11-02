@@ -140,7 +140,7 @@ t "front: no PHP warnings" "$(grep -qE '<b>(Warning|Notice|Deprecated|Fatal erro
 # Экран редактирования
 get "/wp-admin/post.php?post=$ID&action=edit" u_edit.html
 LS=$(edata u_edit.html lookSettings)
-t "edit: lookSettings from settings" "$( [ "$(inq "$LS" '"stats":{"columns":"4","columnsMobile":"2","gap":12,"textAlign":"","variant":"outline","radius":"small"')" = 1 ] && [ "$(inq "$LS" '"title":"Ключевые цифры","numSize":48,"blockMinHeight":0,"blockVAlign":"","showIcons":true}')" = 1 ] && [ "$(inq "$LS" '"single":true,"numbered":true')" = 1 ] && echo 1 || echo 0)"
+t "edit: lookSettings from settings" "$( [ "$(inq "$LS" '"stats":{"columns":"4","columnsMobile":"2","gap":12,"textAlign":"","variant":"outline","radius":"small"')" = 1 ] && [ "$(inq "$LS" '"title":"Ключевые цифры","numSize":48,"blockMinHeight":0,"blockVAlign":"","showIcons":true,"blockTextWidth":0}')" = 1 ] && [ "$(inq "$LS" '"single":true,"numbered":true')" = 1 ] && echo 1 || echo 0)"
 t "edit: lookOptions" "$(inq "$(edata u_edit.html lookOptions)" '"variant":{"label":"Вид карточек","type":"select","group":"look"')"
 t "edit: client defaults = settings" "$(has u_edit.html '"numSize":{"type":"integer","default":48}')"
 t "edit: icons for item select" "$(has u_edit.html '"icons":{"media-document":')"

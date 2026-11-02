@@ -74,7 +74,7 @@ foreach ($new as $k => $type) {
     if (!isset($map[$k]) || $map[$k]['type'] !== $type || $map[$k]['section'] !== 'countdown_button') { $bad[] = $k; }
 }
 check('fields: 21 new in section countdown_button', count($new) === 21 && !$bad, implode(',', $bad));
-check('fields: 343 in total', count($map) === 343, (string) count($map));
+check('fields: 363 in total', count($map) === 363, (string) count($map));
 check('fields: section label', (WPD_Settings::sections()['countdown_button'] ?? '') === 'Кнопка таймера: этапы, вид и поведение');
 check('tab features: sections', WPD_Settings::tabs()['features']['sections'] === ['features', 'countdown_button', 'countdown_look']);
 check('defaults', $D['countdown_before_text'] === 'Регистрация' && $D['countdown_after_text'] === 'Результаты' && $D['countdown_before_url'] === ''

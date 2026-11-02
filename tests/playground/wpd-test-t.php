@@ -64,8 +64,8 @@ $keys = array_keys($map);
 /* 1. Поля */
 $layout_keys = ['buttons_title', 'buttons_columns', 'buttons_columns_mobile', 'buttons_gap', 'buttons_height', 'buttons_align'];
 $look_keys   = ['buttons_layout', 'buttons_variant', 'buttons_radius', 'buttons_text_size', 'buttons_bg', 'buttons_icon_color', 'buttons_text_color', 'buttons_hover_color'];
-check('fields: 343 in total', count($map) === 343, (string) count($map));
-check('fields: 334 plain + 9 repeaters', count(array_filter($map, function ($f) { return $f['type'] !== 'repeater'; })) === 334);
+check('fields: 363 in total', count($map) === 363, (string) count($map));
+check('fields: 354 plain + 9 repeaters', count(array_filter($map, function ($f) { return $f['type'] !== 'repeater'; })) === 354);
 check('fields: layout section fields', count(array_filter($layout_keys, function ($k) use ($map) { return isset($map[$k]) && $map[$k]['section'] === 'buttons_layout'; })) === 6);
 check('fields: look section fields', count(array_filter($look_keys, function ($k) use ($map) { return isset($map[$k]) && $map[$k]['section'] === 'buttons_look'; })) === 8);
 $pos = array_flip($keys);
@@ -78,7 +78,7 @@ check('fields: variant options', array_keys($map['buttons_variant']['options']) 
 check('fields: radius options', array_keys($map['buttons_radius']['options']) === ['', 'none', 'small', 'medium', 'large', 'pill']);
 check('fields: columns options', array_map('strval', array_keys($map['buttons_columns']['options'])) === ['', '2', '3', '4', '5', '6']);
 check('fields: mobile columns options', array_map('strval', array_keys($map['buttons_columns_mobile']['options'])) === ['', '1', '2', '3']);
-check('fields: align options', array_keys($map['buttons_align']['options']) === ['', 'center', 'left']);
+check('fields: align options', array_keys($map['buttons_align']['options']) === ['', 'center', 'left', 'justify']);
 check('fields: number bounds', $map['buttons_gap']['max'] === 48 && $map['buttons_height']['max'] === 320 && $map['buttons_text_size']['max'] === 28);
 check('fields: colors are optional colors', $map['buttons_bg']['type'] === 'color_opt' && $map['buttons_hover_color']['type'] === 'color_opt');
 $sub = array_keys($map['buttons']['fields']);
