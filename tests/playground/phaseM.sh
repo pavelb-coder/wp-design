@@ -74,7 +74,7 @@ HEAD=$(python3 -c "s=open('m_front.html',encoding='utf-8').read();print(s[:s.fin
 echo "$HEAD" > m_head.html
 t "front: google fonts link in head"     "$(has m_head.html "id='wpd-google-fonts-css' href='https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&#038;family=PT+Serif&#038;display=swap'")"
 t "front: fonts before wpd.css"          "$(python3 -c "s=open('m_head.html',encoding='utf-8').read();a=s.find('wpd-google-fonts-css');b=s.find('wpd-design-css');print(1 if 0<a<b else 0)")"
-t "front: custom css inline after wpd.css" "$(python3 -c "s=open('m_head.html',encoding='utf-8').read();a=s.find(\"id='wpd-design-css'\");b=s.find('wpd-design-inline-css');c=s.find('.wpd-page .wpd-hero__title{letter-spacing:-.02em}/style>');print(1 if 0<a<b<c else 0)")"
+t "front: custom css inline after wpd.css" "$(python3 -c "s=open('m_head.html',encoding='utf-8').read();a=s.find(\"id='wpd-design-css'\");b=s.find('wpd-design-inline-css');c=s.find('.wpd-page .wpd-hero__title{letter-spacing:-.02em}');print(1 if 0<a<b<c else 0)")"
 t "front: page classes"                  "$(has m_front.html 'wpd-page--titles-center wpd-page--alt-sections wpd-page--link-color')"
 t "front: look vars"                     "$([ "$(has m_front.html '--wpd-heading-weight:600;')$(has m_front.html '--wpd-h2-scale:1.2;')$(has m_front.html '--wpd-lh:1.8;')$(has m_front.html '--wpd-link:#0f766e;')$(has m_front.html '--wpd-btn-text:#111827;')$(has m_front.html '--wpd-border:2px;')" = "111111" ] && echo 1 || echo 0)"
 HC=$(grep -oE '<section class="wpd-hero [^"]*"' m_front.html | head -1)
@@ -93,10 +93,10 @@ t "front: no PHP warnings"               "$(grep -qE '<b>(Warning|Notice|Depreca
 curl -s --max-time 60 "$B/wp-content/plugins/wp-olympiad-design/assets/css/wpd.css" -o m_css.css
 t "css: 1.9.0 rules"                     "$([ "$(has m_css.css 'wpd-page--alt-sections')$(has m_css.css 'wpd-hero__countdown')$(has m_css.css 'wpd-btn__icon')$(has m_css.css 'wpd-hero--img-hide-mobile')$(has m_css.css 'var(--wpd-lh')$(has m_css.css 'var(--wpd-hero-minh')" = "111111" ] && echo 1 || echo 0)"
 
-# Сброс: без шрифтов и своего CSS ничего лишнего в <head>
+# Сброс: без шрифтов и своего CSS в <head> только критические стили 2.15.1
 set_opt '{}'
 curl -sL --max-time 120 "$B/?page_id=$ID" -o m_front2.html
-t "reset: no fonts / inline css"         "$([ "$(grep -c 'fonts.googleapis.com' m_front2.html)$(grep -c 'wpd-design-inline-css' m_front2.html)" = "00" ] && echo 1 || echo 0)"
+t "reset: no fonts, only critical inline" "$([ "$(grep -c 'fonts.googleapis.com' m_front2.html)" = "0" ] && grep -q 'wpd-design-inline-css' m_front2.html && grep -q ':where(.wpd-page)' m_front2.html && echo 1 || echo 0)"
 t "reset: timer back outside hero"       "$(grep -q 'wpd-hero__countdown' m_front2.html && echo 0 || echo 1)"
 t "reset: default page classes"          "$(grep -qE 'wpd-page--(titles|alt|link)' m_front2.html && echo 0 || echo 1)"
 curl -s --max-time 60 "$B/wpd-h-page.php?cleanup=1" > /dev/null

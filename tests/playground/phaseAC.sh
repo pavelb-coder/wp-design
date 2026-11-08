@@ -34,7 +34,7 @@ curl -s -c cjAC.txt -b cjAC.txt --max-time 180 "$B/wp-admin/admin.php?page=wpd-s
 t "help: 2.15.0 section" "$(has ac_help.html 'Мобильная адаптация (2.15.0)')"
 t "help: no PHP warnings" "$(nowarn ac_help.html)"
 curl -s -c cjAC.txt -b cjAC.txt --max-time 180 "$B/wp-admin/plugins.php" -o ac_plugins.html
-t "plugins: version 2.15.0" "$(has ac_plugins.html '2.15.0')"
+t "plugins: version 2.15.x" "$(has ac_plugins.html '2.15.')"
 
 curl -sL --max-time 120 "$B/wpd-ac-helper.php?cleanup=1" > /dev/null
 OPTS=$(python3 -c "import json;print(json.dumps(json.load(open('ac_setup.json')).get('opts') or {}))")

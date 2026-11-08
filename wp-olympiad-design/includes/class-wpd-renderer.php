@@ -49,6 +49,8 @@ class WPD_Renderer
         // 2.4.0: на странице записи действуют её переопределения из панели «Блоки олимпиады»
         add_action('wp', [__CLASS__, 'set_page_context']);
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue']);
+        // 2.15.1: заголовок viewport для тем без него — иначе телефон не применяет мобильную вёрстку
+        add_action('wp_head', [__CLASS__, 'viewport_meta'], 1);
         add_filter('the_content', [__CLASS__, 'filter_content'], 20);
         add_filter('body_class', [__CLASS__, 'body_class']);
 
@@ -2440,6 +2442,76 @@ class WPD_Renderer
         return strpos($post->post_content, '<!-- wp:' . WPD_Blocks::NS . '/') !== false;
     }
 
+    /**
+     * 2.15.1: мета viewport на страницах с оформлением, если тема сама её не выводит.
+     * Дублирование одинакового мета-тега безвредно; отключается фильтром wpd_viewport_meta (false).
+     */
+    public static function viewport_meta(): void
+    {
+        if (!apply_filters('wpd_viewport_meta', true) || !self::page_needs_assets()) {
+            return;
+        }
+        echo '<meta name="viewport" content="width=device-width, initial-scale=1">' . "\n";
+    }
+
+    /**
+     * 2.15.1: критические стили — минимальный внешний вид всех блоков обычным CSS
+     * (без :is(), color-mix и env()), встроенный в страницу следом за wpd.css.
+     * Если внешний файл стилей не дошёл до браузера (мобильный кеш, минификация,
+     * блокировка по типу устройства), страница всё равно остаётся оформленной,
+     * а не голым текстом. При загруженном wpd.css значения совпадают с основными
+     * и вид не меняется. Отключается фильтром wpd_critical_css (false).
+     */
+    public static function critical_css(): string
+    {
+        return ':where(.wpd-page){max-width:var(--wpd-width,1200px);margin:0 auto;padding:0 20px 56px;box-sizing:border-box;'
+            . 'font-family:var(--wpd-font,-apple-system,"Segoe UI",Roboto,Arial,sans-serif);font-size:var(--wpd-size,16px);'
+            . 'line-height:1.6;color:var(--wpd-text,#1f2937)}'
+            . ':where(.wpd-page) .wpd-hero{margin:24px 0 0;padding:56px 48px;border-radius:var(--wpd-radius,16px);background:var(--wpd-dark,#0b1220);color:#fff;overflow:hidden}'
+            . ':where(.wpd-page) .wpd-hero__inner{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:40px;align-items:center}'
+            . ':where(.wpd-page) .wpd-hero__title{margin:16px 0;font-size:34px;font-weight:800;line-height:1.15;color:#fff}'
+            . ':where(.wpd-page) .wpd-hero__lead{margin:0 0 24px;font-size:18px;color:#fff;opacity:.92}'
+            . ':where(.wpd-page) .wpd-badge{display:inline-block;padding:6px 14px;border-radius:999px;background:var(--wpd-accent,#f97316);color:#fff;font-size:14px;font-weight:600}'
+            . ':where(.wpd-page) .wpd-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 26px;border-radius:10px;'
+            . 'background:var(--wpd-accent,#f97316);color:#fff;font-weight:700;text-decoration:none}'
+            . ':where(.wpd-page) .wpd-hero__actions{display:flex;flex-wrap:wrap;gap:12px}'
+            . ':where(.wpd-page) .wpd-h2{margin:0 0 20px;font-size:28px;font-weight:800;line-height:1.2;color:var(--wpd-text,#1f2937)}'
+            . ':where(.wpd-page) .wpd-content{margin:24px 0;padding:32px 40px;border-radius:var(--wpd-radius,16px);background:#fff}'
+            . ':where(.wpd-page) .wpd-stats__grid,:where(.wpd-page) .wpd-docs__list,:where(.wpd-page) .wpd-cards__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:0;padding:0;list-style:none}'
+            . ':where(.wpd-page) .wpd-stat{padding:24px;border-top:4px solid var(--wpd-primary,#1d4ed8);border-radius:var(--wpd-radius,16px);background:#fff}'
+            . ':where(.wpd-page) .wpd-stat__num{display:block;font-size:40px;font-weight:800;line-height:1.1;color:var(--wpd-accent,#f97316)}'
+            . ':where(.wpd-page) .wpd-doc{display:flex;align-items:center;gap:14px;padding:18px 20px;border:1px solid #e5e7eb;border-radius:var(--wpd-radius,16px);background:#fff;color:var(--wpd-text,#1f2937);font-weight:600;text-decoration:none}'
+            . ':where(.wpd-page) .wpd-faq__item{overflow:hidden;border:1px solid #e5e7eb;border-radius:var(--wpd-radius,16px);background:#fff;margin-bottom:12px}'
+            . ':where(.wpd-page) .wpd-faq__q{padding:18px 56px 18px 22px;font-weight:700;cursor:pointer}'
+            . ':where(.wpd-page) .wpd-faq__a{padding:0 22px 20px}'
+            . ':where(.wpd-page) .wpd-faq__search{display:block;width:100%;margin:0 0 16px;padding:12px 16px;border:1px solid #d1d5db;border-radius:10px;background:#fff;font-size:16px;box-sizing:border-box}'
+            . ':where(.wpd-page) .wpd-countdown{margin-top:24px;padding:18px 22px;border-left:4px solid var(--wpd-accent,#f97316);border-radius:var(--wpd-radius,16px);background:#fff}'
+            . ':where(.wpd-page) .wpd-countdown__value{margin:0;font-size:22px;font-weight:800}'
+            . ':where(.wpd-page) .wpd-slide{position:relative;min-height:300px;background:var(--wpd-dark,#0b1220);color:#fff}'
+            . ':where(.wpd-page) .wpd-slide__caption{position:absolute;left:0;right:0;bottom:0;padding:48px 40px 40px;color:#fff}'
+            . ':where(.wpd-page) .wpd-slide__title{margin:0 0 8px;font-size:28px;font-weight:800;color:#fff}'
+            . ':where(.wpd-page) .wpd-qbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:100px;padding:18px 12px;border-radius:var(--wpd-radius,16px);background:#fff;color:var(--wpd-text,#1f2937);font-weight:700;text-align:center;text-decoration:none}'
+            . ':where(.wpd-page) .wpd-card{border-radius:var(--wpd-radius,16px);background:var(--wpd-primary,#1d4ed8);color:#fff;overflow:hidden}'
+            . ':where(.wpd-page) .wpd-card__link{display:flex;flex-direction:column;gap:12px;padding:22px;color:#fff;text-decoration:none}'
+            . ':where(.wpd-page) .wpd-notice{padding:24px;border-left:6px solid var(--wpd-accent,#f97316);border-radius:var(--wpd-radius,16px);background:#eef2ff}'
+            . ':where(.wpd-page) .wpd-news__item{display:flex;flex-direction:column;border-radius:var(--wpd-radius,16px);background:#fff;overflow:hidden}'
+            . ':where(.wpd-page) .wpd-news__body{padding:16px 20px 20px}'
+            . ':where(.wpd-page) .wpd-contacts__box{padding:28px 32px;border-radius:var(--wpd-radius,16px);background:#fff}'
+            . ':where(.wpd-page) .wpd-partners__list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px;margin:0;padding:0;list-style:none}'
+            . ':where(.wpd-page) .wpd-partners__link{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px;background:#fff;color:inherit;text-align:center;text-decoration:none}'
+            . '@media (max-width:820px){:where(.wpd-page) .wpd-hero{padding:32px 24px}:where(.wpd-page) .wpd-hero__inner{grid-template-columns:1fr;gap:24px}'
+            . ':where(.wpd-page) .wpd-content{padding:24px 20px}}'
+            . '@media (max-width:600px){:where(.wpd-page){padding:0 12px 40px}:where(.wpd-page) .wpd-hero{padding:28px 20px}'
+            . ':where(.wpd-page) .wpd-hero__title{font-size:26px}:where(.wpd-page) .wpd-btn{min-height:48px;width:100%;box-sizing:border-box}'
+            . ':where(.wpd-page) .wpd-hero__actions{flex-direction:column;align-items:stretch}'
+            . ':where(.wpd-page) .wpd-stats__grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}'
+            . ':where(.wpd-page) .wpd-docs__list,:where(.wpd-page) .wpd-cards__grid{grid-template-columns:minmax(0,1fr)}'
+            . ':where(.wpd-page) .wpd-stat{padding:16px 14px}:where(.wpd-page) .wpd-stat__num{font-size:28px}'
+            . ':where(.wpd-page) .wpd-faq__q{min-height:48px;padding:14px 48px 14px 16px;box-sizing:border-box}'
+            . ':where(.wpd-page) .wpd-doc{min-height:56px;padding:14px 16px;box-sizing:border-box}'
+            . ':where(.wpd-page) .wpd-contacts__box{padding:18px 16px}:where(.wpd-page) .wpd-content{padding:18px 14px}}';
+    }
+
     public static function enqueue_assets(): void
     {
         if (!wp_style_is('wpd-design', 'registered')) {
@@ -2447,6 +2519,10 @@ class WPD_Renderer
         }
         if (!wp_style_is('wpd-design', 'enqueued')) {
             wp_enqueue_style('wpd-design');
+        }
+        // 2.15.1: критические стили следом за основным файлом (см. critical_css())
+        if (apply_filters('wpd_critical_css', true)) {
+            wp_add_inline_style('wpd-design', self::critical_css());
         }
         if (!wp_script_is('wpd-design', 'enqueued')) {
             wp_enqueue_script('wpd-design');
