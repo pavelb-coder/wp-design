@@ -3895,3 +3895,440 @@
         padding: 20px 0 0;
     }
 }
+
+/* ===================================================================
+ * 2.15.0. Мобильная адаптация всех блоков фронтенда.
+ * Слой идёт последним, чтобы перекрывать прежние правила только на
+ * узких экранах и сенсорных устройствах; на компьютере вид не меняется.
+ * Точки: 820px (планшет/телефон), 600px (телефон), 480px (малый телефон),
+ * 360px (очень узкий экран), ландшафт телефона — по высоте (max-height).
+ * Явно заданные мобильные колонки (wpd-*-cols-m, --wpd-*-cols-m) имеют
+ * более специфичные селекторы выше и продолжают действовать.
+ * ================================================================= */
+
+/* iOS не увеличивает текст при повороте; встроенное содержимое не шире экрана */
+.wpd-page {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+.wpd-page :is(video, iframe, embed, object, svg) {
+    max-width: 100%;
+}
+
+/* Длинные ссылки, слова и код не растягивают страницу */
+.wpd-page :is(.wpd-content, .wpd-card__text, .wpd-news__excerpt, .wpd-doc, .wpd-faq__a, .wpd-contacts__list) :is(a, code) {
+    overflow-wrap: anywhere;
+}
+
+.wpd-page .wpd-content :is(pre, code) {
+    overflow-wrap: break-word;
+}
+
+/* ---------- Планшеты и телефоны ---------- */
+@media (max-width: 820px) {
+    /* Учёт «чёлки» и закруглённых углов по бокам */
+    .wpd-page {
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-bottom: calc(44px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .wpd-page .wpd-content {
+        padding: 24px 20px;
+    }
+
+    /* Таблицы и код из текста страницы листаются внутри, а не ломают вёрстку */
+    .wpd-page .wpd-content table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .wpd-page .wpd-content pre {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Отступы между блоками не больше 32px, даже если задан большой --wpd-gap */
+    .wpd-page :is(.wpd-stats, .wpd-docs, .wpd-faq, .wpd-slider, .wpd-buttons, .wpd-cards,
+        .wpd-notice, .wpd-news, .wpd-contacts, .wpd-partners, .wpd-countdown) {
+        margin-top: min(var(--wpd-gap, 40px), 32px);
+    }
+
+    .wpd-page .wpd-hero {
+        margin-top: 16px;
+    }
+
+    /* Контакты: кнопка под списком, список во всю ширину */
+    .wpd-page .wpd-contacts__box {
+        padding: 22px;
+    }
+
+    .wpd-page .wpd-contacts__list {
+        flex-basis: 100%;
+    }
+
+    .wpd-page .wpd-contacts__btn {
+        width: 100%;
+    }
+
+    .wpd-page .wpd-contacts__box .wpd-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Логотип контактов не шире экрана */
+    .wpd-page .wpd-contacts__logo-img {
+        max-width: min(100%, 260px);
+        height: auto;
+    }
+
+    /* Встроенная карта/видео в контактах — по ширине и с разумной высотой */
+    .wpd-page .wpd-contacts__code iframe {
+        width: 100%;
+        min-height: 220px;
+    }
+}
+
+/* ---------- Телефоны ---------- */
+@media (max-width: 600px) {
+    .wpd-page {
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
+        padding-left: max(12px, env(safe-area-inset-left, 0px));
+        font-size: max(var(--wpd-size, 16px), 15px);
+    }
+
+    .wpd-page .wpd-h2 {
+        font-size: calc(22px * var(--wpd-h2-scale, 1));
+        margin-bottom: 16px;
+    }
+
+    /* Главный блок */
+    .wpd-page .wpd-hero {
+        padding: 28px 20px;
+    }
+
+    .wpd-page .wpd-hero__title {
+        font-size: clamp(24px, 7.6vw, 32px);
+    }
+
+    .wpd-page .wpd-hero--soft .wpd-hero__title {
+        font-size: clamp(23px, 7.2vw, 34px);
+    }
+
+    .wpd-page .wpd-hero__lead,
+    .wpd-page .wpd-slide__text {
+        font-size: 16px;
+    }
+
+    .wpd-page .wpd-hero__actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .wpd-page .wpd-hero__actions .wpd-btn {
+        justify-content: center;
+        text-align: center;
+    }
+
+    .wpd-page .wpd-hero__media img {
+        aspect-ratio: 16 / 10;
+    }
+
+    /* Кнопки: удобная высота нажатия */
+    .wpd-page .wpd-btn {
+        min-height: 48px;
+        padding: 12px 18px;
+    }
+
+    /* Статистика — две колонки, документы и карточки — одна */
+    .wpd-page .wpd-stats__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .wpd-page .wpd-stat {
+        padding: 16px 14px;
+    }
+
+    .wpd-page .wpd-stat__num {
+        font-size: 28px;
+        overflow-wrap: anywhere;
+    }
+
+    .wpd-page .wpd-stat__label {
+        font-size: 13px;
+    }
+
+    .wpd-page .wpd-docs__list,
+    .wpd-page .wpd-cards__grid,
+    .wpd-page .wpd-news__track {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .wpd-page .wpd-doc {
+        min-height: 56px;
+        padding: 14px 16px;
+    }
+
+    .wpd-page .wpd-card__link {
+        padding: 18px;
+    }
+
+    /* FAQ: вопрос — цель нажатия не ниже 48px, текст не прилипает к стрелке */
+    .wpd-page .wpd-faq__q {
+        display: flex;
+        align-items: center;
+        min-height: 48px;
+        padding: 14px 48px 14px 16px;
+        box-sizing: border-box;
+    }
+
+    .wpd-page .wpd-faq__a {
+        padding: 0 16px 16px;
+    }
+
+    /* Поиск по FAQ: 16px, иначе iOS приближает страницу при фокусе */
+    .wpd-page .wpd-faq__search,
+    .wpd-page :is(input, select, textarea) {
+        font-size: 16px;
+    }
+
+    /* Таймер: значение и кнопка друг под другом во всю ширину */
+    .wpd-page .wpd-countdown {
+        padding: 16px;
+    }
+
+    .wpd-page .wpd-countdown__main {
+        flex-basis: 100%;
+    }
+
+    .wpd-page .wpd-countdown__actions,
+    .wpd-page .wpd-countdown__link {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .wpd-page .wpd-countdown__link.wpd-btn {
+        justify-content: center;
+    }
+
+    .wpd-page .wpd-countdown__note {
+        max-width: none;
+    }
+
+    /* Слайдер: ниже, подпись компактнее, точки не перекрывают текст */
+    .wpd-page .wpd-slide {
+        min-height: min(var(--wpd-slider-h, 420px), 300px);
+    }
+
+    .wpd-page .wpd-slide__caption {
+        padding: 48px 18px 44px;
+    }
+
+    .wpd-page .wpd-slide__title {
+        font-size: clamp(20px, 6vw, 26px);
+    }
+
+    .wpd-page .wpd-slider__dots {
+        bottom: 10px;
+    }
+
+    /* Новости каруселью: карточка почти во весь экран, виден край следующей */
+    .wpd-page .wpd-news--carousel .wpd-news__item {
+        flex-basis: 86%;
+    }
+
+    .wpd-page .wpd-news--carousel[data-wpd-ready] .wpd-news__head {
+        padding-right: 100px;
+    }
+
+    .wpd-page .wpd-news__body {
+        padding: 14px 16px 16px;
+    }
+
+    /* Объявление */
+    .wpd-page .wpd-notice__body {
+        padding: 20px 18px;
+    }
+
+    .wpd-page .wpd-notice__title {
+        font-size: 22px;
+    }
+
+    .wpd-page .wpd-notice__media img {
+        min-height: 160px;
+    }
+
+    /* Кнопки-ссылки: две колонки сохраняются, плитка не ниже 48px по нажатию */
+    .wpd-page .wpd-qbtn {
+        min-height: max(var(--wpd-qb-h, 116px), 48px);
+        padding: 14px 8px;
+    }
+
+    /* Партнёры: две колонки; лента — карточки уже, листается пальцем */
+    .wpd-page .wpd-partners__list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .wpd-page .wpd-partners__link {
+        min-height: 48px;
+        overflow-wrap: anywhere;
+    }
+
+    .wpd-page .wpd-partners--strip .wpd-partners__item {
+        width: calc(var(--wpd-pt-h, 64px) * 2.1);
+    }
+
+    /* Блок редактора «Фон раздела» и широкий блок — без лишних полей */
+    .wpd-page.wpd-page--block.wpd-sec {
+        padding: 18px 16px;
+    }
+
+    .wpd-page.wpd-page--block.wpd-sec.alignfull {
+        padding-left: max(12px, env(safe-area-inset-left, 0px));
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
+    }
+}
+
+/* ---------- Малые телефоны ---------- */
+@media (max-width: 480px) {
+    .wpd-page .wpd-hero {
+        padding: 22px 16px;
+    }
+
+    .wpd-page .wpd-hero--soft {
+        padding-top: 16px;
+    }
+
+    .wpd-page .wpd-badge {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+
+    .wpd-page .wpd-content {
+        padding: 18px 14px;
+    }
+
+    .wpd-page .wpd-card__title,
+    .wpd-page .wpd-news__title {
+        font-size: 17px;
+    }
+
+    /* Иконка документа меньше, подпись не теснится */
+    .wpd-page .wpd-doc__icon {
+        width: calc(var(--wpd-icon-doc, 44px) * 0.82);
+        height: calc(var(--wpd-icon-doc, 44px) * 0.82);
+    }
+
+    /* Контакты в одну колонку, адрес и почта переносятся */
+    .wpd-page .wpd-contacts__list {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .wpd-page .wpd-contacts__box {
+        padding: 18px 16px;
+    }
+}
+
+/* ---------- Очень узкие экраны ---------- */
+@media (max-width: 360px) {
+    .wpd-page {
+        padding-right: max(8px, env(safe-area-inset-right, 0px));
+        padding-left: max(8px, env(safe-area-inset-left, 0px));
+    }
+
+    .wpd-page .wpd-hero__title {
+        font-size: 22px;
+    }
+
+    .wpd-page .wpd-stats__grid {
+        gap: 8px;
+    }
+
+    .wpd-page .wpd-stat {
+        padding: 12px 10px;
+    }
+
+    .wpd-page .wpd-stat__num {
+        font-size: 23px;
+    }
+
+    .wpd-page .wpd-buttons__grid {
+        gap: 8px;
+    }
+
+    .wpd-page .wpd-qbtn {
+        font-size: 13px;
+    }
+
+    .wpd-page .wpd-partners__list {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ---------- Ландшафт телефона: низкая высота экрана ---------- */
+@media (max-height: 500px) and (orientation: landscape) {
+    .wpd-page .wpd-hero,
+    .wpd-page .wpd-hero--soft {
+        padding-top: 18px;
+        padding-bottom: 18px;
+    }
+
+    .wpd-page .wpd-slide {
+        min-height: min(var(--wpd-slider-h, 420px), 240px);
+    }
+
+    .wpd-page .wpd-hero__media--orb {
+        width: min(52%, 260px);
+    }
+
+    .wpd-page .wpd-bh {
+        min-height: min(var(--wpd-bh), 100svh);
+    }
+}
+
+/* ---------- Сенсорные устройства ---------- */
+@media (hover: none) {
+    /* Подъём карточек при наведении на тачскрине даёт «залипание» — отключаем */
+    .wpd-page :is(.wpd-stat, .wpd-doc, .wpd-card, .wpd-qbtn, .wpd-btn):hover {
+        transform: none;
+    }
+}
+
+@media (pointer: coarse) {
+    /* Стрелки новостей — не меньше 44px */
+    .wpd-page .wpd-news--carousel .wpd-slider__arrow {
+        width: 44px;
+        height: 44px;
+    }
+
+    .wpd-page .wpd-news--carousel .wpd-slider__arrow--prev {
+        right: 52px;
+    }
+
+    /* Точки слайдера: вид прежний, область нажатия расширена невидимо */
+    .wpd-page .wpd-slider__dot {
+        position: relative;
+    }
+
+    .wpd-page .wpd-slider__dot::after {
+        content: "";
+        position: absolute;
+        inset: -16px;
+    }
+
+    /* Ссылки контактов и новостей легче нажимать */
+    .wpd-page .wpd-contacts__list li {
+        min-height: 32px;
+    }
+
+    .wpd-page .wpd-news__more {
+        display: inline-block;
+        padding: 8px 0;
+    }
+}
